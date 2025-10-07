@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase接続テスト</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    button {
+      margin: 10px 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #output {
+      background: #f4f4f4;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      white-space: pre-wrap;
+    }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Supabase user_names テーブル接続テスト</h1>
+
+  <div>
+    <button onclick="testConnection()">1. 接続テスト</button>
+    <button onclick="testGetUsers()">2. ユーザー一覧取得</button>
+    <button onclick="testAddUser()">3. テストユーザー追加</button>
+    <button onclick="testCheckTable()">4. テーブル確認</button>
+  </div>
+
+  <div id="output">ここに結果が表示されます...</div>
+
+  <script>
+    const SUPABASE_URL = 'https://thorvfskdheztcqlalvf.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRob3J2ZnNrZGhlenRjcWxhbHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MTUxOTQsImV4cCI6MjA3MjM5MTE5NH0.J7rQQorwulkx0HGfTO6tsR6LUBweyVlhISiPN7EoC2g'
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+    function log(message, type = 'info') {
+      const output = document.getElementById('output')
+      const className = type === 'error' ? 'error' : type === 'success' ? 'success' : ''
+      output.innerHTML += `<div class="${className}">${new Date().toLocaleTimeString()} - ${message}</div>`
+    }
+
+    function clearLog() {
+      document.getElementById('output').innerHTML = ''
+    }
+
+    async function testConnection() {
+      clearLog()
+      log('=== 接続テスト開始 ===')
+      log(`URL: ${SUPABASE_URL}`)
+      log(`KEY: ${SUPABASE_ANON_KEY.substring(0, 20)}...`)
+
+      try {
+        const { data, error } = await supabase.from('user_names').select('count')
+
+        if (error) {
+          log(`エラー: ${error.message}`, 'error')
+          log(`詳細: ${JSON.stringify(error, null, 2)}`, 'error')
+        } else {
+          log('接続成功！', 'success')
+          log(`レスポンス: ${JSON.stringify(data, null, 2)}`, 'success')
+        }
+      } catch (err) {
+        log(`例外発生: ${err.message}`, 'error')
+      }
+    }
+
+    async function testGetUsers() {
+      clearLog()
+      log('=== ユーザー一覧取得テスト ===')
+
+      try {
+        const { data, error } = await supabase
+          .from('user_names')
+          .select('*')
+          .order('name', { ascending: true })
+
+        if (error) {
+          log(`エラー: ${error.message}`, 'error')
+          log(`詳細: ${JSON.stringify(error, null, 2)}`, 'error')
+
+          if (error.code === 'PGRST204') {
+            log('テーブルが存在しないか、データが0件です', 'error')
+          } else if (error.code === 'PGRST301') {
+            log('RLSポリシーでアクセスが拒否されています', 'error')
+          }
+        } else {
+          log(`取得成功！件数: ${data.length}`, 'success')
+          log(`データ: ${JSON.stringify(data, null, 2)}`, 'success')
+        }
+      } catch (err) {
+        log(`例外発生: ${err.message}`, 'error')
+      }
+    }
+
+    async function testAddUser() {
+      clearLog()
+      log('=== テストユーザー追加 ===')
+
+      const testUserName = `テストユーザー_${Date.now()}`
+      log(`追加するユーザー名: ${testUserName}`)
+
+      try {
+        const { data, error } = await supabase
+          .from('user_names')
+          .insert({ name: testUserName })
+          .select()
+
+        if (error) {
+          log(`エラー: ${error.message}`, 'error')
+          log(`詳細: ${JSON.stringify(error, null, 2)}`, 'error')
+
+          if (error.code === '42501') {
+            log('RLSポリシーでINSERTが拒否されています', 'error')
+            log('Supabaseダッシュボードで以下を確認してください:', 'error')
+            log('1. user_namesテーブルが存在するか', 'error')
+            log('2. RLSが有効になっているか', 'error')
+            log('3. INSERT用のポリシーが設定されているか', 'error')
+          }
+        } else {
+          log('追加成功！', 'success')
+          log(`追加されたデータ: ${JSON.stringify(data, null, 2)}`, 'success')
+        }
+      } catch (err) {
+        log(`例外発生: ${err.message}`, 'error')
+      }
+    }
+
+    async function testCheckTable() {
+      clearLog()
+      log('=== テーブル存在確認 ===')
+
+      try {
+        // テーブルの情報を取得
+        const { data, error } = await supabase
+          .from('user_names')
+          .select('*')
+          .limit(1)
+
+        if (error) {
+          log(`エラー: ${error.message}`, 'error')
+
+          if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+            log('❌ user_namesテーブルが存在しません！', 'error')
+            log('Supabaseダッシュボードで以下のSQLを実行してください:', 'error')
+            log(`
+CREATE TABLE IF NOT EXISTS user_names (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  created_by UUID REFERENCES auth.users(id),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+ALTER TABLE user_names ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read user_names" ON user_names FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert user_names" ON user_names FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update user_names" ON user_names FOR UPDATE USING (true);
+CREATE POLICY "Anyone can delete user_names" ON user_names FOR DELETE USING (true);
+            `, 'error')
+          } else {
+            log(`その他のエラー: ${JSON.stringify(error, null, 2)}`, 'error')
+          }
+        } else {
+          log('✅ user_namesテーブルは存在します', 'success')
+          log(`データ件数: ${data.length}`, 'success')
+          if (data.length > 0) {
+            log(`サンプルデータ: ${JSON.stringify(data[0], null, 2)}`, 'success')
+          }
+        }
+      } catch (err) {
+        log(`例外発生: ${err.message}`, 'error')
+      }
+    }
+  </script>
+</body>
+</html>

@@ -266,8 +266,11 @@ export default function EventDetailPage() {
                 </div>
                 <div className="w-full bg-muted/30 rounded-full h-3">
                   <div
-                    className="h-3 rounded-full transition-all duration-500" style={{ backgroundColor: '#22211A' }}
-                    style={{ width: `${Math.min(Math.round((event.actual_hs_total / event.target_hs_total) * 100), 100)}%` }}
+                    className="h-3 rounded-full transition-all duration-500"
+                    style={{
+                      backgroundColor: '#22211A',
+                      width: `${Math.min(Math.round((event.actual_hs_total / event.target_hs_total) * 100), 100)}%`
+                    }}
                   />
                 </div>
               </div>

@@ -87,7 +87,6 @@ export default function AdminDashboard() {
   const [showAdminSettings, setShowAdminSettings] = useState(false)
   const [adminSettingsSaved, setAdminSettingsSaved] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const supabase = createClient()
 
   // 新規ID計算用データの状態
   const [calculationData, setCalculationData] = useState({
@@ -123,6 +122,7 @@ export default function AdminDashboard() {
 
 
   const checkAuthAndFetchData = async () => {
+    const supabase = createClient()
     try {
       // 認証状態を確認（一時的に認証チェックをスキップ）
       const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -180,6 +180,7 @@ export default function AdminDashboard() {
 
   // ID計算データ一覧を取得
   const fetchIdCalculationData = async () => {
+    const supabase = createClient()
     try {
       const { data, error } = await supabase
         .from('id_calculation_data')
@@ -200,6 +201,7 @@ export default function AdminDashboard() {
   const handleDeleteCalculationData = async (id: string) => {
     if (!confirm('このデータを削除しますか？')) return
 
+    const supabase = createClient()
     setDeleting(id)
     try {
       const { error } = await supabase
@@ -280,6 +282,7 @@ export default function AdminDashboard() {
 
   // イベント実績データ一覧を取得
   const fetchEventsData = async () => {
+    const supabase = createClient()
     try {
       // event_summaryビューを使用してデータを取得
       const { data, error } = await supabase
@@ -301,6 +304,7 @@ export default function AdminDashboard() {
   const handleDeleteEvent = async (eventId: string) => {
     if (!confirm('このイベントとすべての関連データを削除しますか？\n削除すると元に戻せません。')) return
 
+    const supabase = createClient()
     setDeletingEvent(eventId)
     try {
       // 関連するパフォーマンスデータも一緒に削除される（カスケード削除）
@@ -403,6 +407,7 @@ export default function AdminDashboard() {
   }
 
   const fetchPendingRequests = async () => {
+    const supabase = createClient()
     try {
       const { data, error } = await supabase
         .from('approval_requests')
@@ -426,8 +431,9 @@ export default function AdminDashboard() {
   }
 
   const handleApproval = async (requestId: string, userId: string, role: string, approve: boolean) => {
+    const supabase = createClient()
     setProcessing(requestId)
-    
+
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('認証エラー')
@@ -480,6 +486,7 @@ export default function AdminDashboard() {
 
   // 新規ID計算用データの保存
   const handleSaveCalculationData = async () => {
+    const supabase = createClient()
     setSaving(true)
 
     try {

@@ -11,13 +11,13 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     checkAuthAndLoadUsers()
   }, [])
 
   const checkAuthAndLoadUsers = async () => {
+    const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session) {

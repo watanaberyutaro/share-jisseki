@@ -1,23 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 
-export default function ApprovePage() {
+function ApprovePageContent() {
   const [processing, setProcessing] = useState(true)
   const [result, setResult] = useState<{
     success: boolean
     message: string
   } | null>(null)
-  
+
   const searchParams = useSearchParams()
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     const processApproval = async () => {
+      const supabase = createClient()
       const token = searchParams.get('token')
       const action = searchParams.get('action')
 
@@ -52,7 +52,7 @@ export default function ApprovePage() {
     }
 
     processApproval()
-  }, [searchParams, supabase])
+  }, [searchParams])
 
   if (processing) {
     return (
@@ -107,5 +107,20 @@ export default function ApprovePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ApprovePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg text-foreground">読み込み中...</p>
+        </div>
+      </div>
+    }>
+      <ApprovePageContent />
+    </Suspense>
   )
 }

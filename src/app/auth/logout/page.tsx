@@ -6,15 +6,15 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function LogoutPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     const logout = async () => {
+      const supabase = createClient()
       await supabase.auth.signOut()
       router.push('/auth/login')
     }
     logout()
-  }, [router, supabase])
+  }, [router])
 
   return (
     <div className="min-h-screen flex items-center justify-center">

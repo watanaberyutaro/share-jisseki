@@ -16,7 +16,6 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,6 +36,7 @@ export default function SignupPage() {
     }
 
     try {
+      const supabase = createClient()
       // Supabaseの設定でメール認証を無効化している場合のサインアップ
       const { data, error } = await supabase.auth.signUp({
         email,

@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  name        String
+  date        DateTime
+  venue       String
+  team        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  performances Performance[]
+  closers      EventCloser[]
+}
+
+model Performance {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  // 新規ID系 - au MNP
+  auMnpSp1    Int      @default(0)
+  auMnpSp2    Int      @default(0)
+  auMnpSim    Int      @default(0)
+  
+  // 新規ID系 - UQ MNP
+  uqMnpSp1    Int      @default(0)
+  uqMnpSp2    Int      @default(0)
+  uqMnpSim    Int      @default(0)
+  
+  // 新規ID系 - au HS
+  auHsSp1     Int      @default(0)
+  auHsSp2     Int      @default(0)
+  auHsSim     Int      @default(0)
+  
+  // 新規ID系 - UQ HS
+  uqHsSp1     Int      @default(0)
+  uqHsSp2     Int      @default(0)
+  uqHsSim     Int      @default(0)
+  
+  // 新規ID系 - セルアップ
+  cellUpSp1   Int      @default(0)
+  cellUpSp2   Int      @default(0)
+  cellUpSim   Int      @default(0)
+  
+  // LTV系
+  creditCard  Int      @default(0)
+  goldCard    Int      @default(0)
+  jiBankAccount Int    @default(0)
+  warranty    Int      @default(0)
+  ott         Int      @default(0)
+  electricity Int      @default(0)
+  gas         Int      @default(0)
+  
+  // NW件数
+  networkCount Int     @default(0)
+  
+  // メタデータ
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Closer {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  team        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  events      EventCloser[]
+}
+
+model EventCloser {
+  id          String   @id @default(cuid())
+  eventId     String
+  closerId    String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  closer      Closer   @relation(fields: [closerId], references: [id], onDelete: Cascade)
+  
+  // 個人実績
+  totalSales  Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([eventId, closerId])
+}

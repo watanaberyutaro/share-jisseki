@@ -1,0 +1,10 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Phone body -->
+  <rect x="5" y="2" width="14" height="20" rx="3" fill="#22211A" stroke="#22211A" stroke-width="0.5"/>
+  <!-- Screen -->
+  <rect x="6.5" y="4" width="11" height="15" rx="1.5" fill="#FFFFFF"/>
+  <!-- Top speaker/camera -->
+  <rect x="10.5" y="2.8" width="3" height="0.4" rx="0.2" fill="#FFFFFF"/>
+  <!-- Home button -->
+  <circle cx="12" cy="20.5" r="0.6" fill="#FFFFFF"/>
+</svg>

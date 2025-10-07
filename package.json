@@ -1,0 +1,48 @@
+{
+  "name": "event-performance-analyzer",
+  "version": "1.0.0",
+  "description": "イベント実績分析ツール - 携帯ショップ外販イベント実績分析システム",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "3.7.0",
+    "@prisma/client": "5.17.0",
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.56.1",
+    "@tanstack/react-query": "5.51.11",
+    "@types/three": "^0.180.0",
+    "autoprefixer": "10.4.19",
+    "axios": "1.7.2",
+    "clsx": "2.1.1",
+    "date-fns": "3.6.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.3",
+    "lucide-react": "0.414.0",
+    "next": "14.2.5",
+    "postcss": "8.4.39",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-hook-form": "7.52.1",
+    "recharts": "2.12.7",
+    "tailwind-merge": "2.4.0",
+    "tailwindcss": "3.4.6",
+    "three": "^0.180.0",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.12",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.5",
+    "prisma": "5.17.0",
+    "typescript": "5.5.4"
+  }
+}

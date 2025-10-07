@@ -159,7 +159,7 @@ export function ParticleWaveBackground(props: ParticleWaveProps = {}) {
     }
 
     const material = new THREE.ShaderMaterial({
-      uniforms,
+      uniforms: uniforms as any,
       vertexShader,
       fragmentShader,
       transparent: true,

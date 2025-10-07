@@ -1,22 +1,24 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// 管理者権限でSupabaseクライアントを作成
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-)
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'This endpoint is disabled in production' }, { status: 403 })
   }
+
+  // 管理者権限でSupabaseクライアントを作成
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  )
 
   try {
     // 1. オーナーアカウントを作成（既に存在する場合はスキップ）

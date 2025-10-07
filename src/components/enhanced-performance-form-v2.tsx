@@ -553,6 +553,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   // 一時保存機能
   const saveDraft = useCallback(async (data: Partial<PerformanceFormData>, isManual = false) => {
     try {
+      console.log('[saveDraft] 保存開始:', { DRAFT_KEY, isManual, dataKeys: Object.keys(data) })
       setAutoSaveStatus('saving')
       const draftData = {
         ...data,
@@ -560,6 +561,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
         eventPhotos: undefined // ファイルは保存しない
       }
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData))
+      console.log('[saveDraft] 保存成功:', DRAFT_KEY)
       setAutoSaveStatus('saved')
       setLastSavedAt(new Date())
 
@@ -580,7 +582,9 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   // 一時保存データの読み込み
   const loadDraft = useCallback(() => {
     try {
+      console.log('[loadDraft] 読み込み開始:', DRAFT_KEY)
       const savedDraft = localStorage.getItem(DRAFT_KEY)
+      console.log('[loadDraft] 取得結果:', savedDraft ? '存在' : 'なし')
       if (savedDraft && !editMode) {
         const draftData = JSON.parse(savedDraft)
         // 24時間以内の下書きのみ読み込む

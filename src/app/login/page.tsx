@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, Shield, Plus, Edit2, Trash2, Check, X } from 'lucide-react'
 import { MagneticDots } from '@/components/MagneticDots'
+import { getSharedList, addToSharedList, updateSharedListItem, deleteFromSharedList, migrateLocalStorageToSupabase } from '@/lib/supabase/shared-lists'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -38,11 +39,8 @@ export default function LoginPage() {
       localStorage.setItem('adminPassword', 'Pw123123')
     }
 
-    // ユーザーリストを読み込み
-    const savedUsers = localStorage.getItem('userList')
-    if (savedUsers) {
-      setUserList(JSON.parse(savedUsers))
-    }
+    // Supabaseからユーザーリストを読み込み
+    loadUserList()
 
     let welcomeTitleIndex = 0
     let welcomeSubtextIndex = 0
@@ -97,6 +95,25 @@ export default function LoginPage() {
     return () => clearInterval(typingInterval)
   }, [])
 
+  // Supabaseからユーザーリストを読み込み
+  const loadUserList = async () => {
+    try {
+      // まずlocalStorageから移行（初回のみ）
+      await migrateLocalStorageToSupabase('user_names', 'userList')
+
+      // Supabaseから取得
+      const names = await getSharedList('user_names')
+      setUserList(names)
+    } catch (error) {
+      console.error('Error loading user list:', error)
+      // エラー時はlocalStorageから読み込み
+      const savedUsers = localStorage.getItem('userList')
+      if (savedUsers) {
+        setUserList(JSON.parse(savedUsers))
+      }
+    }
+  }
+
   const handleLogin = (role: 'user' | 'admin') => {
     if (role === 'admin') {
       // 管理者の場合は認証モーダルを表示
@@ -107,43 +124,65 @@ export default function LoginPage() {
     }
   }
 
-  const handleUserSelect = (userName: string) => {
-    // ユーザー名がリストに存在しない場合は追加
-    if (userName && !userList.includes(userName)) {
-      const updatedList = [...userList, userName.trim()].sort()
-      setUserList(updatedList)
-      localStorage.setItem('userList', JSON.stringify(updatedList))
-    }
+  const handleUserSelect = async (userName: string) => {
+    try {
+      // ユーザー名がリストに存在しない場合はSupabaseに追加
+      if (userName && !userList.includes(userName)) {
+        await addToSharedList('user_names', userName.trim())
+        // リストを再読み込み
+        await loadUserList()
+      }
 
-    localStorage.setItem('userRole', 'user')
-    localStorage.setItem('userName', userName)
-    router.push('/')
+      localStorage.setItem('userRole', 'user')
+      localStorage.setItem('userName', userName)
+      router.push('/')
+    } catch (error) {
+      console.error('Error selecting user:', error)
+      // エラー時でもログインは継続
+      localStorage.setItem('userRole', 'user')
+      localStorage.setItem('userName', userName)
+      router.push('/')
+    }
   }
 
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     if (newUserName.trim()) {
-      const updatedList = [...userList, newUserName.trim()]
-      setUserList(updatedList)
-      localStorage.setItem('userList', JSON.stringify(updatedList))
-      setNewUserName('')
-      setIsAddingUser(false)
+      try {
+        await addToSharedList('user_names', newUserName.trim())
+        await loadUserList()
+        setNewUserName('')
+        setIsAddingUser(false)
+      } catch (error) {
+        console.error('Error adding user:', error)
+        alert('ユーザーの追加に失敗しました')
+      }
     }
   }
 
-  const handleEditUser = (oldName: string) => {
+  const handleEditUser = async (oldName: string) => {
     if (editUserName.trim() && editUserName !== oldName) {
-      const updatedList = userList.map(name => name === oldName ? editUserName.trim() : name)
-      setUserList(updatedList)
-      localStorage.setItem('userList', JSON.stringify(updatedList))
-      setEditingUser(null)
-      setEditUserName('')
+      try {
+        await updateSharedListItem('user_names', oldName, editUserName.trim())
+        await loadUserList()
+        setEditingUser(null)
+        setEditUserName('')
+      } catch (error) {
+        console.error('Error editing user:', error)
+        alert('ユーザー名の変更に失敗しました')
+      }
     }
   }
 
-  const handleDeleteUser = (userName: string) => {
-    const updatedList = userList.filter(name => name !== userName)
-    setUserList(updatedList)
-    localStorage.setItem('userList', JSON.stringify(updatedList))
+  const handleDeleteUser = async (userName: string) => {
+    if (!confirm(`「${userName}」を削除しますか？`)) return
+
+    try {
+      await deleteFromSharedList('user_names', userName)
+      await loadUserList()
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      alert('ユーザーの削除に失敗しました')
+    }
   }
 
   const handleAdminAuth = () => {

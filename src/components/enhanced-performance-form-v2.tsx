@@ -11,6 +11,7 @@ import {
   CalendarIcon, Save, TrendingUp, Plus, Trash2, Copy,
   ChevronDown, ChevronUp, Users, Building2, MapPin, Calendar, Upload, X, Image, Clock
 } from 'lucide-react'
+import { getSharedList, addToSharedList, updateSharedListItem, deleteFromSharedList, migrateLocalStorageToSupabase } from '@/lib/supabase/shared-lists'
 
 // 日別実績のスキーマ（未入力時に0とする処理を追加）
 const dailyPerformanceSchema = z.object({
@@ -349,124 +350,193 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     name: 'staffPerformances',
   })
 
-  // 代理店リストをローカルストレージから読み込む（全ユーザー共通）
-  useEffect(() => {
-    const savedAgencies = localStorage.getItem('agencies_global')
-    if (savedAgencies) {
-      setAgencies(JSON.parse(savedAgencies))
+  // 代理店リストをSupabaseから読み込む（全ユーザー共通）
+  const loadAgencies = async () => {
+    try {
+      await migrateLocalStorageToSupabase('agency_names', 'agencies_global')
+      const names = await getSharedList('agency_names')
+      setAgencies(names)
+    } catch (error) {
+      console.error('Error loading agencies:', error)
+      const savedAgencies = localStorage.getItem('agencies_global')
+      if (savedAgencies) {
+        setAgencies(JSON.parse(savedAgencies))
+      }
     }
-  }, [])
-
-  // スタッフリストをローカルストレージから読み込む（全ユーザー共通）
-  useEffect(() => {
-    const savedStaff = localStorage.getItem('staffList_global')
-    if (savedStaff) {
-      setStaffList(JSON.parse(savedStaff))
-    }
-  }, [])
-
-  // 会場リストをローカルストレージから読み込む（全ユーザー共通）
-  useEffect(() => {
-    const savedVenues = localStorage.getItem('venues_global')
-    if (savedVenues) {
-      setVenues(JSON.parse(savedVenues))
-    }
-  }, [])
-
-  // 代理店リストをローカルストレージに保存（全ユーザー共通）
-  const saveAgenciesToStorage = (newAgencies: string[]) => {
-    localStorage.setItem('agencies_global', JSON.stringify(newAgencies))
-    setAgencies(newAgencies)
   }
 
+  useEffect(() => {
+    loadAgencies()
+  }, [])
+
+  // スタッフリストをSupabaseから読み込む（全ユーザー共通）
+  const loadStaffList = async () => {
+    try {
+      await migrateLocalStorageToSupabase('staff_names', 'staffList_global')
+      const names = await getSharedList('staff_names')
+      setStaffList(names)
+    } catch (error) {
+      console.error('Error loading staff list:', error)
+      const savedStaff = localStorage.getItem('staffList_global')
+      if (savedStaff) {
+        setStaffList(JSON.parse(savedStaff))
+      }
+    }
+  }
+
+  useEffect(() => {
+    loadStaffList()
+  }, [])
+
+  // 会場リストをSupabaseから読み込む（全ユーザー共通）
+  const loadVenues = async () => {
+    try {
+      await migrateLocalStorageToSupabase('venue_names', 'venues_global')
+      const names = await getSharedList('venue_names')
+      setVenues(names)
+    } catch (error) {
+      console.error('Error loading venues:', error)
+      const savedVenues = localStorage.getItem('venues_global')
+      if (savedVenues) {
+        setVenues(JSON.parse(savedVenues))
+      }
+    }
+  }
+
+  useEffect(() => {
+    loadVenues()
+  }, [])
+
   // 代理店を追加
-  const addAgency = () => {
-    if (newAgencyName.trim() && !agencies.includes(newAgencyName.trim())) {
-      const updatedAgencies = [...agencies, newAgencyName.trim()].sort()
-      saveAgenciesToStorage(updatedAgencies)
-      setNewAgencyName('')
+  const addAgency = async () => {
+    if (newAgencyName.trim()) {
+      try {
+        await addToSharedList('agency_names', newAgencyName.trim())
+        await loadAgencies()
+        setNewAgencyName('')
+      } catch (error) {
+        console.error('Error adding agency:', error)
+        alert('代理店の追加に失敗しました')
+      }
     }
   }
 
   // 代理店を編集
-  const updateAgency = (index: number) => {
-    if (editingAgencyName.trim() && !agencies.includes(editingAgencyName.trim())) {
-      const updatedAgencies = [...agencies]
-      updatedAgencies[index] = editingAgencyName.trim()
-      saveAgenciesToStorage(updatedAgencies.sort())
-      setEditingAgencyIndex(null)
-      setEditingAgencyName('')
+  const updateAgency = async (index: number) => {
+    const oldName = agencies[index]
+    if (editingAgencyName.trim() && editingAgencyName !== oldName) {
+      try {
+        await updateSharedListItem('agency_names', oldName, editingAgencyName.trim())
+        await loadAgencies()
+        setEditingAgencyIndex(null)
+        setEditingAgencyName('')
+      } catch (error) {
+        console.error('Error updating agency:', error)
+        alert('代理店名の変更に失敗しました')
+      }
     }
   }
 
   // 代理店を削除
-  const deleteAgency = (index: number) => {
-    const updatedAgencies = agencies.filter((_, i) => i !== index)
-    saveAgenciesToStorage(updatedAgencies)
-  }
+  const deleteAgency = async (index: number) => {
+    const agencyName = agencies[index]
+    if (!confirm(`「${agencyName}」を削除しますか？`)) return
 
-  // スタッフリストをローカルストレージに保存（全ユーザー共通）
-  const saveStaffToStorage = (newStaffList: string[]) => {
-    localStorage.setItem('staffList_global', JSON.stringify(newStaffList))
-    setStaffList(newStaffList)
+    try {
+      await deleteFromSharedList('agency_names', agencyName)
+      await loadAgencies()
+    } catch (error) {
+      console.error('Error deleting agency:', error)
+      alert('代理店の削除に失敗しました')
+    }
   }
 
   // スタッフを追加
-  const addStaffToList = () => {
-    if (newStaffName.trim() && !staffList.includes(newStaffName.trim())) {
-      const updatedStaffList = [...staffList, newStaffName.trim()].sort()
-      saveStaffToStorage(updatedStaffList)
-      setNewStaffName('')
+  const addStaffToList = async () => {
+    if (newStaffName.trim()) {
+      try {
+        await addToSharedList('staff_names', newStaffName.trim())
+        await loadStaffList()
+        setNewStaffName('')
+      } catch (error) {
+        console.error('Error adding staff:', error)
+        alert('スタッフの追加に失敗しました')
+      }
     }
   }
 
   // スタッフを編集
-  const updateStaff = (index: number) => {
-    if (editingStaffName.trim() && !staffList.includes(editingStaffName.trim())) {
-      const updatedStaffList = [...staffList]
-      updatedStaffList[index] = editingStaffName.trim()
-      saveStaffToStorage(updatedStaffList.sort())
-      setEditingStaffIndex(null)
-      setEditingStaffName('')
+  const updateStaff = async (index: number) => {
+    const oldName = staffList[index]
+    if (editingStaffName.trim() && editingStaffName !== oldName) {
+      try {
+        await updateSharedListItem('staff_names', oldName, editingStaffName.trim())
+        await loadStaffList()
+        setEditingStaffIndex(null)
+        setEditingStaffName('')
+      } catch (error) {
+        console.error('Error updating staff:', error)
+        alert('スタッフ名の変更に失敗しました')
+      }
     }
   }
 
   // スタッフを削除
-  const deleteStaff = (index: number) => {
-    const updatedStaffList = staffList.filter((_, i) => i !== index)
-    saveStaffToStorage(updatedStaffList)
-  }
+  const deleteStaff = async (index: number) => {
+    const staffName = staffList[index]
+    if (!confirm(`「${staffName}」を削除しますか？`)) return
 
-  // 会場リストをローカルストレージに保存（全ユーザー共通）
-  const saveVenuesToStorage = (newVenues: string[]) => {
-    localStorage.setItem('venues_global', JSON.stringify(newVenues))
-    setVenues(newVenues)
+    try {
+      await deleteFromSharedList('staff_names', staffName)
+      await loadStaffList()
+    } catch (error) {
+      console.error('Error deleting staff:', error)
+      alert('スタッフの削除に失敗しました')
+    }
   }
 
   // 会場を追加
-  const addVenue = () => {
-    if (newVenueName.trim() && !venues.includes(newVenueName.trim())) {
-      const updatedVenues = [...venues, newVenueName.trim()].sort()
-      saveVenuesToStorage(updatedVenues)
-      setNewVenueName('')
+  const addVenue = async () => {
+    if (newVenueName.trim()) {
+      try {
+        await addToSharedList('venue_names', newVenueName.trim())
+        await loadVenues()
+        setNewVenueName('')
+      } catch (error) {
+        console.error('Error adding venue:', error)
+        alert('会場の追加に失敗しました')
+      }
     }
   }
 
   // 会場を編集
-  const updateVenue = (index: number) => {
-    if (editingVenueName.trim() && !venues.includes(editingVenueName.trim())) {
-      const updatedVenues = [...venues]
-      updatedVenues[index] = editingVenueName.trim()
-      saveVenuesToStorage(updatedVenues.sort())
-      setEditingVenueIndex(null)
-      setEditingVenueName('')
+  const updateVenue = async (index: number) => {
+    const oldName = venues[index]
+    if (editingVenueName.trim() && editingVenueName !== oldName) {
+      try {
+        await updateSharedListItem('venue_names', oldName, editingVenueName.trim())
+        await loadVenues()
+        setEditingVenueIndex(null)
+        setEditingVenueName('')
+      } catch (error) {
+        console.error('Error updating venue:', error)
+        alert('会場名の変更に失敗しました')
+      }
     }
   }
 
   // 会場を削除
-  const deleteVenue = (index: number) => {
-    const updatedVenues = venues.filter((_, i) => i !== index)
-    saveVenuesToStorage(updatedVenues)
+  const deleteVenue = async (index: number) => {
+    const venueName = venues[index]
+    if (!confirm(`「${venueName}」を削除しますか？`)) return
+
+    try {
+      await deleteFromSharedList('venue_names', venueName)
+      await loadVenues()
+    } catch (error) {
+      console.error('Error deleting venue:', error)
+      alert('会場の削除に失敗しました')
+    }
   }
 
   // 一時保存キー（ユーザー名ごとに分ける）

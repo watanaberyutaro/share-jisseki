@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { MagneticDots } from '@/components/MagneticDots'
 
@@ -18,10 +19,20 @@ const EnhancedPerformanceFormV2 = dynamic(
 )
 
 export default function InputPage() {
+  const router = useRouter()
   const [displayedTitle, setDisplayedTitle] = useState('')
   const [displayedDescription, setDisplayedDescription] = useState('')
   const fullTitle = '実績入力'
   const fullDescription = 'イベントの詳細情報と実績データを入力してください'
+
+  // ログインチェック
+  useEffect(() => {
+    const userName = localStorage.getItem('userName')
+    if (!userName) {
+      console.log('[InputPage] ユーザー名が見つかりません。ログインページにリダイレクトします')
+      router.push('/login')
+    }
+  }, [router])
 
   useEffect(() => {
     let titleIndex = 0

@@ -12,14 +12,13 @@ export default function CheckProfilesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const supabase = createClient()
-
   useEffect(() => {
     checkData()
   }, [])
 
   const checkData = async () => {
     try {
+      const supabase = createClient()
       // 現在のセッション確認
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
@@ -54,6 +53,7 @@ export default function CheckProfilesPage() {
     }
 
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from('profiles')
         .upsert({

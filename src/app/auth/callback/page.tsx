@@ -6,10 +6,10 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     const handleCallback = async () => {
+      const supabase = createClient()
       // URLからトークンを取得してセッションを確立
       const { data: { session }, error } = await supabase.auth.getSession()
       
@@ -28,7 +28,7 @@ export default function AuthCallbackPage() {
     }
 
     handleCallback()
-  }, [router, supabase])
+  }, [router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background">

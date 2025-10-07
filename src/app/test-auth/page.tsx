@@ -9,11 +9,11 @@ export default function TestAuthPage() {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('test@example.com')
   const [password, setPassword] = useState('test123456')
-  const supabase = createClient()
 
   const testConnection = async () => {
     setLoading(true)
     try {
+      const supabase = createClient()
       // Supabaseの接続をテスト
       const { data, error } = await supabase.auth.getSession()
       setResult({
@@ -36,6 +36,7 @@ export default function TestAuthPage() {
   const testSignUp = async () => {
     setLoading(true)
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -66,6 +67,7 @@ export default function TestAuthPage() {
   const testSignIn = async () => {
     setLoading(true)
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -90,6 +92,7 @@ export default function TestAuthPage() {
   const testProfiles = async () => {
     setLoading(true)
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -115,6 +118,7 @@ export default function TestAuthPage() {
   const signOut = async () => {
     setLoading(true)
     try {
+      const supabase = createClient()
       const { error } = await supabase.auth.signOut()
       setResult({
         type: 'signout',

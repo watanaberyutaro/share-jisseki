@@ -29,7 +29,6 @@ export function IdCalculatorComponent() {
   const [calculationPeriods, setCalculationPeriods] = useState<IdCalculationData[]>([])
   const [selectedPeriod, setSelectedPeriod] = useState<IdCalculationData | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   // 入力件数
   const [inputData, setInputData] = useState({
@@ -56,6 +55,7 @@ export function IdCalculatorComponent() {
 
   const fetchCalculationPeriods = async () => {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from('id_calculation_data')
         .select('*')

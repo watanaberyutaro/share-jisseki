@@ -13,8 +13,6 @@ export default function SetupOwnerPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{type: 'success' | 'error', message: string} | null>(null)
 
-  const supabase = createClient()
-
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -34,6 +32,7 @@ export default function SetupOwnerPage() {
     }
 
     try {
+      const supabase = createClient()
       // 1. アカウント作成
       console.log('オーナーアカウント作成中...')
       const { data, error } = await supabase.auth.signUp({
@@ -89,8 +88,9 @@ export default function SetupOwnerPage() {
 
   const handleProfileSetup = async (userId: string) => {
     try {
+      const supabase = createClient()
       console.log('プロファイル設定中...')
-      
+
       // プロファイルを作成/更新
       const { data, error } = await supabase
         .from('profiles')

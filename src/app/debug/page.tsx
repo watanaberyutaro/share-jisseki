@@ -10,10 +10,10 @@ export default function DebugPage() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     const checkAuth = async () => {
+      const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       setSession(session)
       
@@ -28,9 +28,10 @@ export default function DebugPage() {
       setLoading(false)
     }
     checkAuth()
-  }, [supabase])
+  }, [])
 
   const handleLogout = async () => {
+    const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/auth/login')
   }

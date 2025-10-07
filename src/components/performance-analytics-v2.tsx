@@ -164,7 +164,7 @@ export function PerformanceAnalyticsV2({
 
   // 比較モーダル用のstate
   const [compareModalOpen, setCompareModalOpen] = useState(false)
-  const [compareType, setCompareType] = useState<'achievement' | 'weekly' | 'level' | 'achievementStatus' | 'venue' | 'agency' | 'staff' | 'venueMonthly' | 'monthly'>('')
+  const [compareType, setCompareType] = useState<'achievement' | 'weekly' | 'level' | 'achievementStatus' | 'venue' | 'agency' | 'staff' | 'venueMonthly' | 'monthly'>('achievement')
   const [compareLeftStart, setCompareLeftStart] = useState<string>('')
   const [compareLeftEnd, setCompareLeftEnd] = useState<string>('')
   const [compareRightStart, setCompareRightStart] = useState<string>('')

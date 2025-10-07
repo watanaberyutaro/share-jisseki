@@ -59,7 +59,7 @@ export async function uploadEventPhotos(eventId: string, photos: File[]) {
       }
       
       console.log('Bucket created successfully:', newBucket)
-      targetBucket = newBucket
+      targetBucket = newBucket as any
     } else {
       console.log('Target bucket found:', targetBucket)
     }

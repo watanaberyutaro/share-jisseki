@@ -22,15 +22,22 @@ export default function InputPage() {
   const router = useRouter()
   const [displayedTitle, setDisplayedTitle] = useState('')
   const [displayedDescription, setDisplayedDescription] = useState('')
+  const [isReady, setIsReady] = useState(false)
   const fullTitle = '実績入力'
   const fullDescription = 'イベントの詳細情報と実績データを入力してください'
 
   // ログインチェック
   useEffect(() => {
+    console.log('[InputPage] ページマウント - ログインチェック開始')
     const userName = localStorage.getItem('userName')
+    console.log('[InputPage] userName:', userName)
+
     if (!userName) {
       console.log('[InputPage] ユーザー名が見つかりません。ログインページにリダイレクトします')
       router.push('/login')
+    } else {
+      console.log('[InputPage] ログイン確認完了。フォームを表示します')
+      setIsReady(true)
     }
   }, [router])
 
@@ -88,7 +95,13 @@ export default function InputPage() {
             <div className="animate-pulse">フォームを読み込んでいます...</div>
           </div>
         }>
-          <EnhancedPerformanceFormV2 />
+          {isReady ? (
+            <EnhancedPerformanceFormV2 />
+          ) : (
+            <div className="glass rounded-xl p-8 border text-center" style={{ borderColor: '#22211A' }}>
+              <div className="animate-pulse">認証を確認しています...</div>
+            </div>
+          )}
         </Suspense>
       </div>
     </div>

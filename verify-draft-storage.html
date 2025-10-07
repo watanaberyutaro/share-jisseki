@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Draft Storage 検証</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    button {
+      margin: 10px 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #output {
+      background: #f4f4f4;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      white-space: pre-wrap;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .success { color: green; }
+    .error { color: red; }
+    .info { color: blue; }
+  </style>
+</head>
+<body>
+  <h1>Draft Storage 検証ツール</h1>
+
+  <div>
+    <button onclick="checkUserName()">1. ユーザー名確認</button>
+    <button onclick="checkAllDrafts()">2. 全Draft確認</button>
+    <button onclick="checkSpecificDraft()">3. 特定Draft確認</button>
+    <button onclick="clearAllDrafts()">4. 全Draft削除</button>
+  </div>
+
+  <div id="output">ここに結果が表示されます...</div>
+
+  <script>
+    function log(message, type = 'info') {
+      const output = document.getElementById('output')
+      const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info'
+      output.innerHTML += `<div class="${className}">${new Date().toLocaleTimeString()} - ${message}</div>`
+    }
+
+    function clearLog() {
+      document.getElementById('output').innerHTML = ''
+    }
+
+    function checkUserName() {
+      clearLog()
+      log('=== ユーザー名確認 ===')
+      
+      const userName = localStorage.getItem('userName')
+      const userRole = localStorage.getItem('userRole')
+      
+      log(`userName: ${userName || '(未設定)'}`, userName ? 'success' : 'error')
+      log(`userRole: ${userRole || '(未設定)'}`, userRole ? 'success' : 'error')
+      
+      if (userName) {
+        const expectedDraftKey = `draft_performance_form_${userName}`
+        log(`期待されるDRAFT_KEY: ${expectedDraftKey}`, 'info')
+      } else {
+        log('⚠️ ユーザー名が未設定です。ログインしてください。', 'error')
+      }
+    }
+
+    function checkAllDrafts() {
+      clearLog()
+      log('=== LocalStorage内の全Draftキー確認 ===')
+      
+      let draftCount = 0
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('draft_')) {
+          draftCount++
+          const value = localStorage.getItem(key)
+          log(`\n📋 キー: ${key}`, 'info')
+          
+          try {
+            const parsed = JSON.parse(value)
+            log(`  保存日時: ${parsed.savedAt || '不明'}`)
+            log(`  データ項目数: ${Object.keys(parsed).length}`)
+            log(`  主要フィールド:`)
+            if (parsed.eventName) log(`    - イベント名: ${parsed.eventName}`)
+            if (parsed.eventDate) log(`    - イベント日: ${parsed.eventDate}`)
+            if (parsed.venueName) log(`    - 会場名: ${parsed.venueName}`)
+            if (parsed.staffName) log(`    - スタッフ名: ${parsed.staffName}`)
+            if (parsed.agencyName) log(`    - 代理店名: ${parsed.agencyName}`)
+            
+            log(`  完全なデータ:`)
+            log(JSON.stringify(parsed, null, 2), 'success')
+          } catch (e) {
+            log(`  ⚠️ JSONパースエラー: ${e.message}`, 'error')
+            log(`  生データ: ${value}`)
+          }
+        }
+      }
+      
+      if (draftCount === 0) {
+        log('❌ Draft データが見つかりませんでした', 'error')
+      } else {
+        log(`\n✅ 合計 ${draftCount} 件のDraftが見つかりました`, 'success')
+      }
+    }
+
+    function checkSpecificDraft() {
+      clearLog()
+      log('=== 現在のユーザーのDraft確認 ===')
+      
+      const userName = localStorage.getItem('userName')
+      if (!userName) {
+        log('❌ ユーザー名が未設定です。先にログインしてください。', 'error')
+        return
+      }
+      
+      const draftKey = `draft_performance_form_${userName}`
+      log(`確認するキー: ${draftKey}`, 'info')
+      
+      const draftData = localStorage.getItem(draftKey)
+      
+      if (!draftData) {
+        log('❌ このユーザーのDraftデータが存在しません', 'error')
+        log('考えられる原因:', 'info')
+        log('1. まだ一度もフォームに入力していない')
+        log('2. 2秒以上待たずに離脱した（自動保存が動作していない）')
+        log('3. データが保存されたがキーが異なる')
+        return
+      }
+      
+      try {
+        const parsed = JSON.parse(draftData)
+        log('✅ Draftデータが見つかりました！', 'success')
+        log(`\n保存日時: ${parsed.savedAt || '不明'}`)
+        log(`データ項目数: ${Object.keys(parsed).length}`)
+        log('\n完全なデータ:')
+        log(JSON.stringify(parsed, null, 2), 'success')
+        
+        log('\n主要フィールドの値:')
+        Object.keys(parsed).forEach(key => {
+          if (key !== 'savedAt' && parsed[key] !== undefined && parsed[key] !== null && parsed[key] !== '') {
+            log(`  ${key}: ${JSON.stringify(parsed[key])}`)
+          }
+        })
+      } catch (e) {
+        log(`❌ JSONパースエラー: ${e.message}`, 'error')
+        log(`生データ: ${draftData}`)
+      }
+    }
+
+    function clearAllDrafts() {
+      if (!confirm('本当に全てのDraftデータを削除しますか？')) {
+        return
+      }
+      
+      clearLog()
+      log('=== 全Draftデータ削除 ===')
+      
+      const keysToDelete = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('draft_')) {
+          keysToDelete.push(key)
+        }
+      }
+      
+      keysToDelete.forEach(key => {
+        localStorage.removeItem(key)
+        log(`削除: ${key}`, 'info')
+      })
+      
+      log(`\n✅ ${keysToDelete.length} 件のDraftを削除しました`, 'success')
+    }
+
+    // ページ読み込み時に自動チェック
+    window.addEventListener('load', () => {
+      log('=== 自動チェック開始 ===', 'info')
+      checkUserName()
+      setTimeout(() => {
+        log('\n', 'info')
+        checkAllDrafts()
+      }, 500)
+    })
+  </script>
+</body>
+</html>

@@ -19,8 +19,14 @@ export function Header({ isLoginPage = false }: HeaderProps) {
   const { isCollapsed } = useNavigation()
 
   const handleLogout = () => {
+    console.log('[Header] ログアウト前のユーザー名:', localStorage.getItem('userName'))
+    console.log('[Header] LocalStorageの全キー:', Object.keys(localStorage))
+
+    // Draft データは保持するため、userRoleとuserNameのみ削除
     localStorage.removeItem('userRole')
     localStorage.removeItem('userName')
+
+    console.log('[Header] ログアウト後のLocalStorageの全キー:', Object.keys(localStorage))
     router.push('/login')
   }
 

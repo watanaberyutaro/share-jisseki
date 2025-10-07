@@ -12,6 +12,7 @@ import {
   ChevronDown, ChevronUp, Users, Building2, MapPin, Calendar, Upload, X, Image, Clock
 } from 'lucide-react'
 import { getSharedList, addToSharedList, updateSharedListItem, deleteFromSharedList, migrateLocalStorageToSupabase } from '@/lib/supabase/shared-lists'
+import { getDraft, saveDraft as saveDraftToSupabase, deleteDraft as deleteDraftFromSupabase, migrateDraftToSupabase } from '@/lib/supabase/drafts'
 
 // 日別実績のスキーマ（未入力時に0とする処理を追加）
 const dailyPerformanceSchema = z.object({
@@ -198,6 +199,8 @@ interface EnhancedPerformanceFormV2Props {
 }
 
 export function EnhancedPerformanceFormV2({ editMode = false, initialData, eventId }: EnhancedPerformanceFormV2Props) {
+  console.log('[EnhancedPerformanceFormV2] コンポーネントレンダリング開始', { editMode, eventId })
+
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
@@ -550,81 +553,133 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     ? `draft_edit_${eventId}_${getUserName()}`
     : `draft_performance_form_${getUserName()}`
 
-  // 一時保存機能
+  // 一時保存機能（Supabase版）
   const saveDraft = useCallback(async (data: Partial<PerformanceFormData>, isManual = false) => {
+    const userName = getUserName()
+    if (userName === 'default') {
+      console.warn('[saveDraft] ユーザー名が取得できません')
+      return
+    }
+
     try {
-      console.log('[saveDraft] 保存開始:', { DRAFT_KEY, isManual, dataKeys: Object.keys(data) })
+      console.log('[saveDraft] 保存開始:', { userName, isManual, dataKeys: Object.keys(data) })
       setAutoSaveStatus('saving')
+
       const draftData = {
         ...data,
         savedAt: new Date().toISOString(),
         eventPhotos: undefined // ファイルは保存しない
       }
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData))
-      console.log('[saveDraft] 保存成功:', DRAFT_KEY)
-      setAutoSaveStatus('saved')
-      setLastSavedAt(new Date())
 
-      // 手動保存の場合は成功メッセージを一時的に表示
-      if (isManual) {
-        setSuccessMessage('下書きを保存しました')
-        setTimeout(() => setSuccessMessage(''), 3000)
+      const success = await saveDraftToSupabase(userName, draftData)
+
+      if (success) {
+        console.log('[saveDraft] Supabase保存成功:', userName)
+        setAutoSaveStatus('saved')
+        setLastSavedAt(new Date())
+
+        // 手動保存の場合は成功メッセージを一時的に表示
+        if (isManual) {
+          setSuccessMessage('下書きを保存しました')
+          setTimeout(() => setSuccessMessage(''), 3000)
+        }
+      } else {
+        console.error('[saveDraft] Supabase保存失敗')
+        setAutoSaveStatus('error')
+        if (isManual) {
+          alert('下書きの保存に失敗しました')
+        }
       }
     } catch (error) {
-      console.error('一時保存エラー:', error)
+      console.error('[saveDraft] エラー:', error)
       setAutoSaveStatus('error')
       if (isManual) {
         alert('下書きの保存に失敗しました')
       }
     }
-  }, [DRAFT_KEY])
+  }, [])
 
-  // 一時保存データの読み込み
-  const loadDraft = useCallback(() => {
+  // 一時保存データの読み込み（Supabase版）
+  const loadDraft = useCallback(async () => {
+    const userName = getUserName()
+    if (userName === 'default') {
+      console.warn('[loadDraft] ユーザー名が取得できません')
+      return false
+    }
+
     try {
-      console.log('[loadDraft] 読み込み開始:', DRAFT_KEY)
-      const savedDraft = localStorage.getItem(DRAFT_KEY)
-      console.log('[loadDraft] 取得結果:', savedDraft ? '存在' : 'なし')
-      if (savedDraft && !editMode) {
-        const draftData = JSON.parse(savedDraft)
-        // 24時間以内の下書きのみ読み込む
-        const savedAt = new Date(draftData.savedAt)
-        const now = new Date()
-        const timeDiff = now.getTime() - savedAt.getTime()
-        const hoursDiff = timeDiff / (1000 * 3600)
+      console.log('[loadDraft] 読み込み開始:', userName)
+      console.log('[loadDraft] editMode:', editMode)
 
-        if (hoursDiff < 24) {
-          delete draftData.savedAt
-          reset(draftData)
-          setLastSavedAt(savedAt)
-          setAutoSaveStatus('saved')
-          return true
-        } else {
-          // 24時間以上経過した下書きは削除
-          localStorage.removeItem(DRAFT_KEY)
-        }
+      // localStorageからの移行を試みる
+      await migrateDraftToSupabase(userName)
+
+      if (editMode) {
+        console.log('[loadDraft] editModeのためDraftを読み込みません')
+        return false
+      }
+
+      const draftData = await getDraft(userName)
+
+      if (!draftData) {
+        console.log('[loadDraft] Draftが存在しません')
+        return false
+      }
+
+      console.log('[loadDraft] Draft取得成功。savedAt:', draftData.savedAt)
+      console.log('[loadDraft] データキー数:', Object.keys(draftData).length)
+
+      // 24時間以内の下書きのみ読み込む
+      const savedAt = new Date(draftData.savedAt)
+      const now = new Date()
+      const timeDiff = now.getTime() - savedAt.getTime()
+      const hoursDiff = timeDiff / (1000 * 3600)
+
+      console.log('[loadDraft] 経過時間:', hoursDiff.toFixed(2), '時間')
+
+      if (hoursDiff < 24) {
+        console.log('[loadDraft] データを復元します')
+        delete draftData.savedAt
+        reset(draftData)
+        setLastSavedAt(savedAt)
+        setAutoSaveStatus('saved')
+        return true
+      } else {
+        console.log('[loadDraft] 24時間以上経過しているため削除します')
+        await deleteDraftFromSupabase(userName)
+        return false
       }
     } catch (error) {
-      console.error('下書き読み込みエラー:', error)
-      localStorage.removeItem(DRAFT_KEY)
+      console.error('[loadDraft] エラー:', error)
+      return false
     }
-    return false
-  }, [DRAFT_KEY, editMode, reset])
+  }, [editMode, reset])
 
-  // 一時保存データの削除
-  const clearDraft = useCallback(() => {
-    localStorage.removeItem(DRAFT_KEY)
-    setAutoSaveStatus('idle')
-    setLastSavedAt(null)
-  }, [DRAFT_KEY])
+  // 一時保存データの削除（Supabase版）
+  const clearDraft = useCallback(async () => {
+    const userName = getUserName()
+    if (userName === 'default') {
+      console.warn('[clearDraft] ユーザー名が取得できません')
+      return
+    }
 
-  // フォームデータの監視と自動保存
+    try {
+      await deleteDraftFromSupabase(userName)
+      setAutoSaveStatus('idle')
+      setLastSavedAt(null)
+      console.log('[clearDraft] Draft削除成功')
+    } catch (error) {
+      console.error('[clearDraft] エラー:', error)
+    }
+  }, [])
+
+  // フォームデータの監視と自動保存（5分間隔）
   const formData = watch()
   useEffect(() => {
     if (!editMode && autoSaveStatus !== 'saving') {
       const timer = setTimeout(() => {
         saveDraft(formData)
-      }, 2000) // 2秒後に自動保存
+      }, 300000) // 5分後に自動保存（300000ms = 5分）
 
       return () => clearTimeout(timer)
     }
@@ -632,11 +687,15 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
 
   // 初回読み込み時に下書きを復元
   useEffect(() => {
+    console.log('[useEffect] コンポーネントマウント - loadDraftを呼び出します')
     const draftLoaded = loadDraft()
     if (draftLoaded) {
-      // 下書きが読み込まれた場合の処理
+      console.log('[useEffect] 下書きが読み込まれました')
+    } else {
+      console.log('[useEffect] 下書きは読み込まれませんでした')
     }
-  }, [loadDraft])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 編集モードの場合、既存の写真を読み込む
   useEffect(() => {

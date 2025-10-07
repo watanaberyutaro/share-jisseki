@@ -687,13 +687,16 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
 
   // 初回読み込み時に下書きを復元
   useEffect(() => {
-    console.log('[useEffect] コンポーネントマウント - loadDraftを呼び出します')
-    const draftLoaded = loadDraft()
-    if (draftLoaded) {
-      console.log('[useEffect] 下書きが読み込まれました')
-    } else {
-      console.log('[useEffect] 下書きは読み込まれませんでした')
+    const loadInitialDraft = async () => {
+      console.log('[useEffect] コンポーネントマウント - loadDraftを呼び出します')
+      const draftLoaded = await loadDraft()
+      if (draftLoaded) {
+        console.log('[useEffect] 下書きが読み込まれました')
+      } else {
+        console.log('[useEffect] 下書きは読み込まれませんでした')
+      }
     }
+    loadInitialDraft()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

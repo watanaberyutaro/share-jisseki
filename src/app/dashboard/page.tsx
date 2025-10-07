@@ -139,8 +139,8 @@ export default function Dashboard() {
               staffCount: event.staff_performances?.length || 0
             }
           })
-          .filter(event => event.totalIds > 0)
-          .sort((a, b) => b.totalIds - a.totalIds)
+          .filter((event: any) => event.totalIds > 0)
+          .sort((a: any, b: any) => b.totalIds - a.totalIds)
           .slice(0, 5) // トップ5まで表示
 
           setEventRanking(eventRankingData)

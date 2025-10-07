@@ -2,9 +2,9 @@ import { createBrowserClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // シングルトンパターンでクライアントを管理
-let supabaseClient: SupabaseClient | null = null
+let supabaseClient: SupabaseClient<any, 'public', any> | null = null
 
-export function createClient(): SupabaseClient {
+export function createClient(): SupabaseClient<any, 'public', any> {
   // 既存のクライアントがあればそれを返す
   if (supabaseClient) {
     return supabaseClient

@@ -323,7 +323,7 @@ export default function LoginPage() {
                   value={adminId}
                   onChange={(e) => setAdminId(e.target.value)}
                   className="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-opacity-100"
-                  style={{ borderColor: '#22211A', borderOpacity: 0.3, color: '#22211A' }}
+                  style={{ borderColor: 'rgba(34, 33, 26, 0.3)', color: '#22211A' }}
                   placeholder="IDを入力"
                 />
               </div>
@@ -335,7 +335,7 @@ export default function LoginPage() {
                   onChange={(e) => setAdminPassword(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAdminAuth()}
                   className="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-opacity-100"
-                  style={{ borderColor: '#22211A', borderOpacity: 0.3, color: '#22211A' }}
+                  style={{ borderColor: 'rgba(34, 33, 26, 0.3)', color: '#22211A' }}
                   placeholder="パスワードを入力"
                 />
               </div>

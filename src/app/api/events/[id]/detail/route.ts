@@ -187,7 +187,7 @@ export async function GET(
     }) || []
 
     // スタッフごとの日別実績を集計
-    const staffAggregated = {}
+    const staffAggregated: Record<string, any> = {}
     if (staffDailyPerformances && staffDailyPerformances.length > 0) {
       staffDailyPerformances.forEach(daily => {
         const staffName = daily.staff_name
@@ -207,7 +207,7 @@ export async function GET(
             gas: 0
           }
         }
-        
+
         const staff = staffAggregated[staffName]
         // MNPの集計
         staff.au_mnp += (Number(daily.au_mnp_sp1) || 0) + (Number(daily.au_mnp_sp2) || 0) + (Number(daily.au_mnp_sim) || 0)

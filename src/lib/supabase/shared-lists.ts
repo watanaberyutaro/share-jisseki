@@ -14,7 +14,6 @@ interface SharedListItem {
  * 共有リストを取得
  */
 export async function getSharedList(listType: SharedListType): Promise<string[]> {
-  console.log(`[getSharedList] 開始 - テーブル: ${listType}`)
   const supabase = createClient()
 
   const { data, error } = await supabase
@@ -23,11 +22,10 @@ export async function getSharedList(listType: SharedListType): Promise<string[]>
     .order('name', { ascending: true })
 
   if (error) {
-    console.error(`[getSharedList] エラー - テーブル: ${listType}`, error)
+    console.error(`Error fetching ${listType}:`, error)
     return []
   }
 
-  console.log(`[getSharedList] 成功 - 件数: ${data.length}`, data)
   return data.map(item => item.name)
 }
 
@@ -39,30 +37,24 @@ export async function addToSharedList(
   name: string,
   userId?: string
 ): Promise<boolean> {
-  console.log(`[addToSharedList] 開始 - テーブル: ${listType}, 名前: ${name}`)
   const supabase = createClient()
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from(listType)
     .insert({
       name: name.trim(),
       created_by: userId
     })
-    .select()
 
   if (error) {
     // UNIQUEエラーの場合は既に存在するので成功扱い
     if (error.code === '23505') {
-      console.log(`[addToSharedList] 既に存在: ${name}`)
       return true
     }
-    console.error(`[addToSharedList] エラー - テーブル: ${listType}`, error)
-    console.error(`[addToSharedList] エラーコード: ${error.code}`)
-    console.error(`[addToSharedList] エラーメッセージ: ${error.message}`)
+    console.error(`Error adding to ${listType}:`, error)
     return false
   }
 
-  console.log(`[addToSharedList] 成功 - 追加されたデータ:`, data)
   return true
 }
 

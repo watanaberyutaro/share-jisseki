@@ -220,7 +220,6 @@ export function PerformanceAnalyticsV2({
     setAppliedBulkEndDate(bulkEndDate)
     setAppliedVenueFilter(venueFilter)
     setAppliedAgencyFilter(agencyFilter)
-    setHasAnalyzed(true)
   }
 
   // 一括分析条件の期間選択が変更されたときに各パネルに反映

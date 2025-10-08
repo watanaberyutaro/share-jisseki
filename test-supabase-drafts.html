@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase Drafts接続テスト</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    button {
+      margin: 10px 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #output {
+      background: #f4f4f4;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      white-space: pre-wrap;
+    }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Supabase performance_drafts テーブル接続テスト</h1>
+
+  <div>
+    <button onclick="testConnection()">1. 接続テスト</button>
+    <button onclick="testGetAllDrafts()">2. 全Draft取得</button>
+    <button onclick="testGetDraft()">3. 特定ユーザーのDraft取得</button>
+    <button onclick="testSaveDraft()">4. テストDraft保存</button>
+  </div>
+
+  <div id="output">ここに結果が表示されます...</div>
+
+  <script>
+    const SUPABASE_URL = 'https://thorvfskdheztcqlalvf.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRob3J2ZnNrZGhlenRjcWxhbHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MTUxOTQsImV4cCI6MjA3MjM5MTE5NH0.J7rQQorwulkx0HGfTO6tsR6LUBweyVlhISiPN7EoC2g'
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+    function log(message, type = 'info') {
+      const output = document.getElementById('output')
+      const className = type === 'error' ? 'error' : type === 'success' ? 'success' : ''
+      output.innerHTML += `<div class="${className}">${new Date().toLocaleTimeString()} - ${message}</div>`
+    }
+
+    function clearLog() {
+      document.getElementById('output').innerHTML = ''
+    }
+
+    async function testConnection() {
+      clearLog()
+      log('=== 接続テスト開始 ===')
+      log(`URL: ${SUPABASE_URL}`)
+      log(`KEY: ${SUPABASE_ANON_KEY.substring(0, 20)}...`)
+
+      try {
+        const { data, error } = await supabase.from('performance_drafts').select('count')
+
+        if (error) {
+          log(`エラー: ${error.message}`, 'error')
+          log(`詳細: ${JSON.stringify(error, null, 2)}`, 'error')
+        } else {
+          log('接続成功！', 'success')
+          log(`レスポンス: ${JSON.stringify(data, null, 2)}`, 'success')
+        }
+      } catch (err) {
+        log(`例外発生: ${err.message}`, 'error')
+      }
+    }
+
+    async function testGetAllDrafts() {
+      clearLog()
+      log('=== 全Draft取得テスト ===')
+
+      try {
+        const { data, error } = await supabase
+          .from('performance_drafts')
+          .select('*')
+          .order('updated_at', { ascending: false })
+
+        if (error) {
+          log(`エラー: ${error.message}`, 'error')
+          log(`詳細: ${JSON.stringify(error, null, 2)}`, 'error')
+
+          if (error.code === 'PGRST204') {
+            log('テーブルが存在しないか、データが0件です', 'error')
+          } else if (error.code === 'PGRST301') {
+            log('RLSポリシーでアクセスが拒否されています', 'error')
+          }
+        } else {
+          log(`取得成功！件数: ${data.length}`, 'success')
+          if (data.length > 0) {
+            data.forEach((draft, index) => {
+              log(`\n--- Draft ${index + 1} ---`, 'success')
+              log(`ユーザー名: ${draft.user_name}`)
+              log(`作成日時: ${draft.created_at}`)
+              log(`更新日時: ${draft.updated_at}`)
+              log(`データキー数: ${Object.keys(draft.draft_data).length}`)
+              log(`Draft内容: ${JSON.stringify(draft.draft_data, null, 2)}`)
+            })
+          } else {
+            log('Draftデータが0件です', 'error')
+          }
+        }
+      } catch (err) {
+        log(`例外発生: ${err.message}`, 'error')
+      }
+    }
+
+    async function testGetDraft() {
+      clearLog()
+      log('=== 特定ユーザーのDraft取得テスト ===')
+
+      const userName = prompt('ユーザー名を入力してください（例: テスト）')
+      if (!userName) {
+        log('ユーザー名が入力されませんでした', 'error')
+        return
+      }
+
+      log(`ユーザー名: ${userName}`)
+
+      try {
+        const { data, error } = await supabase
+          .from('performance_drafts')
+          .select('*')
+          .eq('user_name', userName)
+          .single()
+
+        if (error) {
+          if (error.code === 'PGRST116') {
+            log(`ユーザー「${userName}」のDraftが存在しません`, 'error')
+          } else {
+            log(`エラー: ${error.message}`, 'error')
+            log(`詳細: ${JSON.stringify(error, null, 2)}`, 'error')
+          }
+        } else {
+          log('取得成功！', 'success')
+          log(`ユーザー名: ${data.user_name}`, 'success')
+          log(`作成日時: ${data.created_at}`, 'success')
+          log(`更新日時: ${data.updated_at}`, 'success')
+          log(`データキー数: ${Object.keys(data.draft_data).length}`, 'success')
+          log(`Draft内容: ${JSON.stringify(data.draft_data, null, 2)}`, 'success')
+        }
+      } catch (err) {
+        log(`例外発生: ${err.message}`, 'error')
+      }
+    }
+
+    async function testSaveDraft() {
+      clearLog()
+      log('=== テストDraft保存 ===')
+
+      const userName = prompt('ユーザー名を入力してください（例: テスト）', 'テスト用')
+      if (!userName) {
+        log('ユーザー名が入力されませんでした', 'error')
+        return
+      }
+
+      const testDraftData = {
+        eventName: 'テストイベント',
+        eventDate: '2025-10-15',
+        venueName: 'テスト会場',
+        savedAt: new Date().toISOString()
+      }
+
+      log(`ユーザー名: ${userName}`)
+      log(`保存するデータ: ${JSON.stringify(testDraftData, null, 2)}`)
+
+      try {
+        const { data, error } = await supabase
+          .from('performance_drafts')
+          .upsert({
+            user_name: userName,
+            draft_data: testDraftData,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_name'
+          })
+          .select()
+
+        if (error) {
+          log(`エラー: ${error.message}`, 'error')
+          log(`詳細: ${JSON.stringify(error, null, 2)}`, 'error')
+
+          if (error.code === '42501') {
+            log('RLSポリシーでUPSERTが拒否されています', 'error')
+            log('Supabaseダッシュボードで以下を確認してください:', 'error')
+            log('1. performance_draftsテーブルが存在するか', 'error')
+            log('2. RLSが有効になっているか', 'error')
+            log('3. INSERT/UPDATE用のポリシーが設定されているか', 'error')
+          }
+        } else {
+          log('保存成功！', 'success')
+          log(`保存されたデータ: ${JSON.stringify(data, null, 2)}`, 'success')
+        }
+      } catch (err) {
+        log(`例外発生: ${err.message}`, 'error')
+      }
+    }
+  </script>
+</body>
+</html>

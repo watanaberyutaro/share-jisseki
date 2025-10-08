@@ -749,15 +749,16 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 編集モードの場合、initialDataが変更されたらフォームをリセット
+  // 編集モードの場合、initialDataとリストがロードされたらフォームをリセット
   useEffect(() => {
-    if (editMode && initialData) {
+    if (editMode && initialData && venues.length > 0 && agencies.length > 0 && staffList.length > 0) {
       console.log('[useEffect] 編集モード - initialDataでフォームをリセット', initialData)
+      console.log('[useEffect] リスト読み込み完了 - venues:', venues.length, 'agencies:', agencies.length, 'staffList:', staffList.length)
       const defaultValues = getDefaultValues()
       console.log('[useEffect] defaultValues:', defaultValues)
       reset(defaultValues)
     }
-  }, [editMode, initialData, reset])
+  }, [editMode, initialData, venues, agencies, staffList, reset])
 
   // 編集モードの場合、既存の写真を読み込む
   useEffect(() => {

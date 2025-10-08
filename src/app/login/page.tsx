@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { User, Shield, Plus, Edit2, Trash2, Check, X } from 'lucide-react'
 import { MagneticDots } from '@/components/MagneticDots'
 import { getSharedList, addToSharedList, updateSharedListItem, deleteFromSharedList, migrateLocalStorageToSupabase } from '@/lib/supabase/shared-lists'
+import { registerSession, cleanupOldSessions } from '@/lib/supabase/sessions'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -126,6 +127,17 @@ export default function LoginPage() {
 
   const handleUserSelect = async (userName: string) => {
     try {
+      // 古いセッションをクリーンアップ
+      await cleanupOldSessions()
+
+      // セッション登録（デバイス数制限チェック）
+      const sessionResult = await registerSession(userName)
+
+      if (!sessionResult.success) {
+        setAuthError(sessionResult.message || 'セッションの登録に失敗しました')
+        return
+      }
+
       // ユーザー名がリストに存在しない場合はSupabaseに追加
       if (userName && !userList.includes(userName)) {
         await addToSharedList('user_names', userName.trim())
@@ -138,10 +150,7 @@ export default function LoginPage() {
       router.push('/')
     } catch (error) {
       console.error('Error selecting user:', error)
-      // エラー時でもログインは継続
-      localStorage.setItem('userRole', 'user')
-      localStorage.setItem('userName', userName)
-      router.push('/')
+      setAuthError('ログインに失敗しました。もう一度お試しください。')
     }
   }
 

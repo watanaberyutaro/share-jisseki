@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNavigation } from '@/contexts/navigation-context'
 import { User, LogOut } from 'lucide-react'
+import { removeSession } from '@/lib/supabase/sessions'
 
 interface HeaderProps {
   isLoginPage?: boolean
@@ -18,9 +19,16 @@ export function Header({ isLoginPage = false }: HeaderProps) {
   const [isMobile, setIsMobile] = useState(false)
   const { isCollapsed } = useNavigation()
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     console.log('[Header] ログアウト前のユーザー名:', localStorage.getItem('userName'))
     console.log('[Header] LocalStorageの全キー:', Object.keys(localStorage))
+
+    const userName = localStorage.getItem('userName')
+
+    // セッションを削除
+    if (userName) {
+      await removeSession(userName)
+    }
 
     // Draft データは保持するため、userRoleとuserNameのみ削除
     localStorage.removeItem('userRole')

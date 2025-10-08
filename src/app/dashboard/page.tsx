@@ -44,19 +44,19 @@ export default function Dashboard() {
           font-size: 0.7rem !important;
         }
         .dashboard-page .text-lg {
-          font-size: 0.7rem !important;
+          font-size: 1rem !important;
         }
         .dashboard-page .text-xl {
-          font-size: 0.84rem !important;
+          font-size: 1rem !important;
         }
         .dashboard-page .text-2xl {
-          font-size: 1.05rem !important;
+          font-size: 1rem !important;
         }
         .dashboard-page .text-3xl {
           font-size: 1.26rem !important;
         }
         .dashboard-page .dashboard-title {
-          font-size: 0.56rem !important;
+          font-size: 1rem !important;
         }
         .dashboard-page .mx-2 {
           font-size: 0.504rem !important;

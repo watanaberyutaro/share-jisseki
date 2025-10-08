@@ -188,7 +188,7 @@ export default function Dashboard() {
   ], [])
 
   return (
-    <div className="min-h-screen relative" style={{ paddingTop: '5rem' }}>
+    <div className="min-h-screen relative dashboard-mobile" style={{ paddingTop: '5rem' }}>
       {/* 磁石効果のあるドット背景（データ読み込み後に表示） */}
       {!isLoading && <MagneticDots />}
 
@@ -198,10 +198,10 @@ export default function Dashboard() {
           {/* 達成状況パネル */}
           <div className="glass rounded-lg border p-6" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 md:mb-6 gap-2">
-              <div className="flex items-center">
-                <Target className="w-5 md:w-6 h-5 md:h-6 mr-2 md:mr-3 shrink-0" style={{ color: '#22211A' }} />
-                <h2 className="text-lg md:text-2xl font-bold" style={{ color: '#22211A' }}>
-                  {currentTime.getFullYear()}年{currentTime.getMonth() + 1}月の<span className="whitespace-nowrap">達成状況</span>
+              <div className="flex items-center gap-2">
+                <Target className="w-4 md:w-6 h-4 md:h-6 shrink-0" style={{ color: '#22211A' }} />
+                <h2 className="text-xs md:text-2xl font-bold leading-tight whitespace-nowrap" style={{ color: '#22211A', fontSize: '0.7rem' }}>
+                  {currentTime.getFullYear()}年{currentTime.getMonth() + 1}月の達成状況
                 </h2>
               </div>
 

@@ -38,7 +38,16 @@ CREATE POLICY "Anyone can delete user_sessions"
   ON user_sessions FOR DELETE
   USING (true);
 
+-- last_activeを自動更新する関数
+CREATE OR REPLACE FUNCTION update_last_active_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.last_active = TIMEZONE('utc', NOW());
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 -- last_activeを自動更新するトリガー
 CREATE TRIGGER update_user_sessions_last_active BEFORE UPDATE
     ON user_sessions FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE FUNCTION update_last_active_column();

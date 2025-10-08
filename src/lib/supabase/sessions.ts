@@ -67,19 +67,25 @@ export async function registerSession(userName: string): Promise<{ success: bool
   const currentDeviceSession = existingSessions?.find(s => s.device_id === deviceId)
 
   if (currentDeviceSession) {
-    // 既存セッションを更新
+    // 既存セッションを更新（UPSERTを使用）
     console.log('[registerSession] 既存セッションを更新')
     const { error: updateError } = await supabase
       .from('user_sessions')
-      .update({ last_active: new Date().toISOString() })
-      .eq('id', currentDeviceSession.id)
+      .upsert({
+        id: currentDeviceSession.id,
+        user_name: userName,
+        device_id: deviceId,
+        last_active: new Date().toISOString()
+      })
 
     if (updateError) {
       console.error('[registerSession] セッション更新エラー:', updateError)
-      return { success: false, message: 'セッションの更新に失敗しました' }
+      // 更新エラーでも継続（致命的ではない）
+      console.warn('[registerSession] 更新失敗しましたが処理を継続します')
+    } else {
+      console.log('[registerSession] セッション更新成功')
     }
 
-    console.log('[registerSession] セッション更新成功')
     return { success: true }
   }
 
@@ -89,13 +95,9 @@ export async function registerSession(userName: string): Promise<{ success: bool
   if (activeSessionCount >= 2) {
     console.warn('[registerSession] デバイス数上限に達しています')
 
-    // 最も古いセッションを取得
-    const oldestSession = existingSessions
-      .sort((a, b) => new Date(a.last_active).getTime() - new Date(b.last_active).getTime())[0]
-
     return {
       success: false,
-      message: `このユーザー名は既に2台のデバイスで使用されています。最後にアクセスしたデバイス: ${oldestSession.device_id.substring(0, 8)}...`
+      message: 'このユーザー名は既に2台のデバイスで使用されています'
     }
   }
 

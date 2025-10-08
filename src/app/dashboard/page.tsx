@@ -58,7 +58,11 @@ export default function Dashboard() {
         .dashboard-page .mx-2 {
           font-size: 0.6rem !important;
         }
-        .dashboard-page button {
+        .dashboard-page button,
+        .dashboard-page button * {
+          font-size: 0.65rem !important;
+        }
+        .dashboard-page .flex.items-center button {
           font-size: 0.65rem !important;
         }
       }

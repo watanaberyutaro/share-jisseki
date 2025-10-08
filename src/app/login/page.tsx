@@ -116,6 +116,9 @@ export default function LoginPage() {
   }
 
   const handleLogin = (role: 'user' | 'admin') => {
+    // エラーメッセージをクリア
+    setAuthError('')
+
     if (role === 'admin') {
       // 管理者の場合は認証モーダルを表示
       setShowAdminAuth(true)
@@ -226,6 +229,13 @@ export default function LoginPage() {
             <p className="text-sm text-center mb-6" style={{ color: '#22211A', opacity: 0.7 }}>
               ユーザー名を入力、または既存のユーザーを選択してください
             </p>
+
+            {/* エラーメッセージ */}
+            {authError && (
+              <div className="mb-4 p-3 rounded-lg text-center" style={{ backgroundColor: '#ff444420', color: '#ff4444' }}>
+                <p className="text-sm font-semibold">{authError}</p>
+              </div>
+            )}
 
             {/* ユーザー名入力フィールド */}
             <div className="mb-6">

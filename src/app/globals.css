@@ -117,6 +117,11 @@ input[type="text"], input[type="email"], input[type="password"], textarea {
     max-width: 100vw;
   }
 
+  /* ダッシュボードタイトルのデフォルト（スマホ）サイズ */
+  .dashboard-title {
+    font-size: 0.65rem !important;
+  }
+
   /* Responsive container adjustments */
   @media (max-width: 768px) {
     .glass {
@@ -175,7 +180,7 @@ input[type="text"], input[type="email"], input[type="password"], textarea {
     }
 
     .dashboard-mobile h2 {
-      font-size: 0.7rem !important;
+      font-size: 0.875rem !important;
       line-height: 1.3;
     }
 
@@ -243,6 +248,13 @@ input[type="text"], input[type="email"], input[type="password"], textarea {
     .dashboard-mobile textarea {
       font-size: 0.75rem;
       padding: 0.5rem;
+    }
+  }
+
+  /* デスクトップ版のダッシュボードタイトル */
+  @media (min-width: 768px) {
+    .dashboard-title {
+      font-size: 1.5rem !important;
     }
   }
 

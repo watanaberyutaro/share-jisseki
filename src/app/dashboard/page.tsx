@@ -55,6 +55,12 @@ export default function Dashboard() {
         .dashboard-page .dashboard-title {
           font-size: 0.65rem !important;
         }
+        .dashboard-page .mx-2 {
+          font-size: 0.6rem !important;
+        }
+        .dashboard-page button {
+          font-size: 0.65rem !important;
+        }
       }
     `
     document.head.appendChild(style)

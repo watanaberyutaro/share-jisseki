@@ -16,11 +16,11 @@ export default function Dashboard() {
     style.textContent = `
       @media (max-width: 768px) {
         .dashboard-page {
-          font-size: 0.8rem !important;
+          font-size: 0.75rem !important;
         }
         .dashboard-container {
-          padding-left: 0.75rem !important;
-          padding-right: 0.75rem !important;
+          padding-left: 0.5rem !important;
+          padding-right: 0.5rem !important;
         }
         .dashboard-page h1 {
           font-size: 1.6rem !important;
@@ -32,31 +32,31 @@ export default function Dashboard() {
           font-size: 1.12rem !important;
         }
         .dashboard-page .text-xs {
-          font-size: 0.6rem !important;
+          font-size: 0.55rem !important;
         }
         .dashboard-page .text-sm {
-          font-size: 0.7rem !important;
-        }
-        .dashboard-page .text-base {
-          font-size: 0.8rem !important;
-        }
-        .dashboard-page .text-lg {
-          font-size: 0.9rem !important;
-        }
-        .dashboard-page .text-xl {
-          font-size: 1rem !important;
-        }
-        .dashboard-page .text-2xl {
-          font-size: 1.2rem !important;
-        }
-        .dashboard-page .text-3xl {
-          font-size: 1.5rem !important;
-        }
-        .dashboard-page .dashboard-title {
           font-size: 0.65rem !important;
         }
-        .dashboard-page .mx-2 {
+        .dashboard-page .text-base {
+          font-size: 0.75rem !important;
+        }
+        .dashboard-page .text-lg {
+          font-size: 0.85rem !important;
+        }
+        .dashboard-page .text-xl {
+          font-size: 0.95rem !important;
+        }
+        .dashboard-page .text-2xl {
+          font-size: 1.1rem !important;
+        }
+        .dashboard-page .text-3xl {
+          font-size: 1.4rem !important;
+        }
+        .dashboard-page .dashboard-title {
           font-size: 0.6rem !important;
+        }
+        .dashboard-page .mx-2 {
+          font-size: 0.55rem !important;
         }
         .dashboard-page button,
         .dashboard-page button * {

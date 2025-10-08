@@ -18,7 +18,7 @@ export default function Dashboard() {
         .dashboard-page {
           font-size: 0.8rem !important;
         }
-        .dashboard-page > div {
+        .dashboard-container {
           padding-left: 0.75rem !important;
           padding-right: 0.75rem !important;
         }
@@ -251,7 +251,7 @@ export default function Dashboard() {
       {!isLoading && <MagneticDots />}
 
       {/* Monthly Achievement Stats and Memo Panel */}
-      <div className="relative z-10 max-w-6xl mx-auto px-3 sm:px-4 lg:px-8 py-2 md:py-6 pb-20 md:pb-6">
+      <div className="relative z-10 max-w-6xl mx-auto dashboard-container sm:px-4 lg:px-8 py-2 md:py-6 pb-20 md:pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
           {/* 達成状況パネル */}
           <div className="glass rounded-lg border p-6" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>

@@ -29,7 +29,7 @@ export default function Dashboard() {
           font-size: 1.12rem !important;
         }
         .dashboard-page h2 {
-          font-size: 0.98rem !important;
+          font-size: 1rem !important;
         }
         .dashboard-page h3 {
           font-size: 0.84rem !important;

@@ -18,6 +18,10 @@ export default function Dashboard() {
         .dashboard-page {
           font-size: 0.8rem !important;
         }
+        .dashboard-page > div {
+          padding-left: 0.75rem !important;
+          padding-right: 0.75rem !important;
+        }
         .dashboard-page h1 {
           font-size: 1.6rem !important;
         }

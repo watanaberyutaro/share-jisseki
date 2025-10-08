@@ -8,6 +8,32 @@ import { MagneticDots } from '@/components/MagneticDots'
 
 export default function Dashboard() {
   const [currentTime] = useState(new Date())
+
+  useEffect(() => {
+    // 分析ページ専用のスタイルを動的に追加
+    const style = document.createElement('style')
+    style.id = 'dashboard-custom-styles'
+    style.textContent = `
+      @media (max-width: 768px) {
+        .dashboard-page .dashboard-title {
+          font-size: 0.65rem !important;
+        }
+      }
+      @media (min-width: 769px) {
+        .dashboard-page .dashboard-title {
+          font-size: 1.5rem !important;
+        }
+      }
+    `
+    document.head.appendChild(style)
+
+    return () => {
+      const existingStyle = document.getElementById('dashboard-custom-styles')
+      if (existingStyle) {
+        document.head.removeChild(existingStyle)
+      }
+    }
+  }, [])
   const [monthlyStats, setMonthlyStats] = useState({
     totalEvents: 0,
     achievedEvents: 0,
@@ -188,7 +214,7 @@ export default function Dashboard() {
   ], [])
 
   return (
-    <div className="min-h-screen relative dashboard-mobile" style={{ paddingTop: '5rem' }}>
+    <div className="min-h-screen relative dashboard-mobile dashboard-page" style={{ paddingTop: '5rem' }}>
       {/* 磁石効果のあるドット背景（データ読み込み後に表示） */}
       {!isLoading && <MagneticDots />}
 

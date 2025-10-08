@@ -673,17 +673,17 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     }
   }, [])
 
-  // フォームデータの監視と自動保存（5分間隔）
-  const formData = watch()
-  useEffect(() => {
-    if (!editMode && autoSaveStatus !== 'saving') {
-      const timer = setTimeout(() => {
-        saveDraft(formData)
-      }, 300000) // 5分後に自動保存（300000ms = 5分）
-
-      return () => clearTimeout(timer)
-    }
-  }, [formData, saveDraft, editMode, autoSaveStatus])
+  // 自動保存は無効化（手動保存のみ）
+  // const formData = watch()
+  // useEffect(() => {
+  //   if (!editMode && autoSaveStatus !== 'saving') {
+  //     const timer = setTimeout(() => {
+  //       saveDraft(formData)
+  //     }, 300000) // 5分後に自動保存（300000ms = 5分）
+  //
+  //     return () => clearTimeout(timer)
+  //   }
+  // }, [formData, saveDraft, editMode, autoSaveStatus])
 
   // 初回読み込み時に下書きを復元
   useEffect(() => {

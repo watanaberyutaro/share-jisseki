@@ -500,7 +500,7 @@ export function PerformanceAnalyticsV2({
       monthlyAchievementTrend = monthlyAchievementTrend.filter(item => item.period <= achievementEndDate.replace('-', '/'))
     }
 
-    // 週次統計（MNPとHSの内訳付き）
+    // 週次統計（MNPと新規の内訳付き）
     const weeklyData = filteredEvents.reduce((acc, event) => {
       const weekLabel = `第${event.week_number}週`
       const sortKey = `${event.year}-${String(event.month).padStart(2, '0')}-${String(event.week_number).padStart(2, '0')}`
@@ -519,11 +519,11 @@ export function PerformanceAnalyticsV2({
       }
 
       const mnpTotal = event.actual_au_mnp + event.actual_uq_mnp
-      const hsTotal = event.actual_hs_total
+      const newTotal = event.actual_au_new + event.actual_uq_new
 
       acc[sortKey].mnp += mnpTotal
-      acc[sortKey].hs += hsTotal
-      acc[sortKey].total += mnpTotal + hsTotal
+      acc[sortKey].hs += newTotal
+      acc[sortKey].total += mnpTotal + newTotal
       acc[sortKey].count += 1
 
       return acc
@@ -955,7 +955,7 @@ export function PerformanceAnalyticsV2({
         totalEvents: item.total
       }))
 
-      // 週次実績(MNPとHSの内訳付き)
+      // 週次実績(MNPと新規の内訳付き)
       const weeklyData = events.reduce((acc: any, event) => {
         const weekLabel = `第${event.week_number}週`
         const sortKey = `${event.year}-${String(event.month).padStart(2, '0')}-${String(event.week_number).padStart(2, '0')}`
@@ -971,11 +971,11 @@ export function PerformanceAnalyticsV2({
         }
 
         const mnpTotal = event.actual_au_mnp + event.actual_uq_mnp
-        const hsTotal = event.actual_hs_total
+        const newTotal = event.actual_au_new + event.actual_uq_new
 
         acc[sortKey].mnp += mnpTotal
-        acc[sortKey].hs += hsTotal
-        acc[sortKey].total += mnpTotal + hsTotal
+        acc[sortKey].hs += newTotal
+        acc[sortKey].total += mnpTotal + newTotal
 
         return acc
       }, {})

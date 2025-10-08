@@ -983,7 +983,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 fade-in">
       {successMessage && (
-        <div className="fixed top-20 right-4 z-50 glass rounded-xl px-6 py-4 shadow-elegant-lg animate-slide-in-right">
+        <div className="fixed top-20 right-4 z-50 rounded-xl px-6 py-4 shadow-elegant-lg animate-slide-in-right" style={{ backgroundColor: '#FFFFFF', border: '1px solid hsl(var(--border))' }}>
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0">
               <svg className="w-6 h-6" style={{ color: '#4abf79' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1030,7 +1030,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
             )}
             <button
               type="button"
-              onClick={() => saveDraft(formData, true)}
+              onClick={() => saveDraft(watch(), true)}
               disabled={autoSaveStatus === 'saving'}
               className="text-xs px-3 py-1 rounded border hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
               style={{ borderColor: '#22211A', color: '#22211A' }}
@@ -1951,7 +1951,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
         {!editMode && (
           <button
             type="button"
-            onClick={() => saveDraft(formData, true)}
+            onClick={() => saveDraft(watch(), true)}
             disabled={autoSaveStatus === 'saving' || isSubmitting}
             className="w-full flex justify-center items-center px-4 py-2 font-medium rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4abf79] disabled:opacity-50 disabled:cursor-not-allowed transition-all border"
             style={{ backgroundColor: '#4abf79', color: '#FFFFFF', borderColor: '#4abf79' }}

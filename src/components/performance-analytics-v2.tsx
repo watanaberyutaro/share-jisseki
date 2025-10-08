@@ -1696,7 +1696,7 @@ export function PerformanceAnalyticsV2({
                       const mnp = props.payload[`${venueName}_mnp`] || 0
                       const hs = props.payload[`${venueName}_hs`] || 0
                       return [
-                        `${value}件 (MNP: ${mnp}件, HS: ${hs}件)`,
+                        `${value}件 (MNP: ${mnp}件, 新規: ${hs}件)`,
                         venueName
                       ]
                     }}
@@ -2933,7 +2933,7 @@ export function PerformanceAnalyticsV2({
                       const mnp = data[`${venueName}_mnp`] || 0
                       const hs = data[`${venueName}_hs`] || 0
                       return [
-                        `合計: ${value}件 (MNP: ${mnp}件, HS: ${hs}件)`,
+                        `合計: ${value}件 (MNP: ${mnp}件, 新規: ${hs}件)`,
                         venueName
                       ]
                     }}

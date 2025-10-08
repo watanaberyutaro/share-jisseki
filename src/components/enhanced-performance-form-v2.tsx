@@ -545,7 +545,9 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   // 一時保存キー（ユーザー名ごとに分ける）
   const getUserName = () => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('userName') || 'default'
+      const userName = localStorage.getItem('userName')
+      const userRole = localStorage.getItem('userRole')
+      return userName || (userRole === 'admin' ? 'admin' : 'default')
     }
     return 'default'
   }

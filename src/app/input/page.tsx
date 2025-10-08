@@ -30,9 +30,10 @@ export default function InputPage() {
   useEffect(() => {
     console.log('[InputPage] ページマウント - ログインチェック開始')
     const userName = localStorage.getItem('userName')
-    console.log('[InputPage] userName:', userName)
+    const userRole = localStorage.getItem('userRole')
+    console.log('[InputPage] userName:', userName, 'userRole:', userRole)
 
-    if (!userName) {
+    if (!userName && userRole !== 'admin') {
       console.log('[InputPage] ユーザー名が見つかりません。ログインページにリダイレクトします')
       router.push('/login')
     } else {

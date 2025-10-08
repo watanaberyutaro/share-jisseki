@@ -1041,7 +1041,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   }), { hsTotal: 0, ltvTotal: 0, auMnpTotal: 0, uqMnpTotal: 0, auNewTotal: 0, uqNewTotal: 0 })
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 fade-in">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 fade-in performance-form-mobile">
       {successMessage && (
         <div className="fixed top-20 right-4 z-50 rounded-xl px-6 py-4 shadow-elegant-lg animate-slide-in-right" style={{ backgroundColor: '#FFFFFF', border: '1px solid hsl(var(--border))' }}>
           <div className="flex items-center space-x-3">

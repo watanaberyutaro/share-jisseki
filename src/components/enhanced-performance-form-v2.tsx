@@ -749,6 +749,16 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // 編集モードの場合、initialDataが変更されたらフォームをリセット
+  useEffect(() => {
+    if (editMode && initialData) {
+      console.log('[useEffect] 編集モード - initialDataでフォームをリセット', initialData)
+      const defaultValues = getDefaultValues()
+      console.log('[useEffect] defaultValues:', defaultValues)
+      reset(defaultValues)
+    }
+  }, [editMode, initialData, reset])
+
   // 編集モードの場合、既存の写真を読み込む
   useEffect(() => {
     if (editMode && initialData?.photos) {

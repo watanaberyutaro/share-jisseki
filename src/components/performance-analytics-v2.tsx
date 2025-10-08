@@ -2528,13 +2528,13 @@ export function PerformanceAnalyticsV2({
                       contentStyle={tooltipStyle}
                       formatter={(value: any, name: string) => {
                         if (name === 'MNP') return [`${value}件`, 'MNP']
-                        if (name === 'HS') return [`${value}件`, 'HS']
+                        if (name === '新規') return [`${value}件`, '新規']
                         return [value, name]
                       }}
                     />
                     <Legend />
                     <Bar dataKey="mnp" stackId="a" fill="#FFB300" name="MNP" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
-                    <Bar dataKey="hs" stackId="a" fill="#ffe680" name="HS" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
+                    <Bar dataKey="hs" stackId="a" fill="#ffe680" name="新規" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -2615,13 +2615,13 @@ export function PerformanceAnalyticsV2({
                       contentStyle={tooltipStyle}
                       formatter={(value: any, name: string) => {
                         if (name === 'MNP') return [`${value}件`, 'MNP']
-                        if (name === 'HS') return [`${value}件`, 'HS']
+                        if (name === '新規') return [`${value}件`, '新規']
                         return [value, name]
                       }}
                     />
                     <Legend />
                     <Bar dataKey="mnp" stackId="a" fill="#FFB300" name="MNP" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
-                    <Bar dataKey="hs" stackId="a" fill="#ffe680" name="HS" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
+                    <Bar dataKey="hs" stackId="a" fill="#ffe680" name="新規" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (

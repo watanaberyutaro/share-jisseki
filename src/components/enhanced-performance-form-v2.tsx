@@ -983,8 +983,13 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 fade-in">
       {successMessage && (
-        <div className="glass rounded-xl bg-foreground/5 px-4 py-3" style={{ borderColor: '#22211A', color: '#22211A' }}>
-          {displayedSuccessMessage}
+        <div className="glass rounded-xl px-4 py-3" style={{ backgroundColor: '#4abf7920', borderColor: '#4abf79', color: '#4abf79' }}>
+          <div className="flex items-center space-x-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="font-semibold">{displayedSuccessMessage}</span>
+          </div>
         </div>
       )}
 

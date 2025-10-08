@@ -413,6 +413,11 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   // 代理店を追加
   const addAgency = async () => {
     if (newAgencyName.trim()) {
+      // 重複チェック
+      if (agencies.includes(newAgencyName.trim())) {
+        alert('既に登録済みです')
+        return
+      }
       try {
         await addToSharedList('agency_names', newAgencyName.trim())
         await loadAgencies()
@@ -457,6 +462,11 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   // スタッフを追加
   const addStaffToList = async () => {
     if (newStaffName.trim()) {
+      // 重複チェック
+      if (staffList.includes(newStaffName.trim())) {
+        alert('既に登録済みです')
+        return
+      }
       try {
         await addToSharedList('staff_names', newStaffName.trim())
         await loadStaffList()
@@ -501,6 +511,11 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   // 会場を追加
   const addVenue = async () => {
     if (newVenueName.trim()) {
+      // 重複チェック
+      if (venues.includes(newVenueName.trim())) {
+        alert('既に登録済みです')
+        return
+      }
       try {
         await addToSharedList('venue_names', newVenueName.trim())
         await loadVenues()

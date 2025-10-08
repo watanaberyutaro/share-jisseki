@@ -15,13 +15,41 @@ export default function Dashboard() {
     style.id = 'dashboard-custom-styles'
     style.textContent = `
       @media (max-width: 768px) {
+        .dashboard-page {
+          font-size: 0.8rem !important;
+        }
+        .dashboard-page h1 {
+          font-size: 1.6rem !important;
+        }
+        .dashboard-page h2 {
+          font-size: 1.28rem !important;
+        }
+        .dashboard-page h3 {
+          font-size: 1.12rem !important;
+        }
+        .dashboard-page .text-xs {
+          font-size: 0.6rem !important;
+        }
+        .dashboard-page .text-sm {
+          font-size: 0.7rem !important;
+        }
+        .dashboard-page .text-base {
+          font-size: 0.8rem !important;
+        }
+        .dashboard-page .text-lg {
+          font-size: 0.9rem !important;
+        }
+        .dashboard-page .text-xl {
+          font-size: 1rem !important;
+        }
+        .dashboard-page .text-2xl {
+          font-size: 1.2rem !important;
+        }
+        .dashboard-page .text-3xl {
+          font-size: 1.5rem !important;
+        }
         .dashboard-page .dashboard-title {
           font-size: 0.65rem !important;
-        }
-      }
-      @media (min-width: 769px) {
-        .dashboard-page .dashboard-title {
-          font-size: 1.5rem !important;
         }
       }
     `

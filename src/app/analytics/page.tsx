@@ -46,8 +46,35 @@ export default function AnalyticsPage() {
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    // 分析ページ専用のスタイルを動的に追加
+    const style = document.createElement('style')
+    style.id = 'analytics-custom-styles'
+    style.textContent = `
+      @media (max-width: 768px) {
+        .analytics-page h3 {
+          font-size: 1rem !important;
+        }
+        .analytics-page .text-lg {
+          font-size: 1rem !important;
+        }
+        .analytics-page .text-2xl {
+          font-size: 1rem !important;
+        }
+      }
+    `
+    document.head.appendChild(style)
+
+    return () => {
+      const existingStyle = document.getElementById('analytics-custom-styles')
+      if (existingStyle) {
+        document.head.removeChild(existingStyle)
+      }
+    }
+  }, [])
+
   return (
-    <div className="min-h-screen py-2 md:py-6 pb-16 md:pb-6" style={{ paddingTop: '5rem' }}>
+    <div className="min-h-screen py-2 md:py-6 pb-16 md:pb-6 analytics-page" style={{ paddingTop: '5rem' }}>
       <MagneticDots />
       <div className="fade-in">
         <PerformanceAnalyticsV2WithMonthly

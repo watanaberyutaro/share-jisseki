@@ -640,10 +640,10 @@ export function PerformanceAnalyticsV2({
         acc[event.venue] = { venue: event.venue, mnp: 0, hs: 0, total: 0, count: 0 }
       }
       const mnpTotal = event.actual_au_mnp + event.actual_uq_mnp
-      const hsTotal = event.actual_hs_total
+      const newTotal = event.actual_au_new + event.actual_uq_new
       acc[event.venue].mnp += mnpTotal
-      acc[event.venue].hs += hsTotal
-      acc[event.venue].total += mnpTotal + hsTotal
+      acc[event.venue].hs += newTotal
+      acc[event.venue].total += mnpTotal + newTotal
       acc[event.venue].count += 1
       return acc
     }, {} as Record<string, any>)
@@ -675,10 +675,10 @@ export function PerformanceAnalyticsV2({
         acc[event.agency_name] = { agency: event.agency_name, mnp: 0, hs: 0, total: 0, count: 0 }
       }
       const mnpTotal = event.actual_au_mnp + event.actual_uq_mnp
-      const hsTotal = event.actual_hs_total
+      const newTotal = event.actual_au_new + event.actual_uq_new
       acc[event.agency_name].mnp += mnpTotal
-      acc[event.agency_name].hs += hsTotal
-      acc[event.agency_name].total += mnpTotal + hsTotal
+      acc[event.agency_name].hs += newTotal
+      acc[event.agency_name].total += mnpTotal + newTotal
       acc[event.agency_name].count += 1
       return acc
     }, {} as Record<string, any>)
@@ -1021,10 +1021,10 @@ export function PerformanceAnalyticsV2({
           acc[event.venue] = { venue: event.venue, mnp: 0, hs: 0, total: 0, count: 0 }
         }
         const mnpTotal = event.actual_au_mnp + event.actual_uq_mnp
-        const hsTotal = event.actual_hs_total
+        const newTotal = event.actual_au_new + event.actual_uq_new
         acc[event.venue].mnp += mnpTotal
-        acc[event.venue].hs += hsTotal
-        acc[event.venue].total += mnpTotal + hsTotal
+        acc[event.venue].hs += newTotal
+        acc[event.venue].total += mnpTotal + newTotal
         acc[event.venue].count += 1
         return acc
       }, {})
@@ -1037,10 +1037,10 @@ export function PerformanceAnalyticsV2({
           acc[event.agency_name] = { agency: event.agency_name, mnp: 0, hs: 0, total: 0, count: 0 }
         }
         const mnpTotal = event.actual_au_mnp + event.actual_uq_mnp
-        const hsTotal = event.actual_hs_total
+        const newTotal = event.actual_au_new + event.actual_uq_new
         acc[event.agency_name].mnp += mnpTotal
-        acc[event.agency_name].hs += hsTotal
-        acc[event.agency_name].total += mnpTotal + hsTotal
+        acc[event.agency_name].hs += newTotal
+        acc[event.agency_name].total += mnpTotal + newTotal
         acc[event.agency_name].count += 1
         return acc
       }, {})
@@ -1332,13 +1332,13 @@ export function PerformanceAnalyticsV2({
                   contentStyle={tooltipStyle}
                   formatter={(value: any, name: string) => {
                     if (name === 'MNP') return [`${value}件`, 'MNP']
-                    if (name === 'HS') return [`${value}件`, 'HS']
+                    if (name === '新規') return [`${value}件`, '新規']
                     return [value, name]
                   }}
                 />
                 <Legend />
                 <Bar dataKey="mnp" stackId="a" fill="#FFB300" name="MNP" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
-                <Bar dataKey="hs" stackId="a" fill="#ffe680" name="HS" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
+                <Bar dataKey="hs" stackId="a" fill="#ffe680" name="新規" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -1374,13 +1374,13 @@ export function PerformanceAnalyticsV2({
                   contentStyle={tooltipStyle}
                   formatter={(value: any, name: string) => {
                     if (name === 'MNP') return [`${value}件`, 'MNP']
-                    if (name === 'HS') return [`${value}件`, 'HS']
+                    if (name === '新規') return [`${value}件`, '新規']
                     return [value, name]
                   }}
                 />
                 <Legend />
                 <Bar dataKey="mnp" stackId="a" fill="#FFB300" name="MNP" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
-                <Bar dataKey="hs" stackId="a" fill="#ffe680" name="HS" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
+                <Bar dataKey="hs" stackId="a" fill="#ffe680" name="新規" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
               </BarChart>
             </ResponsiveContainer>
           ) : (

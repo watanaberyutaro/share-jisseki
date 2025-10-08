@@ -97,81 +97,78 @@ export async function PUT(
       console.error('Error deleting staff performances:', deleteStaffError)
     }
 
+    // 数値変換ヘルパー関数
+    const toNumber = (value: any): number => {
+      if (value === null || value === undefined || value === '') return 0
+      const num = Number(value)
+      return isNaN(num) ? 0 : num
+    }
+
+    // スタッフの日別実績を保存
     if (data.staffPerformances && data.staffPerformances.length > 0) {
       for (const staff of data.staffPerformances) {
-        const dailyTotals = staff.dailyPerformances?.reduce((acc: any, day: any) => ({
-          auMnpSp1: acc.auMnpSp1 + (day.auMnpSp1 || 0),
-          auMnpSp2: acc.auMnpSp2 + (day.auMnpSp2 || 0),
-          auMnpSim: acc.auMnpSim + (day.auMnpSim || 0),
-          uqMnpSp1: acc.uqMnpSp1 + (day.uqMnpSp1 || 0),
-          uqMnpSp2: acc.uqMnpSp2 + (day.uqMnpSp2 || 0),
-          uqMnpSim: acc.uqMnpSim + (day.uqMnpSim || 0),
-          auHsSp1: acc.auHsSp1 + (day.auHsSp1 || 0),
-          auHsSp2: acc.auHsSp2 + (day.auHsSp2 || 0),
-          auHsSim: acc.auHsSim + (day.auHsSim || 0),
-          uqHsSp1: acc.uqHsSp1 + (day.uqHsSp1 || 0),
-          uqHsSp2: acc.uqHsSp2 + (day.uqHsSp2 || 0),
-          uqHsSim: acc.uqHsSim + (day.uqHsSim || 0),
-          creditCard: acc.creditCard + (day.creditCard || 0),
-          goldCard: acc.goldCard + (day.goldCard || 0),
-          jiBankAccount: acc.jiBankAccount + (day.jiBankAccount || 0),
-          warranty: acc.warranty + (day.warranty || 0),
-          ott: acc.ott + (day.ott || 0),
-          electricity: acc.electricity + (day.electricity || 0),
-          gas: acc.gas + (day.gas || 0),
-        }), {
-          auMnpSp1: 0, auMnpSp2: 0, auMnpSim: 0,
-          uqMnpSp1: 0, uqMnpSp2: 0, uqMnpSim: 0,
-          auHsSp1: 0, auHsSp2: 0, auHsSim: 0,
-          uqHsSp1: 0, uqHsSp2: 0, uqHsSim: 0,
-          creditCard: 0, goldCard: 0, jiBankAccount: 0,
-          warranty: 0, ott: 0, electricity: 0, gas: 0
-        })
+        // 日別データをループして保存
+        if (staff.dailyPerformances && staff.dailyPerformances.length > 0) {
+          staff.dailyPerformances.forEach((day: any, dayIndex: number) => {
+            // 全体の合計に加算
+            totalPerformance.auMnpSp1 += toNumber(day.auMnpSp1)
+            totalPerformance.auMnpSp2 += toNumber(day.auMnpSp2)
+            totalPerformance.auMnpSim += toNumber(day.auMnpSim)
+            totalPerformance.uqMnpSp1 += toNumber(day.uqMnpSp1)
+            totalPerformance.uqMnpSp2 += toNumber(day.uqMnpSp2)
+            totalPerformance.uqMnpSim += toNumber(day.uqMnpSim)
+            totalPerformance.auHsSp1 += toNumber(day.auHsSp1)
+            totalPerformance.auHsSp2 += toNumber(day.auHsSp2)
+            totalPerformance.auHsSim += toNumber(day.auHsSim)
+            totalPerformance.uqHsSp1 += toNumber(day.uqHsSp1)
+            totalPerformance.uqHsSp2 += toNumber(day.uqHsSp2)
+            totalPerformance.uqHsSim += toNumber(day.uqHsSim)
+            totalPerformance.creditCard += toNumber(day.creditCard)
+            totalPerformance.goldCard += toNumber(day.goldCard)
+            totalPerformance.jiBankAccount += toNumber(day.jiBankAccount)
+            totalPerformance.warranty += toNumber(day.warranty)
+            totalPerformance.ott += toNumber(day.ott)
+            totalPerformance.electricity += toNumber(day.electricity)
+            totalPerformance.gas += toNumber(day.gas)
+          })
 
-        // 全体の合計に加算
-        totalPerformance.auMnpSp1 += dailyTotals.auMnpSp1
-        totalPerformance.auMnpSp2 += dailyTotals.auMnpSp2
-        totalPerformance.auMnpSim += dailyTotals.auMnpSim
-        totalPerformance.uqMnpSp1 += dailyTotals.uqMnpSp1
-        totalPerformance.uqMnpSp2 += dailyTotals.uqMnpSp2
-        totalPerformance.uqMnpSim += dailyTotals.uqMnpSim
-        totalPerformance.auHsSp1 += dailyTotals.auHsSp1
-        totalPerformance.auHsSp2 += dailyTotals.auHsSp2
-        totalPerformance.auHsSim += dailyTotals.auHsSim
-        totalPerformance.uqHsSp1 += dailyTotals.uqHsSp1
-        totalPerformance.uqHsSp2 += dailyTotals.uqHsSp2
-        totalPerformance.uqHsSim += dailyTotals.uqHsSim
-        totalPerformance.creditCard += dailyTotals.creditCard
-        totalPerformance.goldCard += dailyTotals.goldCard
-        totalPerformance.jiBankAccount += dailyTotals.jiBankAccount
-        totalPerformance.warranty += dailyTotals.warranty
-        totalPerformance.ott += dailyTotals.ott
-        totalPerformance.electricity += dailyTotals.electricity
-        totalPerformance.gas += dailyTotals.gas
+          // staff_performancesテーブルに日別データを挿入
+          const staffDailyData = staff.dailyPerformances.map((day: any, dayIndex: number) => ({
+            event_id: eventId,
+            staff_name: staff.staffName,
+            day_number: dayIndex + 1,
+            au_mnp_sp1: toNumber(day.auMnpSp1),
+            au_mnp_sp2: toNumber(day.auMnpSp2),
+            au_mnp_sim: toNumber(day.auMnpSim),
+            uq_mnp_sp1: toNumber(day.uqMnpSp1),
+            uq_mnp_sp2: toNumber(day.uqMnpSp2),
+            uq_mnp_sim: toNumber(day.uqMnpSim),
+            au_hs_sp1: toNumber(day.auHsSp1),
+            au_hs_sp2: toNumber(day.auHsSp2),
+            au_hs_sim: toNumber(day.auHsSim),
+            uq_hs_sp1: toNumber(day.uqHsSp1),
+            uq_hs_sp2: toNumber(day.uqHsSp2),
+            uq_hs_sim: toNumber(day.uqHsSim),
+            cell_up_sp1: toNumber(day.cellUpSp1),
+            cell_up_sp2: toNumber(day.cellUpSp2),
+            cell_up_sim: toNumber(day.cellUpSim),
+            credit_card: toNumber(day.creditCard),
+            gold_card: toNumber(day.goldCard),
+            ji_bank_account: toNumber(day.jiBankAccount),
+            warranty: toNumber(day.warranty),
+            ott: toNumber(day.ott),
+            electricity: toNumber(day.electricity),
+            gas: toNumber(day.gas),
+            network_count: toNumber(day.networkCount),
+          }))
 
-        // staff_performancesテーブルにスタッフごとのデータを挿入
-        const staffPerformanceData = {
-          event_id: eventId,
-          staff_name: staff.staffName,
-          au_mnp: dailyTotals.auMnpSp1 + dailyTotals.auMnpSp2 + dailyTotals.auMnpSim,
-          uq_mnp: dailyTotals.uqMnpSp1 + dailyTotals.uqMnpSp2 + dailyTotals.uqMnpSim,
-          au_new: dailyTotals.auHsSp1 + dailyTotals.auHsSp2 + dailyTotals.auHsSim,
-          uq_new: dailyTotals.uqHsSp1 + dailyTotals.uqHsSp2 + dailyTotals.uqHsSim,
-          credit_card: dailyTotals.creditCard,
-          gold_card: dailyTotals.goldCard,
-          ji_bank_account: dailyTotals.jiBankAccount,
-          warranty: dailyTotals.warranty,
-          ott: dailyTotals.ott,
-          electricity: dailyTotals.electricity,
-          gas: dailyTotals.gas,
-        }
+          const { error: staffPerformanceError } = await supabase
+            .from('staff_performances')
+            .insert(staffDailyData)
 
-        const { error: staffPerformanceError } = await supabase
-          .from('staff_performances')
-          .insert(staffPerformanceData)
-
-        if (staffPerformanceError) {
-          console.error('Error inserting staff performance:', staffPerformanceError)
+          if (staffPerformanceError) {
+            console.error('Error inserting staff daily performances:', staffPerformanceError)
+          }
         }
       }
     }

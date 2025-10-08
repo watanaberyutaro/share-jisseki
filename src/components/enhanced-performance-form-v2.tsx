@@ -265,34 +265,66 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   // 編集モードの場合、初期データを整形
   const getDefaultValues = () => {
     if (editMode && initialData) {
-      const staffPerformances = initialData.staff_performances?.map((staff: any) => ({
-        staffName: staff.staff_name,
-        dailyPerformances: [{
-          auMnpSp1: staff.au_mnp || 0,
-          auMnpSp2: 0,
-          auMnpSim: 0,
-          uqMnpSp1: staff.uq_mnp || 0,
-          uqMnpSp2: 0,
-          uqMnpSim: 0,
-          auHsSp1: staff.au_new || 0,
-          auHsSp2: 0,
-          auHsSim: 0,
-          uqHsSp1: staff.uq_new || 0,
-          uqHsSp2: 0,
-          uqHsSim: 0,
-          cellUpSp1: 0,
-          cellUpSp2: 0,
-          cellUpSim: 0,
-          creditCard: staff.credit_card || 0,
-          goldCard: staff.gold_card || 0,
-          jiBankAccount: staff.ji_bank_account || 0,
-          warranty: staff.warranty || 0,
-          ott: staff.ott || 0,
-          electricity: staff.electricity || 0,
-          gas: staff.gas || 0,
-          networkCount: 0,
-        }]
-      })) || [{
+      const staffPerformances = initialData.staff_performances?.map((staff: any) => {
+        // 日別データが存在する場合はそれを使用、なければ集計データから1日分を作成
+        const dailyPerformances = staff.daily_performances?.length > 0
+          ? staff.daily_performances.map((daily: any) => ({
+              auMnpSp1: daily.au_mnp_sp1 || 0,
+              auMnpSp2: daily.au_mnp_sp2 || 0,
+              auMnpSim: daily.au_mnp_sim || 0,
+              uqMnpSp1: daily.uq_mnp_sp1 || 0,
+              uqMnpSp2: daily.uq_mnp_sp2 || 0,
+              uqMnpSim: daily.uq_mnp_sim || 0,
+              auHsSp1: daily.au_hs_sp1 || 0,
+              auHsSp2: daily.au_hs_sp2 || 0,
+              auHsSim: daily.au_hs_sim || 0,
+              uqHsSp1: daily.uq_hs_sp1 || 0,
+              uqHsSp2: daily.uq_hs_sp2 || 0,
+              uqHsSim: daily.uq_hs_sim || 0,
+              cellUpSp1: daily.cell_up_sp1 || 0,
+              cellUpSp2: daily.cell_up_sp2 || 0,
+              cellUpSim: daily.cell_up_sim || 0,
+              creditCard: daily.credit_card || 0,
+              goldCard: daily.gold_card || 0,
+              jiBankAccount: daily.ji_bank_account || 0,
+              warranty: daily.warranty || 0,
+              ott: daily.ott || 0,
+              electricity: daily.electricity || 0,
+              gas: daily.gas || 0,
+              networkCount: daily.network_count || 0,
+            }))
+          : [{
+              // フォールバック: 集計データから1日分として作成（古いデータ用）
+              auMnpSp1: staff.au_mnp || 0,
+              auMnpSp2: 0,
+              auMnpSim: 0,
+              uqMnpSp1: staff.uq_mnp || 0,
+              uqMnpSp2: 0,
+              uqMnpSim: 0,
+              auHsSp1: staff.au_new || 0,
+              auHsSp2: 0,
+              auHsSim: 0,
+              uqHsSp1: staff.uq_new || 0,
+              uqHsSp2: 0,
+              uqHsSim: 0,
+              cellUpSp1: 0,
+              cellUpSp2: 0,
+              cellUpSim: 0,
+              creditCard: staff.credit_card || 0,
+              goldCard: staff.gold_card || 0,
+              jiBankAccount: staff.ji_bank_account || 0,
+              warranty: staff.warranty || 0,
+              ott: staff.ott || 0,
+              electricity: staff.electricity || 0,
+              gas: staff.gas || 0,
+              networkCount: 0,
+            }]
+
+        return {
+          staffName: staff.staff_name,
+          dailyPerformances
+        }
+      }) || [{
         staffName: '',
         dailyPerformances: [createEmptyDailyPerformance()],
       }]

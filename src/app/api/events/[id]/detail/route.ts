@@ -49,31 +49,22 @@ export async function GET(
       console.error('Performance fetch error:', perfError)
     }
 
-    // スタッフの日別パフォーマンスを取得（複数のテーブルをチェック）
+    // スタッフの日別パフォーマンスを取得
     let staffDailyPerformances = []
-    
-    // まずstaff_daily_performancesから取得を試行
+
+    // staff_performancesから日別データを取得（day_numberでソート）
     const { data: dailyData, error: dailyError } = await supabase
-      .from('staff_daily_performances')
+      .from('staff_performances')
       .select('*')
       .eq('event_id', eventId)
-      
-    if (!dailyError && dailyData && dailyData.length > 0) {
+      .order('staff_name', { ascending: true })
+      .order('day_number', { ascending: true })
+
+    if (!dailyError && dailyData) {
       staffDailyPerformances = dailyData
+      console.log('Daily performances loaded:', dailyData.length, 'records')
     } else {
-      console.log('Daily performances error or empty:', dailyError)
-      
-      // staff_daily_performancesで取得できない場合、staff_performancesから取得
-      const { data: staffData, error: staffError } = await supabase
-        .from('staff_performances') 
-        .select('*')
-        .eq('event_id', eventId)
-        
-      if (!staffError && staffData) {
-        staffDailyPerformances = staffData
-      } else {
-        console.error('Staff performance fetch error:', staffError)
-      }
+      console.error('Staff performance fetch error:', dailyError)
     }
 
     // 写真を取得（デバッグモード）
@@ -186,13 +177,13 @@ export async function GET(
       }
     }) || []
 
-    // スタッフごとの日別実績を集計
-    const staffAggregated: Record<string, any> = {}
+    // スタッフごとに日別実績をグループ化して、集計と日別データの両方を返す
+    const staffGrouped: Record<string, any> = {}
     if (staffDailyPerformances && staffDailyPerformances.length > 0) {
       staffDailyPerformances.forEach(daily => {
         const staffName = daily.staff_name
-        if (!staffAggregated[staffName]) {
-          staffAggregated[staffName] = {
+        if (!staffGrouped[staffName]) {
+          staffGrouped[staffName] = {
             staff_name: staffName,
             au_mnp: 0,
             uq_mnp: 0,
@@ -204,18 +195,20 @@ export async function GET(
             warranty: 0,
             ott: 0,
             electricity: 0,
-            gas: 0
+            gas: 0,
+            daily_performances: [] // 日別データを保持
           }
         }
 
-        const staff = staffAggregated[staffName]
-        // MNPの集計
+        const staff = staffGrouped[staffName]
+        // 日別データを追加
+        staff.daily_performances.push(daily)
+
+        // 集計値を計算
         staff.au_mnp += (Number(daily.au_mnp_sp1) || 0) + (Number(daily.au_mnp_sp2) || 0) + (Number(daily.au_mnp_sim) || 0)
         staff.uq_mnp += (Number(daily.uq_mnp_sp1) || 0) + (Number(daily.uq_mnp_sp2) || 0) + (Number(daily.uq_mnp_sim) || 0)
-        // 新規の集計
         staff.au_new += (Number(daily.au_hs_sp1) || 0) + (Number(daily.au_hs_sp2) || 0) + (Number(daily.au_hs_sim) || 0)
         staff.uq_new += (Number(daily.uq_hs_sp1) || 0) + (Number(daily.uq_hs_sp2) || 0) + (Number(daily.uq_hs_sim) || 0)
-        // LTV系の集計
         staff.credit_card += (Number(daily.credit_card) || 0)
         staff.gold_card += (Number(daily.gold_card) || 0)
         staff.ji_bank_account += (Number(daily.ji_bank_account) || 0)
@@ -226,7 +219,7 @@ export async function GET(
       })
     }
 
-    const formattedStaffPerformances = Object.values(staffAggregated)
+    const formattedStaffPerformances = Object.values(staffGrouped)
 
     // テキスト項目を取得（最初のパフォーマンスレコードから）
     const textFields = performances && performances.length > 0 ? {

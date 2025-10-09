@@ -144,7 +144,7 @@ export function IdCalculatorComponent() {
         {selectedPeriod && (
           <>
             {/* データ入力グリッド */}
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {/* au MNP */}
               <div className="space-y-1">
                 <h3 className="text-sm font-semibold text-left mb-2" style={{ color: '#22211A' }}>au MNP</h3>

@@ -148,7 +148,7 @@ export function IdCalculatorComponent() {
               {/* au MNP */}
               <div className="space-y-1">
                 <h3 className="text-sm font-semibold text-left mb-2" style={{ color: '#22211A' }}>au MNP</h3>
-                <div className="space-y-1">
+                <div className="grid grid-cols-2 md:grid-cols-1 gap-x-2 gap-y-1">
                   <div className="flex items-center space-x-1">
                     <span className="text-xs w-10" style={{ color: '#22211A' }}>SP1</span>
                     <span className="text-xs" style={{ color: '#22211A' }}>=</span>
@@ -191,7 +191,7 @@ export function IdCalculatorComponent() {
               {/* UQ MNP */}
               <div className="space-y-1">
                 <h3 className="text-sm font-semibold text-left mb-2" style={{ color: '#22211A' }}>UQ MNP</h3>
-                <div className="space-y-1">
+                <div className="grid grid-cols-2 md:grid-cols-1 gap-x-2 gap-y-1">
                   <div className="flex items-center space-x-1">
                     <span className="text-xs w-10" style={{ color: '#22211A' }}>SP1</span>
                     <span className="text-xs" style={{ color: '#22211A' }}>=</span>
@@ -234,7 +234,7 @@ export function IdCalculatorComponent() {
               {/* au HS */}
               <div className="space-y-1">
                 <h3 className="text-sm font-semibold text-left mb-2" style={{ color: '#22211A' }}>au HS</h3>
-                <div className="space-y-1">
+                <div className="grid grid-cols-2 md:grid-cols-1 gap-x-2 gap-y-1">
                   <div className="flex items-center space-x-1">
                     <span className="text-xs w-10" style={{ color: '#22211A' }}>SP1</span>
                     <span className="text-xs" style={{ color: '#22211A' }}>=</span>
@@ -277,7 +277,7 @@ export function IdCalculatorComponent() {
               {/* UQ HS */}
               <div className="space-y-1">
                 <h3 className="text-sm font-semibold text-left mb-2" style={{ color: '#22211A' }}>UQ HS</h3>
-                <div className="space-y-1">
+                <div className="grid grid-cols-2 md:grid-cols-1 gap-x-2 gap-y-1">
                   <div className="flex items-center space-x-1">
                     <span className="text-xs w-10" style={{ color: '#22211A' }}>SP1</span>
                     <span className="text-xs" style={{ color: '#22211A' }}>=</span>
@@ -320,7 +320,7 @@ export function IdCalculatorComponent() {
               {/* セルアップ */}
               <div className="space-y-1">
                 <h3 className="text-sm font-semibold text-left mb-2" style={{ color: '#22211A' }}>セルアップ</h3>
-                <div className="space-y-1">
+                <div className="grid grid-cols-2 md:grid-cols-1 gap-x-2 gap-y-1">
                   <div className="flex items-center space-x-1">
                     <span className="text-xs w-10" style={{ color: '#22211A' }}>SP1</span>
                     <span className="text-xs" style={{ color: '#22211A' }}>=</span>

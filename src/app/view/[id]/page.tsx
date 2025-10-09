@@ -150,7 +150,7 @@ export default function EventDetailPage() {
   const eventDays = calculateEventDays(event.start_date, event.end_date)
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6" style={{ paddingTop: '80px', paddingBottom: '100rem' }}>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6" style={{ paddingTop: '80px', paddingBottom: '2500rem' }}>
       <MagneticDots />
       <div className="fade-in">
       {/* Header */}

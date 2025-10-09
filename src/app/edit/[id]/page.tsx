@@ -114,7 +114,7 @@ export default function EditPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6" style={{ paddingTop: '80px' }}>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-96 md:pb-6" style={{ paddingTop: '80px' }}>
       <MagneticDots />
       <div className="fade-in">
         <div className="mb-8">

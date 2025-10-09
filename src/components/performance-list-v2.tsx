@@ -24,6 +24,7 @@ interface EventSummary {
   actual_uq_mnp: number
   actual_au_new: number
   actual_uq_new: number
+  actual_cellup: number
   created_at: string
 }
 
@@ -278,7 +279,7 @@ export function PerformanceListV2() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-4">
               <div className="text-center p-3 rounded-xl bg-muted">
                 <div className="text-2xl font-bold mb-1" style={{ color: '#22211A' }}>
                   {event.actual_hs_total}
@@ -301,6 +302,12 @@ export function PerformanceListV2() {
                   {event.actual_au_new + event.actual_uq_new}
                 </div>
                 <div className="text-xs" style={{ color: '#22211A' }}>新規合計</div>
+              </div>
+              <div className="text-center p-3 rounded-xl bg-muted">
+                <div className="text-2xl font-bold mb-1" style={{ color: '#22211A' }}>
+                  {event.actual_cellup || 0}
+                </div>
+                <div className="text-xs" style={{ color: '#22211A' }}>セルアップ</div>
               </div>
               <div className="text-center p-3 rounded-xl bg-muted">
                 <div className="text-2xl font-bold mb-1" style={{ color: '#22211A' }}>
@@ -327,6 +334,10 @@ export function PerformanceListV2() {
               <div className="flex justify-between items-center text-sm">
                 <span style={{ color: '#22211A' }}>UQ 新規</span>
                 <span className="font-medium" style={{ color: '#22211A' }}>{event.actual_uq_new}件</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span style={{ color: '#22211A' }}>セルアップ</span>
+                <span className="font-medium" style={{ color: '#22211A' }}>{event.actual_cellup || 0}件</span>
               </div>
             </div>
 

@@ -2006,7 +2006,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
       </div>
 
       {/* ボタンエリア */}
-      <div className="space-y-3">
+      <div className="space-y-3" style={{ paddingBottom: '800rem' }}>
         {/* 手動保存ボタン（新規入力時のみ） */}
         {!editMode && (
           <button
@@ -2025,10 +2025,10 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full flex justify-center items-center px-4 py-3 font-bold rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FFB300] disabled:opacity-50 disabled:cursor-not-allowed transition-all border"
+          className="w-full flex justify-center items-center px-4 py-4 md:py-3 text-lg md:text-base font-bold rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FFB300] disabled:opacity-50 disabled:cursor-not-allowed transition-all border"
           style={{ backgroundColor: '#FFB300', color: '#FFFFFF', borderColor: '#FFB300' }}
         >
-          <Save className="w-5 h-5 mr-2" style={{ color: '#FFFFFF' }} />
+          <Save className="w-6 h-6 md:w-5 md:h-5 mr-2" style={{ color: '#FFFFFF' }} />
           {isSubmitting ? '保存中...' : editMode ? '編集を保存' : '実績を保存'}
         </button>
       </div>

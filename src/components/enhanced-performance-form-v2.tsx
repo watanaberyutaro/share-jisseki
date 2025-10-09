@@ -2006,7 +2006,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
       </div>
 
       {/* ボタンエリア */}
-      <div className="space-y-3" style={{ paddingBottom: '800rem' }}>
+      <div className="space-y-3" style={{ paddingBottom: '80rem' }}>
         {/* 手動保存ボタン（新規入力時のみ） */}
         {!editMode && (
           <button

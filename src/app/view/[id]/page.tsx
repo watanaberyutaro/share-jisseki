@@ -40,6 +40,7 @@ interface StaffPerformance {
   uq_mnp: number
   au_new: number
   uq_new: number
+  cellup: number
   credit_card: number
   gold_card: number
   ji_bank_account: number
@@ -203,7 +204,7 @@ export default function EventDetailPage() {
           <div className="glass rounded-lg p-6 border" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
             <h2 className="text-xl font-bold mb-6" style={{ color: '#22211A' }}>実績サマリー</h2>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
               <div className="text-center p-4 bg-muted rounded-xl">
                 <div className="text-3xl font-bold mb-2" style={{ color: '#22211A' }}>
                   {event.actual_hs_total}
@@ -226,6 +227,12 @@ export default function EventDetailPage() {
                   {event.actual_au_new + event.actual_uq_new}
                 </div>
                 <div className="text-sm" style={{ color: '#22211A' }}>新規合計</div>
+              </div>
+              <div className="text-center p-4 bg-muted rounded-xl">
+                <div className="text-3xl font-bold mb-2" style={{ color: '#22211A' }}>
+                  {event.actual_cellup || 0}
+                </div>
+                <div className="text-sm" style={{ color: '#22211A' }}>セルアップ</div>
               </div>
               <div className="text-center p-4 bg-muted/50 rounded-xl">
                 <div className="text-3xl font-bold mb-2" style={{ color: '#22211A' }}>
@@ -252,6 +259,10 @@ export default function EventDetailPage() {
               <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
                 <span style={{ color: '#22211A' }}>UQ 新規</span>
                 <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{event.actual_uq_new}件</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
+                <span style={{ color: '#22211A' }}>セルアップ</span>
+                <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{event.actual_cellup || 0}件</span>
               </div>
             </div>
 
@@ -320,6 +331,10 @@ export default function EventDetailPage() {
                             <div>
                               <span style={{ color: '#22211A' }}>UQ 新規: </span>
                               <span className="font-medium" style={{ color: '#22211A' }}>{staff.uq_new || 0}</span>
+                            </div>
+                            <div>
+                              <span style={{ color: '#22211A' }}>セルアップ: </span>
+                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.cellup || 0}</span>
                             </div>
                           </div>
                         </div>

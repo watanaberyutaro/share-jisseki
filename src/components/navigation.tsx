@@ -146,7 +146,7 @@ export function Navigation() {
       {/* モバイル用ボトムナビゲーション */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t" style={{ backgroundColor: '#22211A', borderTopColor: '#DCEDC8' }}>
         <div className="flex justify-around items-center h-16">
-          {navigationItems.slice(0, 5).map((item) => {
+          {navigationItems.filter(item => !item.requireAdmin).map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             const isDisabled = item.requireAdmin && userRole !== 'admin'

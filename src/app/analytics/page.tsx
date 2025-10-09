@@ -74,7 +74,7 @@ export default function AnalyticsPage() {
   }, [])
 
   return (
-    <div className="min-h-screen py-2 md:py-6 pb-16 md:pb-6 analytics-page" style={{ paddingTop: '5rem' }}>
+    <div className="min-h-screen py-2 md:py-6 pb-32 md:pb-6 analytics-page" style={{ paddingTop: '5rem' }}>
       <MagneticDots />
       <div className="fade-in">
         <PerformanceAnalyticsV2WithMonthly

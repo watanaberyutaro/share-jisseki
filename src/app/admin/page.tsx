@@ -633,7 +633,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 md:py-6 pb-16 md:pb-6" style={{ paddingTop: '5rem' }}>
+    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 md:py-6 pb-32 md:pb-6" style={{ paddingTop: '5rem' }}>
       <MagneticDots />
       <div className="fade-in">
         <div className="mb-4 md:mb-8">
@@ -734,75 +734,80 @@ export default function AdminDashboard() {
               <label className="block text-sm font-semibold mb-2" style={{ color: '#22211A' }}>
                 算定期間
               </label>
-              <div className="flex items-center space-x-2">
-                <select
-                  value={calculationData.startYear}
-                  onChange={(e) => setCalculationData({ ...calculationData, startYear: e.target.value })}
-                  className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB300]"
-                  style={{ borderColor: '#22211A' }}
-                >
-                  <option value="">年</option>
-                  {Array.from({ length: 10 }, (_, i) => {
-                    const year = new Date().getFullYear() - 5 + i
-                    return (
-                      <option key={year} value={year}>
-                        {year}
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm" style={{ color: '#22211A' }}>開始:</span>
+                  <select
+                    value={calculationData.startYear}
+                    onChange={(e) => setCalculationData({ ...calculationData, startYear: e.target.value })}
+                    className="px-2 md:px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB300] text-sm"
+                    style={{ borderColor: '#22211A' }}
+                  >
+                    <option value="">年</option>
+                    {Array.from({ length: 10 }, (_, i) => {
+                      const year = new Date().getFullYear() - 5 + i
+                      return (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      )
+                    })}
+                  </select>
+                  <span className="text-sm" style={{ color: '#22211A' }}>年</span>
+                  <select
+                    value={calculationData.startMonth}
+                    onChange={(e) => setCalculationData({ ...calculationData, startMonth: e.target.value })}
+                    className="px-2 md:px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB300] text-sm"
+                    style={{ borderColor: '#22211A' }}
+                  >
+                    <option value="">月</option>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {i + 1}
                       </option>
-                    )
-                  })}
-                </select>
-                <span style={{ color: '#22211A' }}>年</span>
-                <select
-                  value={calculationData.startMonth}
-                  onChange={(e) => setCalculationData({ ...calculationData, startMonth: e.target.value })}
-                  className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB300]"
-                  style={{ borderColor: '#22211A' }}
-                >
-                  <option value="">月</option>
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      {i + 1}
-                    </option>
-                  ))}
-                </select>
-                <span style={{ color: '#22211A' }}>月</span>
-                <span style={{ color: '#22211A' }}>～</span>
-                <select
-                  value={calculationData.endYear}
-                  onChange={(e) => setCalculationData({ ...calculationData, endYear: e.target.value })}
-                  className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB300]"
-                  style={{ borderColor: '#22211A' }}
-                >
-                  <option value="">年</option>
-                  {Array.from({ length: 10 }, (_, i) => {
-                    const year = new Date().getFullYear() - 5 + i
-                    return (
-                      <option key={year} value={year}>
-                        {year}
+                    ))}
+                  </select>
+                  <span className="text-sm" style={{ color: '#22211A' }}>月</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm" style={{ color: '#22211A' }}>終了:</span>
+                  <select
+                    value={calculationData.endYear}
+                    onChange={(e) => setCalculationData({ ...calculationData, endYear: e.target.value })}
+                    className="px-2 md:px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB300] text-sm"
+                    style={{ borderColor: '#22211A' }}
+                  >
+                    <option value="">年</option>
+                    {Array.from({ length: 10 }, (_, i) => {
+                      const year = new Date().getFullYear() - 5 + i
+                      return (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      )
+                    })}
+                  </select>
+                  <span className="text-sm" style={{ color: '#22211A' }}>年</span>
+                  <select
+                    value={calculationData.endMonth}
+                    onChange={(e) => setCalculationData({ ...calculationData, endMonth: e.target.value })}
+                    className="px-2 md:px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB300] text-sm"
+                    style={{ borderColor: '#22211A' }}
+                  >
+                    <option value="">月</option>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {i + 1}
                       </option>
-                    )
-                  })}
-                </select>
-                <span style={{ color: '#22211A' }}>年</span>
-                <select
-                  value={calculationData.endMonth}
-                  onChange={(e) => setCalculationData({ ...calculationData, endMonth: e.target.value })}
-                  className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB300]"
-                  style={{ borderColor: '#22211A' }}
-                >
-                  <option value="">月</option>
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      {i + 1}
-                    </option>
-                  ))}
-                </select>
-                <span style={{ color: '#22211A' }}>月</span>
+                    ))}
+                  </select>
+                  <span className="text-sm" style={{ color: '#22211A' }}>月</span>
+                </div>
               </div>
             </div>
 
             {/* データ入力グリッド */}
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {/* au MNP */}
               <div className="space-y-1">
                 <h3 className="text-sm font-semibold whitespace-nowrap text-left mb-2" style={{ color: '#22211A' }}>au MNP</h3>

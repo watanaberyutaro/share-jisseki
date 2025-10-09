@@ -23,6 +23,7 @@ interface EventDetail {
   actual_uq_mnp: number
   actual_au_new: number
   actual_uq_new: number
+  actual_cellup: number
   staff_performances: StaffPerformance[]
   photos: Photo[]
   created_at: string

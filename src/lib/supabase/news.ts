@@ -5,6 +5,7 @@ export interface News {
   title: string
   content: string
   display_until: string
+  is_active: boolean
   created_at: string
   updated_at: string
 }
@@ -20,6 +21,7 @@ export async function getActiveNews(): Promise<News[]> {
     .from('news')
     .select('*')
     .gte('display_until', now)
+    .eq('is_active', true)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -27,6 +29,7 @@ export async function getActiveNews(): Promise<News[]> {
     return []
   }
 
+  console.log('[getActiveNews] 取得したニュース:', data)
   return data || []
 }
 
@@ -55,12 +58,17 @@ export async function getAllNews(): Promise<News[]> {
 export async function createNews(title: string, content: string, displayUntil: string): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
 
+  // 日付文字列をタイムスタンプに変換（時刻を23:59:59に設定）
+  const displayUntilDate = new Date(displayUntil)
+  displayUntilDate.setHours(23, 59, 59, 999)
+
   const { error } = await supabase
     .from('news')
     .insert({
       title,
       content,
-      display_until: displayUntil,
+      display_until: displayUntilDate.toISOString(),
+      is_active: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
@@ -79,18 +87,44 @@ export async function createNews(title: string, content: string, displayUntil: s
 export async function updateNews(id: string, title: string, content: string, displayUntil: string): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
 
+  // 日付文字列をタイムスタンプに変換（時刻を23:59:59に設定）
+  const displayUntilDate = new Date(displayUntil)
+  displayUntilDate.setHours(23, 59, 59, 999)
+
   const { error } = await supabase
     .from('news')
     .update({
       title,
       content,
-      display_until: displayUntil,
+      display_until: displayUntilDate.toISOString(),
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
 
   if (error) {
     console.error('[updateNews] エラー:', error)
+    return { success: false, error: error.message }
+  }
+
+  return { success: true }
+}
+
+/**
+ * ニュースの表示/非表示を切り替え
+ */
+export async function toggleNewsActive(id: string, isActive: boolean): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient()
+
+  const { error } = await supabase
+    .from('news')
+    .update({
+      is_active: isActive,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+
+  if (error) {
+    console.error('[toggleNewsActive] エラー:', error)
     return { success: false, error: error.message }
   }
 

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getAllNews, createNews, updateNews, deleteNews, type News } from '@/lib/supabase/news'
-import { Bell, Plus, Edit2, Trash2, Save, X } from 'lucide-react'
+import { getAllNews, createNews, updateNews, deleteNews, toggleNewsActive, type News } from '@/lib/supabase/news'
+import { Bell, Plus, Edit2, Trash2, Save, X, Pause, Play } from 'lucide-react'
 
 export function NewsManager() {
   const [newsList, setNewsList] = useState<News[]>([])
@@ -29,8 +29,12 @@ export function NewsManager() {
       return
     }
 
+    console.log('Creating news with data:', formData)
     const result = await createNews(formData.title, formData.content, formData.display_until)
+    console.log('Create result:', result)
+
     if (result.success) {
+      alert('ニュースを作成しました')
       setFormData({ title: '', content: '', display_until: '' })
       setIsAdding(false)
       loadNews()
@@ -49,6 +53,15 @@ export function NewsManager() {
     if (result.success) {
       setFormData({ title: '', content: '', display_until: '' })
       setEditingId(null)
+      loadNews()
+    } else {
+      alert('ニュースの更新に失敗しました: ' + result.error)
+    }
+  }
+
+  const handleToggleActive = async (id: string, currentActive: boolean) => {
+    const result = await toggleNewsActive(id, !currentActive)
+    if (result.success) {
       loadNews()
     } else {
       alert('ニュースの更新に失敗しました: ' + result.error)
@@ -235,9 +248,21 @@ export function NewsManager() {
               // 表示モード
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  {news.title && (
-                    <h4 className="font-bold mb-1" style={{ color: '#22211A' }}>{news.title}</h4>
-                  )}
+                  <div className="flex items-center gap-2 mb-1">
+                    {news.title && (
+                      <h4 className="font-bold" style={{ color: '#22211A' }}>{news.title}</h4>
+                    )}
+                    {news.is_active && new Date(news.display_until) >= new Date() && (
+                      <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: '#4abf79', color: '#FFFFFF' }}>
+                        表示中
+                      </span>
+                    )}
+                    {!news.is_active && (
+                      <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: '#9E9E9E', color: '#FFFFFF' }}>
+                        停止中
+                      </span>
+                    )}
+                  </div>
                   <p className="mb-2" style={{ color: '#22211A' }}>{news.content}</p>
                   <div className="flex items-center gap-4 text-sm" style={{ color: '#22211A', opacity: 0.7 }}>
                     <span>表示期限: {new Date(news.display_until).toLocaleDateString('ja-JP')}</span>
@@ -245,6 +270,14 @@ export function NewsManager() {
                   </div>
                 </div>
                 <div className="flex gap-2 ml-4">
+                  <button
+                    onClick={() => handleToggleActive(news.id, news.is_active)}
+                    className="p-2 rounded-lg hover:opacity-80"
+                    style={{ backgroundColor: news.is_active ? '#9E9E9E' : '#4abf79', color: '#FFFFFF' }}
+                    title={news.is_active ? '一時停止' : '再開'}
+                  >
+                    {news.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  </button>
                   <button
                     onClick={() => startEdit(news)}
                     className="p-2 rounded-lg hover:opacity-80"

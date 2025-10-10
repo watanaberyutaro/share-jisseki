@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS news (
   title TEXT NOT NULL DEFAULT '',
   content TEXT NOT NULL,
   display_until TIMESTAMP WITH TIME ZONE NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -11,17 +12,10 @@ CREATE TABLE IF NOT EXISTS news (
 -- RLSポリシーの有効化
 ALTER TABLE news ENABLE ROW LEVEL SECURITY;
 
--- 誰でも有効なニュースを読み取れる
-CREATE POLICY "Anyone can read active news"
+-- 誰でも全てのニュースを読み取れる
+CREATE POLICY "Anyone can read news"
   ON news
   FOR SELECT
-  USING (display_until >= NOW());
-
--- 認証済みユーザーは全てのニュースを読み取れる（管理者用）
-CREATE POLICY "Authenticated users can read all news"
-  ON news
-  FOR SELECT
-  TO authenticated
   USING (true);
 
 -- 誰でもニュースを作成できる

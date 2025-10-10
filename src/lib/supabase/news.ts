@@ -17,6 +17,8 @@ export async function getActiveNews(): Promise<News[]> {
   const supabase = createClient()
   const now = new Date().toISOString()
 
+  console.log('[getActiveNews] 現在時刻:', now)
+
   const { data, error } = await supabase
     .from('news')
     .select('*')
@@ -30,6 +32,11 @@ export async function getActiveNews(): Promise<News[]> {
   }
 
   console.log('[getActiveNews] 取得したニュース:', data)
+
+  // デバッグ: 全てのニュースを取得してフィルタ条件を確認
+  const { data: allNews } = await supabase.from('news').select('*')
+  console.log('[getActiveNews] 全ニュース（フィルタなし）:', allNews)
+
   return data || []
 }
 

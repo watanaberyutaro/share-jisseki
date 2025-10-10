@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNavigation } from '@/contexts/navigation-context'
-import { User, LogOut } from 'lucide-react'
+import { User, LogOut, Bell } from 'lucide-react'
 import { removeSession } from '@/lib/supabase/sessions'
+import { getActiveNews, type News } from '@/lib/supabase/news'
 
 interface HeaderProps {
   isLoginPage?: boolean
@@ -17,6 +18,8 @@ export function Header({ isLoginPage = false }: HeaderProps) {
   const [userRole, setUserRole] = useState<string>('')
   const [userName, setUserName] = useState<string>('')
   const [isMobile, setIsMobile] = useState(false)
+  const [news, setNews] = useState<News[]>([])
+  const [currentNewsIndex, setCurrentNewsIndex] = useState(0)
   const { isCollapsed } = useNavigation()
 
   const handleLogout = async () => {
@@ -56,11 +59,29 @@ export function Header({ isLoginPage = false }: HeaderProps) {
       setCurrentTime(new Date())
     }, 1000)
 
+    // ニュースを読み込み
+    loadNews()
+    const newsInterval = setInterval(loadNews, 30000)
+
     return () => {
       clearInterval(timer)
+      clearInterval(newsInterval)
       window.removeEventListener('resize', checkMobile)
     }
   }, [])
+
+  useEffect(() => {
+    if (news.length === 0) return
+    const interval = setInterval(() => {
+      setCurrentNewsIndex((prev) => (prev + 1) % news.length)
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [news.length])
+
+  const loadNews = async () => {
+    const activeNews = await getActiveNews()
+    setNews(activeNews)
+  }
 
   const navigationWidth = isCollapsed ? '4rem' : '16rem'
 
@@ -77,7 +98,7 @@ export function Header({ isLoginPage = false }: HeaderProps) {
     >
       <div className="w-full py-2 md:py-3 px-2 md:px-4 flex justify-between items-center">
         {/* Date and Time - Left */}
-        <div className="flex items-center space-x-1 md:space-x-6 ml-1 md:ml-8">
+        <div className="flex items-center space-x-1 md:space-x-6 ml-1 md:ml-8 flex-shrink-0">
           {/* Date */}
           <div className="flex items-center space-x-1">
             <span className="text-xs md:text-lg font-semibold drop-shadow-sm" style={{ color: '#FFFFFF' }}>
@@ -93,8 +114,25 @@ export function Header({ isLoginPage = false }: HeaderProps) {
           </div>
         </div>
 
+        {/* News Ticker - Center */}
+        {!isLoginPage && news.length > 0 && (
+          <div className="flex-1 flex items-center gap-2 overflow-hidden mx-4">
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Bell className="w-4 md:w-5 h-4 md:h-5 drop-shadow-sm" style={{ color: '#FFFFFF' }} />
+              <span className="text-xs md:text-lg font-semibold drop-shadow-sm" style={{ color: '#FFFFFF' }}>お知らせ</span>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <div className="animate-scroll-left whitespace-nowrap inline-block">
+                <span className="text-xs md:text-lg font-semibold drop-shadow-sm" style={{ color: '#FFFFFF' }}>
+                  {news[currentNewsIndex]?.content}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* User Info and Logout - Right */}
-        <div className="flex items-center space-x-1 md:space-x-6 mr-1 md:mr-8">
+        <div className="flex items-center space-x-1 md:space-x-6 mr-1 md:mr-8 flex-shrink-0">
           {isLoginPage ? (
             <div className="flex items-center">
               <User className="w-5 md:w-6 h-5 md:h-6 drop-shadow-sm" style={{ color: '#FFFFFF' }} />
@@ -127,6 +165,16 @@ export function Header({ isLoginPage = false }: HeaderProps) {
           )}
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes scroll-left {
+          0% { transform: translateX(100%); }
+          100% { transform: translateX(-100%); }
+        }
+        .animate-scroll-left {
+          animation: scroll-left 15s linear infinite;
+        }
+      `}</style>
     </div>
   )
 }

@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { TrendingUp, Target, StickyNote, Save, Edit3, Trophy, Award, Medal, BarChart, User } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, BarChart as RechartsBarChart, Bar } from 'recharts'
 import { MagneticDots } from '@/components/MagneticDots'
-import { NewsTicker } from '@/components/news-ticker'
 
 export default function Dashboard() {
   const [currentTime] = useState(new Date())
@@ -385,9 +384,6 @@ export default function Dashboard() {
     <div className="min-h-screen relative dashboard-mobile dashboard-page" style={{ paddingTop: '2.5rem' }}>
       {/* 磁石効果のあるドット背景（データ読み込み後に表示） */}
       {!isLoading && <MagneticDots />}
-
-      {/* News Ticker */}
-      <NewsTicker />
 
       {/* Monthly Achievement Stats and Memo Panel */}
       <div className="relative z-10 max-w-6xl mx-auto dashboard-container pb-32 md:pb-6" style={{ paddingLeft: '6rem', paddingRight: '6rem', paddingTop: '2.5rem' }}>

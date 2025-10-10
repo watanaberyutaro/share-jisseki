@@ -9,6 +9,7 @@ export function NewsTicker() {
   const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
+    console.log('[NewsTicker] コンポーネントマウント')
     loadNews()
     // 30秒ごとにニュースを再取得
     const interval = setInterval(loadNews, 30000)
@@ -27,13 +28,26 @@ export function NewsTicker() {
   }, [news.length])
 
   const loadNews = async () => {
+    console.log('[NewsTicker] ニュースを読み込み中...')
     const activeNews = await getActiveNews()
+    console.log('[NewsTicker] 取得したニュース数:', activeNews.length)
+    console.log('[NewsTicker] ニュース詳細:', activeNews)
     setNews(activeNews)
   }
 
-  if (news.length === 0) return null
+  console.log('[NewsTicker] レンダリング - ニュース数:', news.length)
+
+  if (news.length === 0) {
+    console.log('[NewsTicker] ニュースが0件のため非表示')
+    return (
+      <div className="w-full h-12 flex items-center justify-center" style={{ backgroundColor: '#FFB300' }}>
+        <span style={{ color: '#22211A' }}>ニュースを読み込み中...</span>
+      </div>
+    )
+  }
 
   const currentNews = news[currentIndex]
+  console.log('[NewsTicker] 表示中のニュース:', currentNews)
 
   return (
     <div className="w-full overflow-hidden border-b" style={{ backgroundColor: '#FFB300', borderBottomColor: '#22211A' }}>

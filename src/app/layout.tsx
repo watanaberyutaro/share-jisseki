@@ -3,6 +3,7 @@ import { Inter, Orbitron } from 'next/font/google'
 import './globals.css'
 import { ConditionalNavigation } from '@/components/conditional-navigation'
 import { ConditionalHeader } from '@/components/conditional-header'
+import { SessionMonitor } from '@/components/session-monitor'
 import { NavigationProvider } from '@/contexts/navigation-context'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -35,6 +36,7 @@ export default function RootLayout({
     <html lang="ja">
       <body className={`${inter.className} ${orbitron.variable}`}>
         <NavigationProvider>
+          <SessionMonitor />
           <div className="flex min-h-screen">
             <ConditionalNavigation />
             <div className="flex flex-col flex-1">

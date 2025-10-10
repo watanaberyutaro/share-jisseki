@@ -92,12 +92,12 @@ export async function registerSession(userName: string): Promise<{ success: bool
   // 新規セッション
   const activeSessionCount = existingSessions?.length || 0
 
-  if (activeSessionCount >= 2) {
+  if (activeSessionCount >= 3) {
     console.warn('[registerSession] デバイス数上限に達しています')
 
     return {
       success: false,
-      message: 'このユーザー名は既に2台のデバイスで使用されています'
+      message: 'このユーザー名は既に3台のデバイスで使用されています'
     }
   }
 
@@ -159,24 +159,42 @@ export async function removeSession(userName: string): Promise<void> {
 }
 
 /**
- * 古いセッションをクリーンアップ（24時間以上非アクティブ）
+ * 古いセッションをクリーンアップ（30分以上非アクティブ）
  */
 export async function cleanupOldSessions(): Promise<void> {
   const supabase = createClient()
 
-  const oneDayAgo = new Date()
-  oneDayAgo.setHours(oneDayAgo.getHours() - 24)
+  const thirtyMinutesAgo = new Date()
+  thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30)
 
-  console.log('[cleanupOldSessions] 古いセッションをクリーンアップ')
+  console.log('[cleanupOldSessions] 古いセッションをクリーンアップ (30分以上非アクティブ)')
 
   const { error } = await supabase
     .from('user_sessions')
     .delete()
-    .lt('last_active', oneDayAgo.toISOString())
+    .lt('last_active', thirtyMinutesAgo.toISOString())
 
   if (error) {
     console.error('[cleanupOldSessions] クリーンアップエラー:', error)
   } else {
     console.log('[cleanupOldSessions] クリーンアップ成功')
+  }
+}
+
+/**
+ * セッションのハートビート（アクティビティ更新）
+ */
+export async function updateSessionActivity(userName: string): Promise<void> {
+  const supabase = createClient()
+  const deviceId = getDeviceId()
+
+  const { error } = await supabase
+    .from('user_sessions')
+    .update({ last_active: new Date().toISOString() })
+    .eq('user_name', userName)
+    .eq('device_id', deviceId)
+
+  if (error) {
+    console.error('[updateSessionActivity] アクティビティ更新エラー:', error)
   }
 }

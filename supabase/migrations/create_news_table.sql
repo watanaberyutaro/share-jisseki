@@ -24,23 +24,20 @@ CREATE POLICY "Authenticated users can read all news"
   TO authenticated
   USING (true);
 
--- 認証済みユーザーはニュースを作成できる
-CREATE POLICY "Authenticated users can create news"
+-- 誰でもニュースを作成できる
+CREATE POLICY "Anyone can create news"
   ON news
   FOR INSERT
-  TO authenticated
   WITH CHECK (true);
 
--- 認証済みユーザーはニュースを更新できる
-CREATE POLICY "Authenticated users can update news"
+-- 誰でもニュースを更新できる
+CREATE POLICY "Anyone can update news"
   ON news
   FOR UPDATE
-  TO authenticated
   USING (true);
 
--- 認証済みユーザーはニュースを削除できる
-CREATE POLICY "Authenticated users can delete news"
+-- 誰でもニュースを削除できる
+CREATE POLICY "Anyone can delete news"
   ON news
   FOR DELETE
-  TO authenticated
   USING (true);

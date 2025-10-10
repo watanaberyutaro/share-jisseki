@@ -78,7 +78,7 @@ export default function InputPage() {
   }, [])
 
   return (
-    <div className="max-w-5xl mx-auto px-2 sm:px-4 lg:px-8 py-2 md:py-6 pb-20 md:pb-6" style={{ paddingTop: '5rem' }}>
+    <div className="max-w-5xl mx-auto px-2 sm:px-4 lg:px-8 py-2 md:py-6 pb-20" style={{ paddingTop: '5rem' }}>
       <MagneticDots />
       <div className="fade-in">
         <div className="mb-4 md:mb-8">

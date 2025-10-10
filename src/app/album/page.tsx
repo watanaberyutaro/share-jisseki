@@ -231,7 +231,7 @@ export default function Album() {
   return (
     <div className="min-h-screen" style={{ paddingTop: '5rem' }}>
       <MagneticDots />
-      <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8 py-2 md:py-6 pb-40 md:pb-6">
+      <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8 py-2 md:py-6 pb-32 md:pb-6">
         {/* ヘッダー */}
         <div className="glass rounded-lg border p-3 md:p-6 mb-3 md:mb-6" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-2">

@@ -386,7 +386,7 @@ export default function Dashboard() {
       {!isLoading && <MagneticDots />}
 
       {/* Monthly Achievement Stats and Memo Panel */}
-      <div className="relative z-10 max-w-6xl mx-auto dashboard-container" style={{ paddingLeft: '6rem', paddingRight: '6rem', paddingTop: '2.5rem', paddingBottom: '6rem' }}>
+      <div className="relative z-10 max-w-6xl mx-auto dashboard-container pb-32 md:pb-6" style={{ paddingLeft: '6rem', paddingRight: '6rem', paddingTop: '2.5rem' }}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
           {/* 達成状況パネル */}
           <div className="glass rounded-lg border p-6" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>

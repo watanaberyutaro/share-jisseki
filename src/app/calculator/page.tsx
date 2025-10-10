@@ -7,7 +7,7 @@ import { MagneticDots } from '@/components/MagneticDots'
 
 export default function CalculatorPage() {
   return (
-    <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8 py-2 md:py-6" style={{ paddingTop: '5rem', paddingBottom: '10rem' }}>
+    <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8 py-2 md:py-6 pb-32 md:pb-6" style={{ paddingTop: '5rem' }}>
       <MagneticDots />
       <div className="fade-in">
 

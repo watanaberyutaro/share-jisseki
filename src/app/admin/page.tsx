@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Shield, Users, CheckCircle, XCircle, Clock, AlertCircle, Calculator, Save, Edit2, Trash2, X, Database, Calendar, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, Check } from 'lucide-react'
 import { LoadingAnimation } from '@/components/loading-animation'
 import { MagneticDots } from '@/components/MagneticDots'
+import { NewsManager } from '@/components/news-manager'
 
 interface ApprovalRequest {
   id: string
@@ -1457,6 +1458,11 @@ export default function AdminDashboard() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* ニュース管理 */}
+        <div className="mb-8">
+          <NewsManager />
         </div>
       </div>
 

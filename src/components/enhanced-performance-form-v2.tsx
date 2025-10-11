@@ -612,6 +612,9 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
 
     try {
       console.log('[saveDraft] 保存開始:', { userName, isManual, dataKeys: Object.keys(data) })
+      console.log('[saveDraft] data.eventPhotos:', data.eventPhotos)
+      console.log('[saveDraft] eventPhotos state:', eventPhotos)
+      console.log('[saveDraft] eventPhotos type:', typeof eventPhotos, Array.isArray(eventPhotos))
       setAutoSaveStatus('saving')
 
       // 画像ファイルをBase64に変換
@@ -920,17 +923,24 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     const files = Array.from(event.target.files || [])
     const remainingSlots = 5 - eventPhotos.length
     const newFiles = files.slice(0, remainingSlots)
-    
+
+    console.log('[handlePhotoUpload] アップロードされたファイル数:', files.length)
+    console.log('[handlePhotoUpload] 追加可能なファイル数:', remainingSlots)
+    console.log('[handlePhotoUpload] 追加するファイル:', newFiles)
+
     if (newFiles.length > 0) {
       const newPhotos = [...eventPhotos, ...newFiles]
+      console.log('[handlePhotoUpload] 新しいeventPhotos:', newPhotos)
+      console.log('[handlePhotoUpload] 新しいeventPhotos.length:', newPhotos.length)
       setEventPhotos(newPhotos)
-      
+
       // プレビュー用のURLを生成
       const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file))
       setPreviewUrls(prev => [...prev, ...newPreviewUrls])
-      
+
       // フォームのフィールドに設定
       setValue('eventPhotos', newPhotos)
+      console.log('[handlePhotoUpload] setValueとsetEventPhotos完了')
     }
   }
   

@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     
     const data = JSON.parse(jsonData)
     console.log('Received enhanced v2 form data:', JSON.stringify(data, null, 2))
+    console.log('includeCellupInHsTotal value:', data.includeCellupInHsTotal, typeof data.includeCellupInHsTotal)
     console.log('Staff performances structure:', data.staffPerformances?.map((staff: any, index: number) => ({
       index,
       staffName: staff.staffName,
@@ -55,18 +56,21 @@ export async function POST(request: NextRequest) {
     }
     
     // イベントを作成（イベント名なし）
+    const eventData = {
+      venue: data.venue,
+      agency_name: data.agencyName,
+      start_date: data.startDate,
+      end_date: data.endDate,
+      year: toNumber(data.year),
+      month: toNumber(data.month),
+      week_number: toNumber(data.weekNumber),
+      include_cellup_in_hs_total: data.includeCellupInHsTotal || false,
+    }
+    console.log('Creating event with data:', eventData)
+
     const { data: event, error: eventError } = await supabase
       .from('events')
-      .insert({
-        venue: data.venue,
-        agency_name: data.agencyName,
-        start_date: data.startDate,
-        end_date: data.endDate,
-        year: toNumber(data.year),
-        month: toNumber(data.month),
-        week_number: toNumber(data.weekNumber),
-        include_cellup_in_hs_total: data.includeCellupInHsTotal || false,
-      })
+      .insert(eventData)
       .select()
       .single()
     

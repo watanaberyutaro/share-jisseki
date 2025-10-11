@@ -100,6 +100,7 @@ export async function GET(
       actual_uq_mnp: 0,
       actual_au_new: 0,
       actual_uq_new: 0,
+      actual_cellup: 0,
       operation_details: '',
       preparation_details: '',
       promotion_method: '',
@@ -113,7 +114,7 @@ export async function GET(
         // MNPの計算（SP1, SP2, SIM）
         const auMnpTotal = (Number(perf.au_mnp_sp1) || 0) + (Number(perf.au_mnp_sp2) || 0) + (Number(perf.au_mnp_sim) || 0)
         const uqMnpTotal = (Number(perf.uq_mnp_sp1) || 0) + (Number(perf.uq_mnp_sp2) || 0) + (Number(perf.uq_mnp_sim) || 0)
-        
+
         // 新規の計算（HS総販）
         const auNewTotal = (Number(perf.au_hs_sp1) || 0) + (Number(perf.au_hs_sp2) || 0) + (Number(perf.au_hs_sim) || 0)
         const uqNewTotal = (Number(perf.uq_hs_sp1) || 0) + (Number(perf.uq_hs_sp2) || 0) + (Number(perf.uq_hs_sim) || 0)
@@ -137,6 +138,7 @@ export async function GET(
           actual_uq_mnp: acc.actual_uq_mnp + uqMnpTotal,
           actual_au_new: acc.actual_au_new + auNewTotal,
           actual_uq_new: acc.actual_uq_new + uqNewTotal,
+          actual_cellup: acc.actual_cellup + cellUpTotal,
           operation_details: perf.operation_details || acc.operation_details,
           preparation_details: perf.preparation_details || acc.preparation_details,
           promotion_method: perf.promotion_method || acc.promotion_method,
@@ -155,6 +157,7 @@ export async function GET(
         actual_uq_mnp: 0,
         actual_au_new: 0,
         actual_uq_new: 0,
+        actual_cellup: 0,
         operation_details: '',
         preparation_details: '',
         promotion_method: '',
@@ -195,6 +198,7 @@ export async function GET(
             uq_mnp: 0,
             au_new: 0,
             uq_new: 0,
+            cellup: 0,
             credit_card: 0,
             gold_card: 0,
             ji_bank_account: 0,
@@ -215,6 +219,7 @@ export async function GET(
         staff.uq_mnp += (Number(daily.uq_mnp_sp1) || 0) + (Number(daily.uq_mnp_sp2) || 0) + (Number(daily.uq_mnp_sim) || 0)
         staff.au_new += (Number(daily.au_hs_sp1) || 0) + (Number(daily.au_hs_sp2) || 0) + (Number(daily.au_hs_sim) || 0)
         staff.uq_new += (Number(daily.uq_hs_sp1) || 0) + (Number(daily.uq_hs_sp2) || 0) + (Number(daily.uq_hs_sim) || 0)
+        staff.cellup += (Number(daily.cell_up_sp1) || 0) + (Number(daily.cell_up_sp2) || 0) + (Number(daily.cell_up_sim) || 0)
         staff.credit_card += (Number(daily.credit_card) || 0)
         staff.gold_card += (Number(daily.gold_card) || 0)
         staff.ji_bank_account += (Number(daily.ji_bank_account) || 0)

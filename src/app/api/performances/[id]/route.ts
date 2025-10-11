@@ -59,6 +59,7 @@ export async function PUT(
         year: data.year,
         month: data.month,
         week_number: data.weekNumber,
+        include_cellup_in_hs_total: data.includeCellupInHsTotal || false,
       })
       .eq('id', eventId)
 
@@ -83,6 +84,7 @@ export async function PUT(
       uqMnpSp1: 0, uqMnpSp2: 0, uqMnpSim: 0,
       auHsSp1: 0, auHsSp2: 0, auHsSim: 0,
       uqHsSp1: 0, uqHsSp2: 0, uqHsSim: 0,
+      cellUpSp1: 0, cellUpSp2: 0, cellUpSim: 0,
       creditCard: 0, goldCard: 0, jiBankAccount: 0,
       warranty: 0, ott: 0, electricity: 0, gas: 0
     }
@@ -123,6 +125,9 @@ export async function PUT(
             totalPerformance.uqHsSp1 += toNumber(day.uqHsSp1)
             totalPerformance.uqHsSp2 += toNumber(day.uqHsSp2)
             totalPerformance.uqHsSim += toNumber(day.uqHsSim)
+            totalPerformance.cellUpSp1 += toNumber(day.cellUpSp1)
+            totalPerformance.cellUpSp2 += toNumber(day.cellUpSp2)
+            totalPerformance.cellUpSim += toNumber(day.cellUpSim)
             totalPerformance.creditCard += toNumber(day.creditCard)
             totalPerformance.goldCard += toNumber(day.goldCard)
             totalPerformance.jiBankAccount += toNumber(day.jiBankAccount)
@@ -193,6 +198,9 @@ export async function PUT(
       uq_hs_sp1: totalPerformance.uqHsSp1,
       uq_hs_sp2: totalPerformance.uqHsSp2,
       uq_hs_sim: totalPerformance.uqHsSim,
+      cell_up_sp1: totalPerformance.cellUpSp1,
+      cell_up_sp2: totalPerformance.cellUpSp2,
+      cell_up_sim: totalPerformance.cellUpSim,
       credit_card: totalPerformance.creditCard,
       gold_card: totalPerformance.goldCard,
       ji_bank_account: totalPerformance.jiBankAccount,

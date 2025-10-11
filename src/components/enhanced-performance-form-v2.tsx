@@ -1109,10 +1109,11 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
       uqMnpTotal: acc.uqMnpTotal + (Number(day.uqMnpSp1) || 0) + (Number(day.uqMnpSp2) || 0) + (Number(day.uqMnpSim) || 0),
       auNewTotal: acc.auNewTotal + (Number(day.auHsSp1) || 0) + (Number(day.auHsSp2) || 0) + (Number(day.auHsSim) || 0),
       uqNewTotal: acc.uqNewTotal + (Number(day.uqHsSp1) || 0) + (Number(day.uqHsSp2) || 0) + (Number(day.uqHsSim) || 0),
-    }), { hsTotal: 0, ltvTotal: 0, auMnpTotal: 0, uqMnpTotal: 0, auNewTotal: 0, uqNewTotal: 0 })
-    return dailyTotals || { hsTotal: 0, ltvTotal: 0, auMnpTotal: 0, uqMnpTotal: 0, auNewTotal: 0, uqNewTotal: 0 }
+      cellUpTotal: acc.cellUpTotal + (Number(day.cellUpSp1) || 0) + (Number(day.cellUpSp2) || 0) + (Number(day.cellUpSim) || 0),
+    }), { hsTotal: 0, ltvTotal: 0, auMnpTotal: 0, uqMnpTotal: 0, auNewTotal: 0, uqNewTotal: 0, cellUpTotal: 0 })
+    return dailyTotals || { hsTotal: 0, ltvTotal: 0, auMnpTotal: 0, uqMnpTotal: 0, auNewTotal: 0, uqNewTotal: 0, cellUpTotal: 0 }
   }) || []
-  
+
   const grandTotal = totalsByStaff.reduce((acc, curr) => ({
     hsTotal: acc.hsTotal + curr.hsTotal,
     ltvTotal: acc.ltvTotal + curr.ltvTotal,
@@ -1120,7 +1121,8 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     uqMnpTotal: acc.uqMnpTotal + curr.uqMnpTotal,
     auNewTotal: acc.auNewTotal + curr.auNewTotal,
     uqNewTotal: acc.uqNewTotal + curr.uqNewTotal,
-  }), { hsTotal: 0, ltvTotal: 0, auMnpTotal: 0, uqMnpTotal: 0, auNewTotal: 0, uqNewTotal: 0 })
+    cellUpTotal: acc.cellUpTotal + curr.cellUpTotal,
+  }), { hsTotal: 0, ltvTotal: 0, auMnpTotal: 0, uqMnpTotal: 0, auNewTotal: 0, uqNewTotal: 0, cellUpTotal: 0 })
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 fade-in performance-form-mobile">
@@ -2049,7 +2051,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
       {/* 合計表示 */}
       <div className="glass rounded-2xl p-6 bg-gradient-to-r from-primary/5 to-transparent" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
         <h3 className="text-lg font-bold mb-4" style={{ color: '#22211A' }}>全体合計</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
           <div className="text-center p-3 bg-background/50 rounded-xl">
             <div className="text-2xl font-bold" style={{ color: '#22211A' }}>{grandTotal.hsTotal}</div>
             <div className="text-xs" style={{ color: '#22211A' }}>HS総販</div>
@@ -2073,6 +2075,10 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
           <div className="text-center p-3 bg-background/50 rounded-xl">
             <div className="text-2xl font-bold" style={{ color: '#22211A' }}>{grandTotal.uqNewTotal}</div>
             <div className="text-xs" style={{ color: '#22211A' }}>UQ新規</div>
+          </div>
+          <div className="text-center p-3 bg-background/50 rounded-xl">
+            <div className="text-2xl font-bold" style={{ color: '#22211A' }}>{grandTotal.cellUpTotal}</div>
+            <div className="text-xs" style={{ color: '#22211A' }}>セルアップ</div>
           </div>
         </div>
         

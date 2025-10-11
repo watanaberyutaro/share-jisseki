@@ -614,10 +614,37 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
       console.log('[saveDraft] 保存開始:', { userName, isManual, dataKeys: Object.keys(data) })
       setAutoSaveStatus('saving')
 
+      // 画像ファイルをBase64に変換
+      console.log('[saveDraft] eventPhotos:', eventPhotos)
+      console.log('[saveDraft] eventPhotos.length:', eventPhotos?.length)
+      let photoData: Array<{name: string, type: string, base64: string}> | undefined
+      if (eventPhotos && eventPhotos.length > 0) {
+        console.log('[saveDraft] 画像を変換中:', eventPhotos.length, '枚')
+        photoData = await Promise.all(
+          eventPhotos.map(async (file) => {
+            return new Promise<{name: string, type: string, base64: string}>((resolve) => {
+              const reader = new FileReader()
+              reader.onloadend = () => {
+                resolve({
+                  name: file.name,
+                  type: file.type,
+                  base64: reader.result as string
+                })
+              }
+              reader.readAsDataURL(file)
+            })
+          })
+        )
+        console.log('[saveDraft] 画像変換完了:', photoData.length, '枚')
+      } else {
+        console.log('[saveDraft] 保存する画像がありません')
+      }
+
       const draftData = {
         ...data,
         savedAt: new Date().toISOString(),
-        eventPhotos: undefined // ファイルは保存しない
+        eventPhotos: undefined,
+        savedPhotos: photoData // Base64形式で保存
       }
 
       const success = await saveDraftToSupabase(userName, draftData)
@@ -688,8 +715,38 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
 
       if (hoursDiff < 24) {
         console.log('[loadDraft] データを復元します')
+
+        // 保存された画像データをFile objectsに変換
+        let restoredFiles: File[] = []
+        if (draftData.savedPhotos && Array.isArray(draftData.savedPhotos)) {
+          console.log('[loadDraft] 画像を復元中:', draftData.savedPhotos.length, '枚')
+          restoredFiles = await Promise.all(
+            draftData.savedPhotos.map(async (photoData: {name: string, type: string, base64: string}) => {
+              const response = await fetch(photoData.base64)
+              const blob = await response.blob()
+              return new File([blob], photoData.name, { type: photoData.type })
+            })
+          )
+          console.log('[loadDraft] 画像復元完了:', restoredFiles.length, '枚')
+
+          // プレビュー用のURLを生成
+          const newPreviewUrls = restoredFiles.map(file => URL.createObjectURL(file))
+          setPreviewUrls(newPreviewUrls)
+
+          draftData.eventPhotos = restoredFiles
+        }
+
         delete draftData.savedAt
+        delete draftData.savedPhotos
         reset(draftData)
+
+        // reset後に画像を再度セット（resetで上書きされるため）
+        if (restoredFiles.length > 0) {
+          console.log('[loadDraft] 画像をstateにセット')
+          setEventPhotos(restoredFiles)
+          setValue('eventPhotos', restoredFiles)
+        }
+
         setLastSavedAt(savedAt)
         setAutoSaveStatus('saved')
         return true
@@ -1090,7 +1147,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
             )}
             <button
               type="button"
-              onClick={() => saveDraft(watch(), true)}
+              onClick={() => saveDraft({...watch(), eventPhotos}, true)}
               disabled={autoSaveStatus === 'saving'}
               className="text-xs px-3 py-1 rounded border hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
               style={{ borderColor: '#22211A', color: '#22211A' }}

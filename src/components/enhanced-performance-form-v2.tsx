@@ -976,26 +976,35 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     try {
       // FormDataを使用してファイルアップロードに対応
       const formData = new FormData()
-      
+
       // 写真以外のデータをJSON文字列として追加
       const { eventPhotos, ...jsonData } = data
-      formData.append('data', JSON.stringify(jsonData))
-      
+      // includeCellupInHsTotalを確実に含める
+      const dataToSend = {
+        ...jsonData,
+        includeCellupInHsTotal: data.includeCellupInHsTotal || false
+      }
+      formData.append('data', JSON.stringify(dataToSend))
+
       // 写真ファイルを個別に追加
       if (eventPhotos) {
         eventPhotos.forEach((file, index) => {
           formData.append(`photo_${index}`, file)
         })
       }
-      
+
       // デバッグ情報をログ出力
       console.log('Submitting form with data:', {
         dataKeys: Object.keys(jsonData),
         staffCount: jsonData.staffPerformances?.length,
         photoCount: eventPhotos?.length || 0,
         venue: jsonData.venue,
-        agencyName: jsonData.agencyName
+        agencyName: jsonData.agencyName,
+        includeCellupInHsTotal: dataToSend.includeCellupInHsTotal,
+        originalIncludeCellup: data.includeCellupInHsTotal
       })
+
+      console.log('Full dataToSend:', JSON.stringify(dataToSend, null, 2))
       
       console.log('Photo debug info:', {
         eventPhotosFromData: eventPhotos,

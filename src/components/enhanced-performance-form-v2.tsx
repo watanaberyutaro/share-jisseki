@@ -618,13 +618,15 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
       setAutoSaveStatus('saving')
 
       // 画像ファイルをBase64に変換
-      console.log('[saveDraft] eventPhotos:', eventPhotos)
-      console.log('[saveDraft] eventPhotos.length:', eventPhotos?.length)
+      // data.eventPhotosを使用（stateの更新は非同期のため、最新の値はdata.eventPhotosにある）
+      const photosToSave = data.eventPhotos || []
+      console.log('[saveDraft] 保存する画像:', photosToSave)
+      console.log('[saveDraft] 保存する画像の数:', photosToSave.length)
       let photoData: Array<{name: string, type: string, base64: string}> | undefined
-      if (eventPhotos && eventPhotos.length > 0) {
-        console.log('[saveDraft] 画像を変換中:', eventPhotos.length, '枚')
+      if (photosToSave && photosToSave.length > 0) {
+        console.log('[saveDraft] 画像を変換中:', photosToSave.length, '枚')
         photoData = await Promise.all(
-          eventPhotos.map(async (file) => {
+          photosToSave.map(async (file: File) => {
             return new Promise<{name: string, type: string, base64: string}>((resolve) => {
               const reader = new FileReader()
               reader.onloadend = () => {

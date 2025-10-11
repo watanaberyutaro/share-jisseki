@@ -126,7 +126,10 @@ const performanceFormSchema = z.object({
   year: z.number().min(2020).max(2030),
   month: z.number().min(1).max(12),
   weekNumber: z.number().min(1).max(5),
-  
+
+  // HS総販にセルアップを含めるかどうか
+  includeCellupInHsTotal: z.boolean().default(false),
+
   // 目標値（未入力時に0とする処理を追加）
   targetHsTotal: z.preprocess(
     (val) => val === '' || val === undefined || val === null ? 0 : Number(val),
@@ -337,6 +340,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
         year: initialData.year || currentYear,
         month: initialData.month || currentMonth,
         weekNumber: initialData.week_number || currentWeek,
+        includeCellupInHsTotal: initialData.include_cellup_in_hs_total || false,
         targetHsTotal: initialData.target_hs_total || 0,
         targetAuMnp: initialData.target_au_mnp || 0,
         targetUqMnp: initialData.target_uq_mnp || 0,
@@ -1362,6 +1366,14 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
               placeholder="0"
               min="0"
             />
+            <label className="flex items-center mt-2 cursor-pointer">
+              <input
+                type="checkbox"
+                {...register('includeCellupInHsTotal')}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="ml-2 text-xs" style={{ color: '#22211A' }}>セルアップを含める</span>
+            </label>
           </div>
           <div>
             <label className="block text-xs font-medium mb-1" style={{ color: '#22211A' }}>

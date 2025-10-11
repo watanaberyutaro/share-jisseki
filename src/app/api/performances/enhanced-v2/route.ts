@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
         year: toNumber(data.year),
         month: toNumber(data.month),
         week_number: toNumber(data.weekNumber),
+        include_cellup_in_hs_total: data.includeCellupInHsTotal || false,
       })
       .select()
       .single()

@@ -2068,7 +2068,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
         {!editMode && (
           <button
             type="button"
-            onClick={() => saveDraft(watch(), true)}
+            onClick={() => saveDraft({...watch(), eventPhotos}, true)}
             disabled={autoSaveStatus === 'saving' || isSubmitting}
             className="w-full flex justify-center items-center px-4 py-2 font-medium rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4abf79] disabled:opacity-50 disabled:cursor-not-allowed transition-all border"
             style={{ backgroundColor: '#4abf79', color: '#FFFFFF', borderColor: '#4abf79' }}

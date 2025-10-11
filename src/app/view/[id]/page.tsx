@@ -17,6 +17,7 @@ interface EventDetail {
   year: number
   month: number
   week_number: number
+  include_cellup_in_hs_total: boolean
   target_hs_total: number
   actual_hs_total: number
   actual_au_mnp: number
@@ -210,7 +211,10 @@ export default function EventDetailPage() {
                 <div className="text-3xl font-bold mb-2" style={{ color: '#22211A' }}>
                   {event.actual_hs_total}
                 </div>
-                <div className="text-sm" style={{ color: '#22211A' }}>実績HS総販</div>
+                <div className="text-sm mb-2" style={{ color: '#22211A' }}>実績HS総販</div>
+                <div className="text-xs px-2 py-1 rounded inline-block mb-2" style={{ backgroundColor: event.include_cellup_in_hs_total ? '#4abf79' : '#9E9E9E', color: '#FFFFFF' }}>
+                  {event.include_cellup_in_hs_total ? 'セルアップ含む' : 'セルアップ含まない'}
+                </div>
                 {event.target_hs_total > 0 && (
                   <div className="text-xs mt-1" style={{ color: '#22211A' }}>
                     目標: {event.target_hs_total}

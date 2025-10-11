@@ -29,6 +29,7 @@ export async function GET(
         year,
         month,
         week_number,
+        include_cellup_in_hs_total,
         created_at
       `)
       .eq('id', eventId)
@@ -116,9 +117,14 @@ export async function GET(
         // 新規の計算（HS総販）
         const auNewTotal = (Number(perf.au_hs_sp1) || 0) + (Number(perf.au_hs_sp2) || 0) + (Number(perf.au_hs_sim) || 0)
         const uqNewTotal = (Number(perf.uq_hs_sp1) || 0) + (Number(perf.uq_hs_sp2) || 0) + (Number(perf.uq_hs_sim) || 0)
-        
-        // HS総販の計算
-        const hsTotal = auMnpTotal + uqMnpTotal + auNewTotal + uqNewTotal
+
+        // セルアップの計算
+        const cellUpTotal = (Number(perf.cell_up_sp1) || 0) + (Number(perf.cell_up_sp2) || 0) + (Number(perf.cell_up_sim) || 0)
+
+        // HS総販の計算（セルアップを含めるかどうかで分岐）
+        const hsTotal = event.include_cellup_in_hs_total
+          ? auMnpTotal + uqMnpTotal + auNewTotal + uqNewTotal + cellUpTotal
+          : auMnpTotal + uqMnpTotal + auNewTotal + uqNewTotal
 
         return {
           target_hs_total: acc.target_hs_total + (Number(perf.target_hs_total) || 0),

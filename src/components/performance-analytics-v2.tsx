@@ -143,6 +143,8 @@ export function PerformanceAnalyticsV2({
   const [agencyStartDate, setAgencyStartDate] = useState<string>('')
   const [agencyEndDate, setAgencyEndDate] = useState<string>('')
   const [isAgencyDateManuallySet, setIsAgencyDateManuallySet] = useState(false)
+  const [selectedAgencies, setSelectedAgencies] = useState<string[]>([])
+  const [isAgencySelectOpen, setIsAgencySelectOpen] = useState(false)
 
   // 会場別実績用の状態
   const [venueStartDate, setVenueStartDate] = useState<string>('')
@@ -402,13 +404,16 @@ export function PerformanceAnalyticsV2({
       if (isStaffSelectOpen && !target.closest('.staff-select-container')) {
         setIsStaffSelectOpen(false)
       }
+      if (isAgencySelectOpen && !target.closest('.agency-select-container')) {
+        setIsAgencySelectOpen(false)
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [isVenueSelectOpen, isStaffSelectOpen])
+  }, [isVenueSelectOpen, isStaffSelectOpen, isAgencySelectOpen])
 
   const fetchEvents = async () => {
     try {
@@ -1356,6 +1361,16 @@ export function PerformanceAnalyticsV2({
 
     // 代理店別実績
     if (type === 'agency') {
+      // 選択された代理店、またはデフォルトで全代理店（上位10件）
+      const displayAgencies = selectedAgencies && selectedAgencies.length > 0
+        ? selectedAgencies
+        : data.agencyStats.slice(0, 10).map((a: any) => a.agency)
+
+      // 選択された代理店のデータのみをフィルター
+      const filteredAgencyStats = data.agencyStats.filter((stat: any) =>
+        displayAgencies.includes(stat.agency)
+      )
+
       return (
         <div className="glass rounded-lg p-6 border" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
           <div className="mb-4">
@@ -1364,9 +1379,9 @@ export function PerformanceAnalyticsV2({
               代理店別実績
             </h3>
           </div>
-          {data.agencyStats.length > 0 ? (
+          {filteredAgencyStats.length > 0 ? (
             <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={data.agencyStats.slice(0, 10)}>
+              <BarChart data={filteredAgencyStats}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="agency" stroke="#22211A" fontSize={12} angle={-45} textAnchor="end" height={100} />
                 <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
@@ -2516,11 +2531,81 @@ export function PerformanceAnalyticsV2({
                         </button>
                       )}
                     </div>
+
+                    {/* 代理店選択 */}
+                    <div className="relative agency-select-container">
+                      <label className="block text-sm font-medium mb-2" style={{ color: '#22211A' }}>表示代理店を選択</label>
+                      <button
+                        onClick={() => setIsAgencySelectOpen(!isAgencySelectOpen)}
+                        className="w-full px-3 py-2 border rounded-lg text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{ borderColor: '#22211A' }}
+                      >
+                        <span style={{ color: '#22211A' }}>
+                          {selectedAgencies.length === 0 ? '全ての代理店（上位10件）' :
+                           `${selectedAgencies.length}社選択中`}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isAgencySelectOpen ? 'rotate-180' : ''}`} style={{ color: '#22211A' }} />
+                      </button>
+
+                      {isAgencySelectOpen && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto" style={{ borderColor: '#22211A' }}>
+                          {/* 全選択/全解除 */}
+                          <div className="border-b p-2 flex gap-2" style={{ borderColor: '#22211A' }}>
+                            <button
+                              onClick={() => setSelectedAgencies(analysisData.agencyStats.map((a: any) => a.agency))}
+                              className="flex-1 px-3 py-2 text-sm rounded hover:bg-gray-50 transition-colors"
+                              style={{ color: '#22211A', border: '1px solid #22211A' }}
+                            >
+                              全て選択
+                            </button>
+                            <button
+                              onClick={() => setSelectedAgencies([])}
+                              className="flex-1 px-3 py-2 text-sm rounded hover:bg-gray-50 transition-colors"
+                              style={{ color: '#22211A', border: '1px solid #22211A' }}
+                            >
+                              全てのチェックを外す
+                            </button>
+                          </div>
+
+                          {/* 個別代理店選択 */}
+                          {analysisData.agencyStats.map((agencyStat: any) => (
+                            <div key={agencyStat.agency} className="p-2">
+                              <label className="w-full px-3 py-2 text-sm flex items-center rounded hover:bg-gray-50 transition-colors cursor-pointer" style={{ color: '#22211A' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedAgencies.includes(agencyStat.agency)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedAgencies(prev => [...prev, agencyStat.agency])
+                                    } else {
+                                      setSelectedAgencies(prev => prev.filter(a => a !== agencyStat.agency))
+                                    }
+                                  }}
+                                  className="mr-2"
+                                />
+                                {agencyStat.agency}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              {analysisData.agencyStats.length > 0 ? (
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={analysisData.agencyStats.slice(0, 10)}>
+              {(() => {
+                // 選択された代理店、またはデフォルトで全代理店（上位10件）
+                const displayAgencies = selectedAgencies.length > 0
+                  ? selectedAgencies
+                  : analysisData.agencyStats.slice(0, 10).map((a: any) => a.agency)
+
+                // 選択された代理店のデータのみをフィルター
+                const filteredAgencyStats = analysisData.agencyStats.filter((stat: any) =>
+                  displayAgencies.includes(stat.agency)
+                )
+
+                return filteredAgencyStats.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={filteredAgencyStats}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="agency" stroke="#22211A" fontSize={12} angle={-45} textAnchor="end" height={100} />
                     <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
@@ -2545,7 +2630,7 @@ export function PerformanceAnalyticsV2({
                     </p>
                   </div>
                 </div>
-              )}
+              )})()}
             </div>
 
             {/* 会場別実績 */}

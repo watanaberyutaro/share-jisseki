@@ -236,6 +236,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [existingPhotos, setExistingPhotos] = useState<any[]>([])
   const [photosToDelete, setPhotosToDelete] = useState<string[]>([])
+  const [photoUploadError, setPhotoUploadError] = useState<string>('')
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error' | 'idle'>('idle')
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
 
@@ -731,9 +732,25 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
           console.log('[loadDraft] 画像を復元中:', draftData.savedPhotos.length, '枚')
           restoredFiles = await Promise.all(
             draftData.savedPhotos.map(async (photoData: {name: string, type: string, base64: string}) => {
-              const response = await fetch(photoData.base64)
-              const blob = await response.blob()
-              return new File([blob], photoData.name, { type: photoData.type })
+              try {
+                console.log('[loadDraft] 画像復元:', photoData.name, 'タイプ:', photoData.type, 'Base64サイズ:', photoData.base64?.length || 0)
+
+                // Base64文字列からBlobを直接作成
+                const base64Data = photoData.base64.split(',')[1] // data:image/png;base64, を除去
+                const byteCharacters = atob(base64Data)
+                const byteNumbers = new Array(byteCharacters.length)
+                for (let i = 0; i < byteCharacters.length; i++) {
+                  byteNumbers[i] = byteCharacters.charCodeAt(i)
+                }
+                const byteArray = new Uint8Array(byteNumbers)
+                const blob = new Blob([byteArray], { type: photoData.type })
+
+                console.log('[loadDraft] Blob作成成功:', photoData.name, 'サイズ:', blob.size)
+                return new File([blob], photoData.name, { type: photoData.type })
+              } catch (error) {
+                console.error('[loadDraft] 画像復元エラー:', photoData.name, error)
+                throw error
+              }
             })
           )
           console.log('[loadDraft] 画像復元完了:', restoredFiles.length, '枚')
@@ -928,13 +945,29 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
     const remainingSlots = 5 - eventPhotos.length
-    const newFiles = files.slice(0, remainingSlots)
+    const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
 
     console.log('[handlePhotoUpload] アップロードされたファイル数:', files.length)
     console.log('[handlePhotoUpload] 追加可能なファイル数:', remainingSlots)
+
+    // ファイルサイズのバリデーション
+    const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE)
+    if (oversizedFiles.length > 0) {
+      const fileNames = oversizedFiles.map(f => f.name).join(', ')
+      const errorMsg = `以下のファイルは20MBを超えているため、アップロードできません:\n${fileNames}`
+      setPhotoUploadError(errorMsg)
+      console.error('[handlePhotoUpload] ファイルサイズ超過:', oversizedFiles)
+      // 3秒後にエラーメッセージをクリア
+      setTimeout(() => setPhotoUploadError(''), 5000)
+      event.target.value = '' // inputをリセット
+      return
+    }
+
+    const newFiles = files.slice(0, remainingSlots)
     console.log('[handlePhotoUpload] 追加するファイル:', newFiles)
 
     if (newFiles.length > 0) {
+      setPhotoUploadError('') // エラーメッセージをクリア
       const newPhotos = [...eventPhotos, ...newFiles]
       console.log('[handlePhotoUpload] 新しいeventPhotos:', newPhotos)
       console.log('[handlePhotoUpload] 新しいeventPhotos.length:', newPhotos.length)
@@ -1999,23 +2032,30 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
 
             {/* アップロードボタン */}
             {(eventPhotos.length + (existingPhotos.length - photosToDelete.length)) < 5 && (
-              <div className="flex items-center justify-center mb-4">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer bg-[#22211A1A] hover:bg-[#22211A33] transition-all" style={{ borderColor: '#22211A' }}>
-                  <Upload className="w-8 h-8 mb-2" style={{ color: '#22211A' }} />
-                  <span className="text-sm" style={{ color: '#22211A' }}>
-                    写真を選択 ({eventPhotos.length}/5)
-                  </span>
-                  <span className="text-xs mt-1" style={{ color: '#22211A' }}>
-                    PNG, JPG, JPEG (最大10MB)
-                  </span>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                  />
-                </label>
+              <div className="mb-4">
+                <div className="flex items-center justify-center">
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer bg-[#22211A1A] hover:bg-[#22211A33] transition-all" style={{ borderColor: '#22211A' }}>
+                    <Upload className="w-8 h-8 mb-2" style={{ color: '#22211A' }} />
+                    <span className="text-sm" style={{ color: '#22211A' }}>
+                      写真を選択 ({eventPhotos.length}/5)
+                    </span>
+                    <span className="text-xs mt-1" style={{ color: '#22211A' }}>
+                      PNG, JPG, JPEG (最大20MB)
+                    </span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                {photoUploadError && (
+                  <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: '#FEE2E2', border: '1px solid #DC2626' }}>
+                    <p className="text-sm whitespace-pre-line" style={{ color: '#DC2626' }}>{photoUploadError}</p>
+                  </div>
+                )}
               </div>
             )}
             

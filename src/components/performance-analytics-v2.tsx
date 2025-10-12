@@ -706,10 +706,10 @@ export function PerformanceAnalyticsV2({
         venueMonthlyData[event.venue][month] = {total: 0, mnp: 0, hs: 0}
       }
       const mnpTotal = event.actual_au_mnp + event.actual_uq_mnp
-      const hsTotal = event.actual_hs_total
+      const newTotal = event.actual_au_new + event.actual_uq_new
       venueMonthlyData[event.venue][month].mnp += mnpTotal
-      venueMonthlyData[event.venue][month].hs += hsTotal
-      venueMonthlyData[event.venue][month].total += mnpTotal + hsTotal
+      venueMonthlyData[event.venue][month].hs += newTotal
+      venueMonthlyData[event.venue][month].total += mnpTotal + newTotal
     })
 
     // データを折れ線グラフ用に整形

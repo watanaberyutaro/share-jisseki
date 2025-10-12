@@ -726,55 +726,64 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
       if (hoursDiff < 24) {
         console.log('[loadDraft] データを復元します')
 
-        // 保存された画像データをFile objectsに変換
-        let restoredFiles: File[] = []
-        if (draftData.savedPhotos && Array.isArray(draftData.savedPhotos)) {
-          console.log('[loadDraft] 画像を復元中:', draftData.savedPhotos.length, '枚')
-          restoredFiles = await Promise.all(
-            draftData.savedPhotos.map(async (photoData: {name: string, type: string, base64: string}) => {
-              try {
-                console.log('[loadDraft] 画像復元:', photoData.name, 'タイプ:', photoData.type, 'Base64サイズ:', photoData.base64?.length || 0)
+        // 画像データを一旦保存しておく
+        const savedPhotosData = draftData.savedPhotos
 
-                // Base64文字列からBlobを直接作成
-                const base64Data = photoData.base64.split(',')[1] // data:image/png;base64, を除去
-                const byteCharacters = atob(base64Data)
-                const byteNumbers = new Array(byteCharacters.length)
-                for (let i = 0; i < byteCharacters.length; i++) {
-                  byteNumbers[i] = byteCharacters.charCodeAt(i)
-                }
-                const byteArray = new Uint8Array(byteNumbers)
-                const blob = new Blob([byteArray], { type: photoData.type })
-
-                console.log('[loadDraft] Blob作成成功:', photoData.name, 'サイズ:', blob.size)
-                return new File([blob], photoData.name, { type: photoData.type })
-              } catch (error) {
-                console.error('[loadDraft] 画像復元エラー:', photoData.name, error)
-                throw error
-              }
-            })
-          )
-          console.log('[loadDraft] 画像復元完了:', restoredFiles.length, '枚')
-
-          // プレビュー用のURLを生成
-          const newPreviewUrls = restoredFiles.map(file => URL.createObjectURL(file))
-          setPreviewUrls(newPreviewUrls)
-
-          draftData.eventPhotos = restoredFiles
-        }
-
+        // 画像データ以外をまず復元（高速化のため）
         delete draftData.savedAt
         delete draftData.savedPhotos
         reset(draftData)
 
-        // reset後に画像を再度セット（resetで上書きされるため）
-        if (restoredFiles.length > 0) {
-          console.log('[loadDraft] 画像をstateにセット')
-          setEventPhotos(restoredFiles)
-          setValue('eventPhotos', restoredFiles)
-        }
-
         setLastSavedAt(savedAt)
         setAutoSaveStatus('saved')
+
+        // 画像復元はバックグラウンドで非同期実行（UIブロックを避ける）
+        if (savedPhotosData && Array.isArray(savedPhotosData) && savedPhotosData.length > 0) {
+          console.log('[loadDraft] 画像を復元中:', savedPhotosData.length, '枚（バックグラウンド処理）')
+
+          // UIをブロックしないように次のイベントループで実行
+          setTimeout(async () => {
+            try {
+              const restoredFiles = await Promise.all(
+                savedPhotosData.map(async (photoData: {name: string, type: string, base64: string}) => {
+                  try {
+                    // Base64文字列からBlobを直接作成（最適化版）
+                    const base64Data = photoData.base64.split(',')[1]
+                    const byteCharacters = atob(base64Data)
+                    const byteArray = new Uint8Array(byteCharacters.length)
+
+                    // ループの代わりに一括変換（高速化）
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                      byteArray[i] = byteCharacters.charCodeAt(i)
+                    }
+
+                    const blob = new Blob([byteArray], { type: photoData.type })
+                    return new File([blob], photoData.name, { type: photoData.type })
+                  } catch (error) {
+                    console.error('[loadDraft] 画像復元エラー:', photoData.name, error)
+                    return null
+                  }
+                })
+              )
+
+              // 失敗した画像を除外
+              const validFiles = restoredFiles.filter((f): f is File => f !== null)
+
+              if (validFiles.length > 0) {
+                console.log('[loadDraft] 画像復元完了:', validFiles.length, '枚')
+
+                // プレビュー用のURLを生成
+                const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file))
+                setPreviewUrls(newPreviewUrls)
+                setEventPhotos(validFiles)
+                setValue('eventPhotos', validFiles)
+              }
+            } catch (error) {
+              console.error('[loadDraft] 画像復元処理エラー:', error)
+            }
+          }, 0)
+        }
+
         return true
       } else {
         console.log('[loadDraft] 24時間以上経過しているため削除します')

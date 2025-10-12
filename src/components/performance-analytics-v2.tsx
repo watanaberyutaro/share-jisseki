@@ -150,6 +150,8 @@ export function PerformanceAnalyticsV2({
   const [venueStartDate, setVenueStartDate] = useState<string>('')
   const [venueEndDate, setVenueEndDate] = useState<string>('')
   const [isVenueDateManuallySet, setIsVenueDateManuallySet] = useState(false)
+  const [selectedVenuesVenue, setSelectedVenuesVenue] = useState<string[]>([])
+  const [isVenueVenueSelectOpen, setIsVenueVenueSelectOpen] = useState(false)
 
   // スタッフ別週次獲得件数用の状態
   const [staffWeeklyStartDate, setStaffWeeklyStartDate] = useState<string>('')
@@ -407,13 +409,16 @@ export function PerformanceAnalyticsV2({
       if (isAgencySelectOpen && !target.closest('.agency-select-container')) {
         setIsAgencySelectOpen(false)
       }
+      if (isVenueVenueSelectOpen && !target.closest('.venue-venue-select-container')) {
+        setIsVenueVenueSelectOpen(false)
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [isVenueSelectOpen, isStaffSelectOpen, isAgencySelectOpen])
+  }, [isVenueSelectOpen, isStaffSelectOpen, isAgencySelectOpen, isVenueVenueSelectOpen])
 
   const fetchEvents = async () => {
     try {
@@ -2688,11 +2693,81 @@ export function PerformanceAnalyticsV2({
                         </button>
                       )}
                     </div>
+
+                    {/* 会場選択 */}
+                    <div className="relative venue-venue-select-container">
+                      <label className="block text-sm font-medium mb-2" style={{ color: '#22211A' }}>表示会場を選択</label>
+                      <button
+                        onClick={() => setIsVenueVenueSelectOpen(!isVenueVenueSelectOpen)}
+                        className="w-full px-3 py-2 border rounded-lg text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{ borderColor: '#22211A' }}
+                      >
+                        <span style={{ color: '#22211A' }}>
+                          {selectedVenuesVenue.length === 0 ? '全ての会場（上位10件）' :
+                           `${selectedVenuesVenue.length}会場選択中`}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isVenueVenueSelectOpen ? 'rotate-180' : ''}`} style={{ color: '#22211A' }} />
+                      </button>
+
+                      {isVenueVenueSelectOpen && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto" style={{ borderColor: '#22211A' }}>
+                          {/* 全選択/全解除 */}
+                          <div className="border-b p-2 flex gap-2" style={{ borderColor: '#22211A' }}>
+                            <button
+                              onClick={() => setSelectedVenuesVenue(analysisData.venueStats.map((v: any) => v.venue))}
+                              className="flex-1 px-3 py-2 text-sm rounded hover:bg-gray-50 transition-colors"
+                              style={{ color: '#22211A', border: '1px solid #22211A' }}
+                            >
+                              全て選択
+                            </button>
+                            <button
+                              onClick={() => setSelectedVenuesVenue([])}
+                              className="flex-1 px-3 py-2 text-sm rounded hover:bg-gray-50 transition-colors"
+                              style={{ color: '#22211A', border: '1px solid #22211A' }}
+                            >
+                              全てのチェックを外す
+                            </button>
+                          </div>
+
+                          {/* 個別会場選択 */}
+                          {analysisData.venueStats.map((venueStat: any) => (
+                            <div key={venueStat.venue} className="p-2">
+                              <label className="w-full px-3 py-2 text-sm flex items-center rounded hover:bg-gray-50 transition-colors cursor-pointer" style={{ color: '#22211A' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedVenuesVenue.includes(venueStat.venue)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedVenuesVenue(prev => [...prev, venueStat.venue])
+                                    } else {
+                                      setSelectedVenuesVenue(prev => prev.filter(v => v !== venueStat.venue))
+                                    }
+                                  }}
+                                  className="mr-2"
+                                />
+                                {venueStat.venue}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              {analysisData.venueStats.length > 0 ? (
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={analysisData.venueStats.slice(0, 10)}>
+              {(() => {
+                // 選択された会場、またはデフォルトで全会場（上位10件）
+                const displayVenues = selectedVenuesVenue.length > 0
+                  ? selectedVenuesVenue
+                  : analysisData.venueStats.slice(0, 10).map((v: any) => v.venue)
+
+                // 選択された会場のデータのみをフィルター
+                const filteredVenueStats = analysisData.venueStats.filter((stat: any) =>
+                  displayVenues.includes(stat.venue)
+                )
+
+                return filteredVenueStats.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={filteredVenueStats}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="venue" stroke="#22211A" fontSize={12} angle={-45} textAnchor="end" height={100} />
                     <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
@@ -2717,7 +2792,7 @@ export function PerformanceAnalyticsV2({
                     </p>
                   </div>
                 </div>
-              )}
+              )})()}
             </div>
           </div>
 

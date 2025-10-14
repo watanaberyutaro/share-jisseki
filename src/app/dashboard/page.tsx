@@ -337,7 +337,7 @@ export default function Dashboard() {
           .sort((a: any, b: any) => b.totalIds - a.totalIds)
 
           // トップ5と同率を含める
-          let eventRankingData = []
+          let eventRankingData: any[] = []
           if (allEventRanking.length > 0) {
             const top5 = allEventRanking.slice(0, 5)
             if (top5.length === 5) {
@@ -434,7 +434,7 @@ export default function Dashboard() {
                   .sort((a: any, b: any) => b.totalIds - a.totalIds)
 
                 // トップ5と同率を含める
-                let staffRankingData = []
+                let staffRankingData: any[] = []
                 if (allStaffRanking.length > 0) {
                   const top5 = allStaffRanking.slice(0, 5)
                   if (top5.length === 5) {

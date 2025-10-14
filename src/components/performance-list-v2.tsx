@@ -36,6 +36,7 @@ export function PerformanceListV2() {
   const [yearFilter, setYearFilter] = useState<number | 'all'>('all')
   const [monthFilter, setMonthFilter] = useState<number | 'all'>('all')
   const [weekFilter, setWeekFilter] = useState<number | 'all'>('all')
+  const [achievementFilter, setAchievementFilter] = useState<'all' | 'achieved' | 'not_achieved'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'actual_hs_total' | 'venue'>('date')
   const [viewMode, setViewMode] = useState<'panel' | 'list'>('panel')
 
@@ -86,7 +87,14 @@ export function PerformanceListV2() {
       const matchesMonth = monthFilter === 'all' || event.month === monthFilter
       const matchesWeek = weekFilter === 'all' || event.week_number === weekFilter
 
-      return matchesSearch && matchesYear && matchesMonth && matchesWeek
+      // 達成フィルター
+      const isAchieved = event.target_hs_total > 0 && event.actual_hs_total >= event.target_hs_total
+      const matchesAchievement =
+        achievementFilter === 'all' ||
+        (achievementFilter === 'achieved' && isAchieved) ||
+        (achievementFilter === 'not_achieved' && event.target_hs_total > 0 && !isAchieved)
+
+      return matchesSearch && matchesYear && matchesMonth && matchesWeek && matchesAchievement
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -186,6 +194,17 @@ export function PerformanceListV2() {
                   {[...Array(5)].map((_, i) => (
                     <option key={i} value={i + 1}>第{i + 1}週</option>
                   ))}
+                </select>
+
+                {/* 達成状態 */}
+                <select
+                  value={achievementFilter}
+                  onChange={(e) => setAchievementFilter(e.target.value as typeof achievementFilter)}
+                  className="px-2 md:px-3 py-1.5 md:py-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-xs md:text-sm appearance-none bg-no-repeat bg-right pr-6 md:pr-8" style={{ border: '1px solid #22211A', color: '#22211A', backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMS41TDYgNi41TDExIDEuNSIgc3Ryb2tlPSIjMjIyMTFBIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+")', backgroundPosition: 'right 8px center', backgroundSize: '10px 6px' }}
+                >
+                  <option value="all">全て</option>
+                  <option value="achieved">達成</option>
+                  <option value="not_achieved">未達成</option>
                 </select>
 
                 {/* ソート */}

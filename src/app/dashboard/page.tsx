@@ -213,6 +213,7 @@ export default function Dashboard() {
   })
   const [yearlyData, setYearlyData] = useState<any[]>([])
   const [eventRanking, setEventRanking] = useState<any[]>([])
+  const [staffRanking, setStaffRanking] = useState<any[]>([])
   const [weeklyIdData, setWeeklyIdData] = useState<any[]>([])
   const [memo, setMemo] = useState('')
   const [isEditing, setIsEditing] = useState(false)
@@ -318,7 +319,7 @@ export default function Dashboard() {
           setYearlyData(processedData)
 
           // イベント別HS総販ランキングを計算（当月のみ）
-          const eventRankingData = currentMonthEvents.map((event: any) => {
+          const allEventRanking = currentMonthEvents.map((event: any) => {
             return {
               id: event.id,
               eventName: `${event.venue} (${event.start_date?.split('-')[0]}/${event.start_date?.split('-')[1]})` || '名称未設定',
@@ -334,7 +335,20 @@ export default function Dashboard() {
           })
           .filter((event: any) => event.totalIds > 0)
           .sort((a: any, b: any) => b.totalIds - a.totalIds)
-          .slice(0, 5) // トップ5まで表示
+
+          // トップ5と同率を含める
+          let eventRankingData = []
+          if (allEventRanking.length > 0) {
+            const top5 = allEventRanking.slice(0, 5)
+            if (top5.length === 5) {
+              const fifthPlaceScore = top5[4].totalIds
+              eventRankingData = allEventRanking.filter((event: any) =>
+                event.totalIds >= fifthPlaceScore
+              )
+            } else {
+              eventRankingData = top5
+            }
+          }
 
           setEventRanking(eventRankingData)
 
@@ -360,6 +374,85 @@ export default function Dashboard() {
 
           const weeklyArray = Object.values(weeklyData).sort((a: any, b: any) => a.weekNumber - b.weekNumber)
           setWeeklyIdData(weeklyArray)
+
+          // スタッフ当月獲得実績ランキングを計算
+          const currentMonthEventIds = currentMonthEvents.map((event: any) => event.id).filter(Boolean)
+
+          if (currentMonthEventIds.length > 0) {
+            try {
+              const staffResponse = await fetch(
+                `/api/staff-performances?eventIds=${currentMonthEventIds.join(',')}`
+              )
+
+              if (staffResponse.ok) {
+                const staffData = await staffResponse.json()
+
+                // スタッフ名でグループ化して合計を計算
+                const staffStats: any = {}
+
+                staffData.forEach((record: any) => {
+                  const staffName = record.staff_name
+
+                  if (!staffStats[staffName]) {
+                    staffStats[staffName] = {
+                      staffName,
+                      totalIds: 0,
+                      mnp: 0,
+                      new: 0,
+                      eventCount: new Set()
+                    }
+                  }
+
+                  // MNP合計
+                  const mnp = (record.au_mnp_sp1 || 0) + (record.au_mnp_sp2 || 0) + (record.au_mnp_sim || 0) +
+                              (record.uq_mnp_sp1 || 0) + (record.uq_mnp_sp2 || 0) + (record.uq_mnp_sim || 0)
+
+                  // 新規合計
+                  const newCount = (record.au_hs_sp1 || 0) + (record.au_hs_sp2 || 0) + (record.au_hs_sim || 0) +
+                                   (record.uq_hs_sp1 || 0) + (record.uq_hs_sp2 || 0) + (record.uq_hs_sim || 0)
+
+                  staffStats[staffName].mnp += mnp
+                  staffStats[staffName].new += newCount
+                  staffStats[staffName].totalIds += mnp + newCount
+                  staffStats[staffName].eventCount.add(record.event_id)
+                })
+
+                // ランキング形式に変換
+                const allStaffRanking = Object.values(staffStats)
+                  .map((staff: any) => ({
+                    staffName: staff.staffName,
+                    totalIds: staff.totalIds,
+                    mnp: staff.mnp,
+                    new: staff.new,
+                    eventCount: staff.eventCount.size
+                  }))
+                  .filter((staff: any) => {
+                    // 「店舗」「他社スタッフ」系を除外
+                    const excludedNames = ['店舗', '他社スタッフ', '他社スタッフA', '他社スタッフB', '他社スタッフC', '他社スタッフD', '他社スタッフE', '他社スタッフF']
+                    return staff.totalIds > 0 && !excludedNames.includes(staff.staffName)
+                  })
+                  .sort((a: any, b: any) => b.totalIds - a.totalIds)
+
+                // トップ5と同率を含める
+                let staffRankingData = []
+                if (allStaffRanking.length > 0) {
+                  const top5 = allStaffRanking.slice(0, 5)
+                  if (top5.length === 5) {
+                    const fifthPlaceScore = top5[4].totalIds
+                    staffRankingData = allStaffRanking.filter((staff: any) =>
+                      staff.totalIds >= fifthPlaceScore
+                    )
+                  } else {
+                    staffRankingData = top5
+                  }
+                }
+
+                setStaffRanking(staffRankingData)
+              }
+            } catch (staffError) {
+              console.error('Failed to fetch staff ranking:', staffError)
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to fetch monthly stats:', error)
@@ -800,7 +893,17 @@ export default function Dashboard() {
 
           {eventRanking.length > 0 ? (
             <div className="space-y-2">
-              {eventRanking.map((event, index) => (
+              {eventRanking.map((event, index) => {
+                // 順位を計算（同率対応）
+                let rank = 1
+                for (let i = 0; i < index; i++) {
+                  if (eventRanking[i].totalIds > event.totalIds) {
+                    rank++
+                  }
+                }
+                const displayIndex = rank - 1
+
+                return (
                 <Link
                   key={event.id}
                   href={`/view/${event.id}`}
@@ -810,21 +913,21 @@ export default function Dashboard() {
                     className="flex items-center justify-between p-3 rounded-lg border transition-all duration-200 hover:border-[#FFB300] cursor-pointer"
                     style={{
                       borderColor: '#22211A20',
-                      backgroundColor: index < 3 ? `rgba(255, 179, 0, ${0.08 - index * 0.01})` : 'rgba(255, 255, 255, 0.3)'
+                      backgroundColor: displayIndex < 3 ? `rgba(255, 179, 0, ${0.08 - displayIndex * 0.01})` : 'rgba(255, 255, 255, 0.3)'
                     }}
                   >
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center justify-center w-6 h-6 rounded-full font-bold text-xs"
                            style={{
-                             backgroundColor: index === 0 ? '#FFB300' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#22211A15',
-                             color: index < 3 ? '#FFFFFF' : '#22211A'
+                             backgroundColor: displayIndex === 0 ? '#FFB300' : displayIndex === 1 ? '#C0C0C0' : displayIndex === 2 ? '#CD7F32' : '#22211A15',
+                             color: displayIndex < 3 ? '#FFFFFF' : '#22211A'
                            }}>
-                        {index < 3 ? (
-                          index === 0 ? <Trophy className="w-3 h-3" /> :
-                          index === 1 ? <Award className="w-3 h-3" /> :
+                        {displayIndex < 3 ? (
+                          displayIndex === 0 ? <Trophy className="w-3 h-3" /> :
+                          displayIndex === 1 ? <Award className="w-3 h-3" /> :
                           <Medal className="w-3 h-3" />
                         ) : (
-                          index + 1
+                          rank
                         )}
                       </div>
                       <div>
@@ -838,7 +941,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="text-right">
-                      <div className="text-lg font-bold" style={{ color: index < 3 ? '#FFB300' : '#22211A' }}>
+                      <div className="text-lg font-bold" style={{ color: displayIndex < 3 ? '#FFB300' : '#22211A' }}>
                         {event.totalIds.toLocaleString()}
                       </div>
                       <div className="text-xs opacity-70" style={{ color: '#22211A' }}>
@@ -847,7 +950,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </Link>
-              ))}
+              )
+              })}
             </div>
           ) : (
             <div className="text-center py-8" style={{ color: '#22211A', opacity: 0.6 }}>
@@ -866,11 +970,69 @@ export default function Dashboard() {
               </h2>
             </div>
 
-            {/* TODO: スタッフランキングデータの実装 */}
-            <div className="text-center py-8" style={{ color: '#22211A', opacity: 0.6 }}>
-              <User className="w-8 h-8 mx-auto mb-2" style={{ color: '#22211A', opacity: 0.4 }} />
-              <p className="text-sm">スタッフランキング機能は準備中です</p>
-            </div>
+            {staffRanking.length > 0 ? (
+              <div className="space-y-2">
+                {staffRanking.map((staff, index) => {
+                  // 順位を計算（同率対応）
+                  let rank = 1
+                  for (let i = 0; i < index; i++) {
+                    if (staffRanking[i].totalIds > staff.totalIds) {
+                      rank++
+                    }
+                  }
+                  const displayIndex = rank - 1
+
+                  return (
+                  <div
+                    key={staff.staffName}
+                    className="flex items-center justify-between p-3 rounded-lg border"
+                    style={{
+                      borderColor: '#22211A20',
+                      backgroundColor: displayIndex < 3 ? `rgba(255, 179, 0, ${0.08 - displayIndex * 0.01})` : 'rgba(255, 255, 255, 0.3)'
+                    }}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-full font-bold text-xs"
+                           style={{
+                             backgroundColor: displayIndex === 0 ? '#FFB300' : displayIndex === 1 ? '#C0C0C0' : displayIndex === 2 ? '#CD7F32' : '#22211A15',
+                             color: displayIndex < 3 ? '#FFFFFF' : '#22211A'
+                           }}>
+                        {displayIndex < 3 ? (
+                          displayIndex === 0 ? <Trophy className="w-3 h-3" /> :
+                          displayIndex === 1 ? <Award className="w-3 h-3" /> :
+                          <Medal className="w-3 h-3" />
+                        ) : (
+                          rank
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-sm" style={{ color: '#22211A' }}>
+                          {staff.staffName}
+                        </div>
+                        <div className="text-xs opacity-70" style={{ color: '#22211A' }}>
+                          参加イベント: {staff.eventCount}件
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-lg font-bold" style={{ color: displayIndex < 3 ? '#FFB300' : '#22211A' }}>
+                        {staff.totalIds.toLocaleString()}
+                      </div>
+                      <div className="text-xs opacity-70" style={{ color: '#22211A' }}>
+                        MNP：{staff.mnp} 新規：{staff.new}
+                      </div>
+                    </div>
+                  </div>
+                )
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8" style={{ color: '#22211A', opacity: 0.6 }}>
+                <User className="w-8 h-8 mx-auto mb-2" style={{ color: '#22211A', opacity: 0.4 }} />
+                <p className="text-sm">スタッフ実績データが見つかりませんでした</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

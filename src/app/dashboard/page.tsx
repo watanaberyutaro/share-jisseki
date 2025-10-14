@@ -68,7 +68,7 @@ export default function Dashboard() {
         .dashboard-page .flex.items-center button {
           font-size: 0.56rem !important;
         }
-        .dashboard-page svg {
+        .dashboard-page svg:not(.recharts-surface) {
           width: 0.7em !important;
           height: 0.7em !important;
         }
@@ -453,8 +453,8 @@ export default function Dashboard() {
                 <h3 className="text-sm md:text-lg font-semibold mb-3 md:mb-4 text-center" style={{ color: '#22211A' }}>
                   <span className="whitespace-nowrap">イベント達成状況</span>
                 </h3>
-                <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="h-48" style={{ minHeight: '192px' }}>
+                  <ResponsiveContainer width="100%" height="100%" minHeight={192}>
                     <PieChart>
                       <Pie
                         data={[
@@ -508,8 +508,8 @@ export default function Dashboard() {
               {/* MNP/新規比率円グラフ */}
               <div className="bg-gray-50 rounded-xl p-4 border" style={{ borderColor: '#22211A20' }}>
                 <h3 className="text-lg font-semibold mb-4 text-center" style={{ color: '#22211A' }}>MNP/新規比率</h3>
-                <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="h-48" style={{ minHeight: '192px' }}>
+                  <ResponsiveContainer width="100%" height="100%" minHeight={192}>
                     <PieChart>
                       <Pie
                         data={[
@@ -659,8 +659,8 @@ export default function Dashboard() {
             </div>
 
             {weeklyIdData.length > 0 ? (
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-80" style={{ minHeight: '320px' }}>
+                <ResponsiveContainer width="100%" height="100%" minHeight={320}>
                   <RechartsBarChart data={weeklyIdData}>
                     <CartesianGrid strokeDasharray="3 3" stroke={COLORS[10]} />
                     <XAxis
@@ -731,8 +731,8 @@ export default function Dashboard() {
               </h2>
             </div>
 
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-80" style={{ minHeight: '320px' }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={320}>
                 <LineChart data={yearlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke={COLORS[10]} />
                   <XAxis

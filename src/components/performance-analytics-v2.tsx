@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { TrendingUp, Users, Calendar, Award, Filter, Search, MapPin, Building2, ChevronDown, Download, GitCompare } from 'lucide-react'
+import { TrendingUp, Users, Calendar, Award, Filter, Search, MapPin, Building2, ChevronDown, Download, GitCompare, Trophy, Medal } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { LoadingAnimation } from '@/components/loading-animation'
@@ -103,6 +104,11 @@ export function PerformanceAnalyticsV2({
   const [venueFilter, setVenueFilter] = useState<string>('all')
   const [agencyFilter, setAgencyFilter] = useState<string>('all')
 
+  // ランキング用の状態
+  const [eventRanking, setEventRanking] = useState<any[]>([])
+  const [rankingYear, setRankingYear] = useState<number | 'all'>('all')
+  const [rankingMonth, setRankingMonth] = useState<number | 'all'>('all')
+
   // 一括分析条件用の期間選択
   const [bulkStartDate, setBulkStartDate] = useState<string>('')
   const [bulkEndDate, setBulkEndDate] = useState<string>('')
@@ -168,7 +174,7 @@ export function PerformanceAnalyticsV2({
 
   // 比較モーダル用のstate
   const [compareModalOpen, setCompareModalOpen] = useState(false)
-  const [compareType, setCompareType] = useState<'achievement' | 'weekly' | 'level' | 'achievementStatus' | 'venue' | 'agency' | 'staff' | 'venueMonthly' | 'monthly'>('achievement')
+  const [compareType, setCompareType] = useState<'achievement' | 'weekly' | 'level' | 'achievementStatus' | 'venue' | 'agency' | 'staff' | 'venueMonthly' | 'monthly' | 'ranking'>('achievement')
   const [compareLeftStart, setCompareLeftStart] = useState<string>('')
   const [compareLeftEnd, setCompareLeftEnd] = useState<string>('')
   const [compareRightStart, setCompareRightStart] = useState<string>('')
@@ -217,6 +223,49 @@ export function PerformanceAnalyticsV2({
       setHasInitializedStaff(true)
     }
   }, [staffPerformances, hasInitializedStaff])
+
+  // ランキング計算
+  useEffect(() => {
+    if (events.length === 0) return
+
+    const filteredEvents = events.filter((event) => {
+      const matchesYear = rankingYear === 'all' || event.year === rankingYear
+      const matchesMonth = rankingMonth === 'all' || event.month === rankingMonth
+      return matchesYear && matchesMonth
+    })
+
+    const allEventRanking = filteredEvents
+      .map((event: any) => ({
+        id: event.id,
+        eventName: `${event.venue} (${event.start_date?.split('-')[0]}/${event.start_date?.split('-')[1]})` || '名称未設定',
+        venue: event.venue,
+        startDate: event.start_date,
+        totalIds: event.actual_hs_total || 0,
+        auMnp: event.actual_au_mnp || 0,
+        uqMnp: event.actual_uq_mnp || 0,
+        auNew: event.actual_au_new || 0,
+        uqNew: event.actual_uq_new || 0,
+        staffCount: event.staff_performances?.length || 0
+      }))
+      .filter((event: any) => event.totalIds > 0)
+      .sort((a: any, b: any) => b.totalIds - a.totalIds)
+
+    // トップ5と同率を含める
+    let eventRankingData: any[] = []
+    if (allEventRanking.length > 0) {
+      const top5 = allEventRanking.slice(0, 5)
+      if (top5.length === 5) {
+        const fifthPlaceScore = top5[4].totalIds
+        eventRankingData = allEventRanking.filter((event: any) =>
+          event.totalIds >= fifthPlaceScore
+        )
+      } else {
+        eventRankingData = top5
+      }
+    }
+
+    setEventRanking(eventRankingData)
+  }, [events, rankingYear, rankingMonth])
 
   // 分析実行関数
   const handleAnalyze = () => {
@@ -883,7 +932,7 @@ export function PerformanceAnalyticsV2({
   }
 
   // 比較モーダルを開く関数
-  const openCompareModal = (type: 'achievement' | 'weekly' | 'level' | 'achievementStatus' | 'venue' | 'agency' | 'staff' | 'venueMonthly' | 'monthly') => {
+  const openCompareModal = (type: 'achievement' | 'weekly' | 'level' | 'achievementStatus' | 'venue' | 'agency' | 'staff' | 'venueMonthly' | 'monthly' | 'ranking') => {
     setCompareType(type)
     setCompareLeftStart('')
     setCompareLeftEnd('')
@@ -1760,6 +1809,89 @@ export function PerformanceAnalyticsV2({
       )
     }
 
+    // ランキング
+    if (type === 'ranking') {
+      const rankingData = filteredEvents
+        .map((event: any) => ({
+          id: event.id,
+          eventName: `${event.venue} (${event.start_date?.split('-')[0]}/${event.start_date?.split('-')[1]})` || '名称未設定',
+          venue: event.venue,
+          startDate: event.start_date,
+          totalIds: event.actual_hs_total || 0,
+          auMnp: event.actual_au_mnp || 0,
+          uqMnp: event.actual_uq_mnp || 0,
+          auNew: event.actual_au_new || 0,
+          uqNew: event.actual_uq_new || 0,
+          staffCount: event.staff_performances?.length || 0
+        }))
+        .filter((event: any) => event.totalIds > 0)
+        .sort((a: any, b: any) => b.totalIds - a.totalIds)
+        .slice(0, 10) // 比較では10件まで表示
+
+      return (
+        <div className="glass rounded-lg p-6 border" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+          <div className="mb-4">
+            <h3 className="text-lg font-bold flex items-center mb-3" style={{ color: '#22211A' }}>
+              <Trophy className="w-5 h-5 mr-2" style={{ color: '#FFB300' }} />
+              獲得実績ランキング（TOP10）
+            </h3>
+          </div>
+          {rankingData.length > 0 ? (
+            <div className="space-y-2">
+              {rankingData.map((event, index) => (
+                <div
+                  key={event.id}
+                  className="flex items-center justify-between p-3 rounded-lg border"
+                  style={{
+                    borderColor: '#22211A20',
+                    backgroundColor: index < 3 ? `rgba(255, 179, 0, ${0.08 - index * 0.01})` : 'rgba(255, 255, 255, 0.3)'
+                  }}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full font-bold text-xs"
+                         style={{
+                           backgroundColor: index === 0 ? '#FFB300' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#22211A15',
+                           color: index < 3 ? '#FFFFFF' : '#22211A'
+                         }}>
+                      {index < 3 ? (
+                        index === 0 ? <Trophy className="w-3 h-3" /> :
+                        index === 1 ? <Award className="w-3 h-3" /> :
+                        <Medal className="w-3 h-3" />
+                      ) : (
+                        index + 1
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-sm" style={{ color: '#22211A' }}>
+                        {event.eventName}
+                      </div>
+                      <div className="text-xs opacity-70" style={{ color: '#22211A' }}>
+                        {event.staffCount}名・{event.startDate}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-lg font-bold" style={{ color: index < 3 ? '#FFB300' : '#22211A' }}>
+                      {event.totalIds.toLocaleString()}
+                    </div>
+                    <div className="text-xs opacity-70" style={{ color: '#22211A' }}>
+                      MNP：{event.auMnp + event.uqMnp} 新規：{event.auNew + event.uqNew}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8" style={{ color: '#22211A', opacity: 0.6 }}>
+              <Trophy className="w-8 h-8 mx-auto mb-2" style={{ color: '#22211A', opacity: 0.4 }} />
+              <p className="text-sm">選択された期間の実績データが見つかりませんでした</p>
+            </div>
+          )}
+        </div>
+      )
+    }
+
     return null
   }
 
@@ -2129,6 +2261,119 @@ export function PerformanceAnalyticsV2({
           />
         </div>
       )}
+
+      {/* 月次獲得実績ランキング */}
+      <div className="glass rounded-lg border p-4 mb-8" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 mr-2" style={{ color: '#FFB300' }} />
+            <h2 className="text-xl font-bold" style={{ color: '#22211A' }}>
+              月次獲得実績ランキング（TOP5）
+            </h2>
+            <button
+              onClick={() => openCompareModal('ranking')}
+              className="inline-flex items-center px-3 py-1.5 rounded-lg border hover:opacity-80 transition-all text-sm font-medium"
+              style={{ backgroundColor: '#F1AD26', color: '#FFFFFF', borderColor: '#F1AD26' }}
+            >
+              <GitCompare className="w-4 h-4 mr-1" />
+              比較
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={rankingYear}
+              onChange={(e) => setRankingYear(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              className="px-3 py-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+              style={{ border: '1px solid #22211A', color: '#22211A' }}
+            >
+              <option value="all">全年</option>
+              {[...new Set(events.map(e => e.year))].sort((a, b) => b - a).map(year => (
+                <option key={year} value={year}>{year}年</option>
+              ))}
+            </select>
+            <select
+              value={rankingMonth}
+              onChange={(e) => setRankingMonth(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              className="px-3 py-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+              style={{ border: '1px solid #22211A', color: '#22211A' }}
+            >
+              <option value="all">全月</option>
+              {[...Array(12)].map((_, i) => (
+                <option key={i} value={i + 1}>{i + 1}月</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {eventRanking.length > 0 ? (
+          <div className="space-y-2">
+            {eventRanking.map((event, index) => {
+              // 順位を計算（同率対応）
+              let rank = 1
+              for (let i = 0; i < index; i++) {
+                if (eventRanking[i].totalIds > event.totalIds) {
+                  rank++
+                }
+              }
+              const displayIndex = rank - 1
+
+              return (
+              <Link
+                key={event.id}
+                href={`/view/${event.id}`}
+                className="block transition-all duration-200 hover:scale-[1.01]"
+              >
+                <div
+                  className="flex items-center justify-between p-3 rounded-lg border transition-all duration-200 hover:border-[#FFB300] cursor-pointer"
+                  style={{
+                    borderColor: '#22211A20',
+                    backgroundColor: displayIndex < 3 ? `rgba(255, 179, 0, ${0.08 - displayIndex * 0.01})` : 'rgba(255, 255, 255, 0.3)'
+                  }}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full font-bold text-xs"
+                         style={{
+                           backgroundColor: displayIndex === 0 ? '#FFB300' : displayIndex === 1 ? '#C0C0C0' : displayIndex === 2 ? '#CD7F32' : '#22211A15',
+                           color: displayIndex < 3 ? '#FFFFFF' : '#22211A'
+                         }}>
+                      {displayIndex < 3 ? (
+                        displayIndex === 0 ? <Trophy className="w-3 h-3" /> :
+                        displayIndex === 1 ? <Award className="w-3 h-3" /> :
+                        <Medal className="w-3 h-3" />
+                      ) : (
+                        rank
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-sm" style={{ color: '#22211A' }}>
+                        {event.eventName}
+                      </div>
+                      <div className="text-xs opacity-70" style={{ color: '#22211A' }}>
+                        {event.staffCount}名・{event.startDate}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-lg font-bold" style={{ color: displayIndex < 3 ? '#FFB300' : '#22211A' }}>
+                      {event.totalIds.toLocaleString()}
+                    </div>
+                    <div className="text-xs opacity-70" style={{ color: '#22211A' }}>
+                      MNP：{event.auMnp + event.uqMnp} 新規：{event.auNew + event.uqNew}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-8" style={{ color: '#22211A', opacity: 0.6 }}>
+            <Trophy className="w-8 h-8 mx-auto mb-2" style={{ color: '#22211A', opacity: 0.4 }} />
+            <p className="text-sm">選択された期間の実績データが見つかりませんでした</p>
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* 月次イベント達成率推移 */}

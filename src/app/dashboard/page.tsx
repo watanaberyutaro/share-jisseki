@@ -794,7 +794,7 @@ export default function Dashboard() {
           <div className="flex items-center mb-4">
             <Trophy className="w-5 h-5 mr-2" style={{ color: '#FFB300' }} />
             <h2 className="text-xl font-bold" style={{ color: '#22211A' }}>
-              当月ID総合獲得ランキング（TOP5）
+              当月獲得実績ランキング（TOP5）
             </h2>
           </div>
 
@@ -842,7 +842,7 @@ export default function Dashboard() {
                         {event.totalIds.toLocaleString()}
                       </div>
                       <div className="text-xs opacity-70" style={{ color: '#22211A' }}>
-                        M:{event.auMnp + event.uqMnp} N:{event.auNew + event.uqNew}
+                        MNP：{event.auMnp + event.uqMnp} 新規：{event.auNew + event.uqNew}
                       </div>
                     </div>
                   </div>

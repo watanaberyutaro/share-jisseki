@@ -862,7 +862,7 @@ export default function Dashboard() {
             <div className="flex items-center mb-4">
               <User className="w-5 h-5 mr-2" style={{ color: '#FFB300' }} />
               <h2 className="text-xl font-bold" style={{ color: '#22211A' }}>
-                スタッフ当月ID獲得ランキング（TOP5）
+                スタッフ当月獲得実績ランキング（TOP5）
               </h2>
             </div>
 

@@ -79,7 +79,7 @@ export function NewsTicker() {
         }
 
         .animate-scroll-left {
-          animation: scroll-left 30s linear infinite;
+          animation: scroll-left 15s linear infinite;
         }
       `}</style>
     </div>

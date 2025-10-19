@@ -2771,7 +2771,7 @@ export function PerformanceAnalyticsV2({
                         style={{ borderColor: '#22211A' }}
                       >
                         <span style={{ color: '#22211A' }}>
-                          {selectedAgencies.length === 0 ? '全ての代理店（上位10件）' :
+                          {selectedAgencies.length === 0 ? '代理店を選択してください' :
                            `${selectedAgencies.length}社選択中`}
                         </span>
                         <ChevronDown className={`w-4 h-4 transition-transform ${isAgencySelectOpen ? 'rotate-180' : ''}`} style={{ color: '#22211A' }} />
@@ -2823,10 +2823,10 @@ export function PerformanceAnalyticsV2({
                   </div>
                 </div>
               {(() => {
-                // 選択された代理店、またはデフォルトで全代理店（上位10件）
+                // 選択された代理店のみ表示
                 const displayAgencies = selectedAgencies.length > 0
                   ? selectedAgencies
-                  : analysisData.agencyStats.slice(0, 10).map((a: any) => a.agency)
+                  : []
 
                 // 選択された代理店のデータのみをフィルター
                 const filteredAgencyStats = analysisData.agencyStats.filter((stat: any) =>
@@ -2928,7 +2928,7 @@ export function PerformanceAnalyticsV2({
                         style={{ borderColor: '#22211A' }}
                       >
                         <span style={{ color: '#22211A' }}>
-                          {selectedVenuesVenue.length === 0 ? '全ての会場（上位10件）' :
+                          {selectedVenuesVenue.length === 0 ? '会場を選択してください' :
                            `${selectedVenuesVenue.length}会場選択中`}
                         </span>
                         <ChevronDown className={`w-4 h-4 transition-transform ${isVenueVenueSelectOpen ? 'rotate-180' : ''}`} style={{ color: '#22211A' }} />
@@ -2980,10 +2980,10 @@ export function PerformanceAnalyticsV2({
                   </div>
                 </div>
               {(() => {
-                // 選択された会場、またはデフォルトで全会場（上位10件）
+                // 選択された会場のみ表示
                 const displayVenues = selectedVenuesVenue.length > 0
                   ? selectedVenuesVenue
-                  : analysisData.venueStats.slice(0, 10).map((v: any) => v.venue)
+                  : []
 
                 // 選択された会場のデータのみをフィルター
                 const filteredVenueStats = analysisData.venueStats.filter((stat: any) =>

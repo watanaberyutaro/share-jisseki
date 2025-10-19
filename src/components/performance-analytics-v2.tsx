@@ -204,16 +204,6 @@ export function PerformanceAnalyticsV2({
     }
   }
 
-  // 初期設定：全ての会場を選択状態にする（初回のみ）
-  const [hasInitializedVenues, setHasInitializedVenues] = useState(false)
-  useEffect(() => {
-    const venues = [...new Set(events.map(e => e.venue))].sort()
-    if (venues.length > 0 && !hasInitializedVenues) {
-      setSelectedVenues(venues)
-      setHasInitializedVenues(true)
-    }
-  }, [events, hasInitializedVenues])
-
   // 初期設定：全てのスタッフを選択状態にする（初回のみ）
   const [hasInitializedStaff, setHasInitializedStaff] = useState(false)
   useEffect(() => {

@@ -204,16 +204,6 @@ export function PerformanceAnalyticsV2({
     }
   }
 
-  // 初期設定：全てのスタッフを選択状態にする（初回のみ）
-  const [hasInitializedStaff, setHasInitializedStaff] = useState(false)
-  useEffect(() => {
-    const staffNames = [...new Set(staffPerformances.map((p: any) => p.staff_name).filter(Boolean))].sort()
-    if (staffNames.length > 0 && !hasInitializedStaff) {
-      setSelectedStaff(staffNames)
-      setHasInitializedStaff(true)
-    }
-  }, [staffPerformances, hasInitializedStaff])
-
   // ランキング計算
   useEffect(() => {
     if (events.length === 0) return

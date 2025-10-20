@@ -767,13 +767,49 @@ export default function Dashboard() {
                       tickFormatter={(value) => `${value.toLocaleString()}`}
                     />
                     <Tooltip
-                      formatter={(value: any, name: string) => [value.toLocaleString(), name === 'mnp' ? 'MNP' : name === 'new' ? '新規' : '合計ID数']}
-                      labelFormatter={(label) => `${label}`}
-                      contentStyle={{
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #22211A',
-                        borderRadius: '8px',
-                        color: '#22211A'
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const mnp = payload.find(p => p.dataKey === 'mnp')?.value || 0
+                          const newCount = payload.find(p => p.dataKey === 'new')?.value || 0
+                          const total = Number(mnp) + Number(newCount)
+                          return (
+                            <div style={{
+                              backgroundColor: '#ffffff',
+                              border: '1px solid #22211A',
+                              borderRadius: '8px',
+                              padding: '12px',
+                              color: '#22211A'
+                            }}>
+                              <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>{label}</p>
+                              <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
+                                <span style={{
+                                  display: 'inline-block',
+                                  width: '12px',
+                                  height: '12px',
+                                  backgroundColor: COLORS[0],
+                                  marginRight: '8px',
+                                  borderRadius: '2px'
+                                }}></span>
+                                MNP: {Number(mnp).toLocaleString()}件
+                              </p>
+                              <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
+                                <span style={{
+                                  display: 'inline-block',
+                                  width: '12px',
+                                  height: '12px',
+                                  backgroundColor: COLORS[1],
+                                  marginRight: '8px',
+                                  borderRadius: '2px'
+                                }}></span>
+                                新規: {Number(newCount).toLocaleString()}件
+                              </p>
+                              <p style={{ margin: '8px 0 0 0', paddingTop: '8px', borderTop: '1px solid rgba(34, 33, 26, 0.2)', fontWeight: 'bold' }}>
+                                合計: {total.toLocaleString()}件
+                              </p>
+                            </div>
+                          )
+                        }
+                        return null
                       }}
                     />
                     <Legend

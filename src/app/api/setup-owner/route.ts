@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 // このエンドポイントは開発環境でのみ使用
 // 本番環境では無効化してください
 export async function GET() {

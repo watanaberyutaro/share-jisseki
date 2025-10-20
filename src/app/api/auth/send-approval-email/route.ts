@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 const OWNER_EMAIL = 'harukadmla@gmail.com'
 
 export async function POST(request: NextRequest) {

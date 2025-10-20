@@ -15,7 +15,8 @@
       "Bash(git reset:*)",
       "Read(//Users/harukaosu/Desktop/myProject/**)",
       "Bash(git remote set-url:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

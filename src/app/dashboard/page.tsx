@@ -747,7 +747,7 @@ export default function Dashboard() {
             <div className="flex items-center mb-6">
               <BarChart className="w-5 h-5 mr-2" style={{ color: '#22211A' }} />
               <h2 className="text-lg font-bold" style={{ color: '#22211A' }}>
-                {currentTime.getFullYear()}年{currentTime.getMonth() + 1}月 週毎ID獲得数
+                {currentTime.getFullYear()}年{currentTime.getMonth() + 1}月 当月週次獲得実績
               </h2>
             </div>
 
@@ -781,7 +781,6 @@ export default function Dashboard() {
                     />
                     <Bar
                       dataKey="mnp"
-                      stackId="a"
                       fill={COLORS[0]}
                       name="MNP"
                       animationBegin={0}
@@ -790,7 +789,6 @@ export default function Dashboard() {
                     />
                     <Bar
                       dataKey="new"
-                      stackId="a"
                       fill={COLORS[1]}
                       name="新規"
                       animationBegin={0}

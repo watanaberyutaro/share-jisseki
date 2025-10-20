@@ -1292,7 +1292,7 @@ export default function AdminDashboard() {
               <p style={{ color: '#22211A' }}>検索条件に一致するイベントが見つかりません</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3" style={{ maxHeight: '600px', overflowY: 'auto' }}>
               {getSortedAndFilteredEvents().map((event) => (
                 <div
                   key={event.id}

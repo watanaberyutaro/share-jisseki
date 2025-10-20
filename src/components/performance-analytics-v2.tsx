@@ -166,6 +166,12 @@ export function PerformanceAnalyticsV2({
   const [selectedStaff, setSelectedStaff] = useState<string[]>([])
   const [isStaffSelectOpen, setIsStaffSelectOpen] = useState(false)
 
+  // イベント別実績用の状態
+  const [eventYear, setEventYear] = useState<string>('')
+  const [eventMonth, setEventMonth] = useState<string>('')
+  const [selectedEventAgencies, setSelectedEventAgencies] = useState<string[]>([])
+  const [isEventAgencySelectOpen, setIsEventAgencySelectOpen] = useState(false)
+
   // PDF生成用のref
   const contentRef = useRef<HTMLDivElement>(null)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
@@ -174,7 +180,7 @@ export function PerformanceAnalyticsV2({
 
   // 比較モーダル用のstate
   const [compareModalOpen, setCompareModalOpen] = useState(false)
-  const [compareType, setCompareType] = useState<'achievement' | 'weekly' | 'level' | 'achievementStatus' | 'venue' | 'agency' | 'staff' | 'venueMonthly' | 'monthly' | 'ranking'>('achievement')
+  const [compareType, setCompareType] = useState<'achievement' | 'weekly' | 'level' | 'achievementStatus' | 'venue' | 'agency' | 'staff' | 'venueMonthly' | 'monthly' | 'ranking' | 'eventWeekly'>('achievement')
   const [compareLeftStart, setCompareLeftStart] = useState<string>('')
   const [compareLeftEnd, setCompareLeftEnd] = useState<string>('')
   const [compareRightStart, setCompareRightStart] = useState<string>('')
@@ -187,6 +193,12 @@ export function PerformanceAnalyticsV2({
   // 比較モーダル用の会場選択
   const [compareSelectedVenues, setCompareSelectedVenues] = useState<string[]>([])
   const [isCompareVenueSelectOpen, setIsCompareVenueSelectOpen] = useState(false)
+
+  // イベント別実績比較用の年・月選択
+  const [compareLeftEventYear, setCompareLeftEventYear] = useState<string>('')
+  const [compareLeftEventMonth, setCompareLeftEventMonth] = useState<string>('')
+  const [compareRightEventYear, setCompareRightEventYear] = useState<string>('')
+  const [compareRightEventMonth, setCompareRightEventMonth] = useState<string>('')
 
   useEffect(() => {
     fetchEvents()
@@ -483,7 +495,9 @@ export function PerformanceAnalyticsV2({
         achievementStats: { achieved: 0, notAchieved: 0, noTarget: 0 },
         venueStats: [],
         agencyStats: [],
-        venueMonthlyTrend: []
+        venueMonthlyTrend: [],
+        staffWeeklyStats: [],
+        eventWeeklyStats: []
       }
     }
 
@@ -805,6 +819,70 @@ export function PerformanceAnalyticsV2({
       staffWeeklyStats = staffWeeklyStats.slice(-8)
     }
 
+    // イベント別実績（週次・会場別）
+    let eventWeeklyStats: any[] = []
+    if (eventYear && eventMonth) {
+      // 年月でフィルタリング（数値型に変換して比較）
+      const targetYear = parseInt(eventYear)
+      const targetMonth = parseInt(eventMonth)
+
+      let eventFilteredEvents = events.filter((event: any) => {
+        const eventYearNum = typeof event.year === 'string' ? parseInt(event.year) : event.year
+        const eventMonthNum = typeof event.month === 'string' ? parseInt(event.month) : event.month
+        return eventYearNum === targetYear && eventMonthNum === targetMonth
+      })
+
+      // 代理店でフィルタリング
+      if (selectedEventAgencies.length > 0) {
+        eventFilteredEvents = eventFilteredEvents.filter((event: any) =>
+          selectedEventAgencies.includes(event.agency_name)
+        )
+      }
+
+      // 週ごとにグループ化
+      const weeklyData: Record<number, any> = {}
+      eventFilteredEvents.forEach((event: any) => {
+        const weekNum = event.week_number || 1
+        if (!weeklyData[weekNum]) {
+          weeklyData[weekNum] = {
+            week: `第${weekNum}週`,
+            weekNumber: weekNum,
+            venues: {}
+          }
+        }
+
+        const venue = event.venue
+        if (!weeklyData[weekNum].venues[venue]) {
+          weeklyData[weekNum].venues[venue] = {
+            venue,
+            mnp: 0,
+            hs: 0
+          }
+        }
+
+        weeklyData[weekNum].venues[venue].mnp += (event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0)
+        weeklyData[weekNum].venues[venue].hs += (event.actual_au_new || 0) + (event.actual_uq_new || 0)
+      })
+
+      // 配列に変換して整形
+      eventWeeklyStats = Object.values(weeklyData)
+        .map((weekData: any) => {
+          const venuesArray = Object.values(weekData.venues)
+          const totalMnp = venuesArray.reduce((sum: number, v: any) => sum + v.mnp, 0)
+          const totalHs = venuesArray.reduce((sum: number, v: any) => sum + v.hs, 0)
+
+          return {
+            week: weekData.week,
+            weekNumber: weekData.weekNumber,
+            venues: venuesArray,
+            totalMnp,
+            totalHs,
+            total: totalMnp + totalHs
+          }
+        })
+        .sort((a, b) => a.weekNumber - b.weekNumber)
+    }
+
     return {
       monthlyTrend,
       monthlyAchievementTrend,
@@ -814,7 +892,8 @@ export function PerformanceAnalyticsV2({
       venueStats,
       agencyStats,
       venueMonthlyTrend,
-      staffWeeklyStats
+      staffWeeklyStats,
+      eventWeeklyStats
     }
   }
 
@@ -912,12 +991,16 @@ export function PerformanceAnalyticsV2({
   }
 
   // 比較モーダルを開く関数
-  const openCompareModal = (type: 'achievement' | 'weekly' | 'level' | 'achievementStatus' | 'venue' | 'agency' | 'staff' | 'venueMonthly' | 'monthly' | 'ranking') => {
+  const openCompareModal = (type: 'achievement' | 'weekly' | 'level' | 'achievementStatus' | 'venue' | 'agency' | 'staff' | 'venueMonthly' | 'monthly' | 'ranking' | 'eventWeekly') => {
     setCompareType(type)
     setCompareLeftStart('')
     setCompareLeftEnd('')
     setCompareRightStart('')
     setCompareRightEnd('')
+    setCompareLeftEventYear('')
+    setCompareLeftEventMonth('')
+    setCompareRightEventYear('')
+    setCompareRightEventMonth('')
     // スタッフ比較の場合は全スタッフを選択状態にする
     if (type === 'staff') {
       const allStaffNames = [...new Set(staffPerformances.map((p: any) => p.staff_name).filter(Boolean))].sort()
@@ -949,6 +1032,135 @@ export function PerformanceAnalyticsV2({
         (agencyFilter === 'all' || event.agency_name === agencyFilter)
       )
     })
+  }
+
+  // イベント別実績の比較用コンポーネント
+  const CompareEventWeeklyPanel = ({ year, month }: { year: string, month: string }) => {
+    const panelKey = `panel-${year}-${month}`
+
+    if (!year || !month) {
+      return (
+        <div className="text-center py-20" style={{ color: '#22211A', opacity: 0.6 }}>
+          年月を選択してください
+        </div>
+      )
+    }
+
+    // 年月でフィルタリング（数値型に変換して比較）
+    const targetYear = parseInt(year)
+    const targetMonth = parseInt(month)
+
+    const eventFilteredEvents = events.filter((event: any) => {
+      const eventYearNum = typeof event.year === 'string' ? parseInt(event.year) : event.year
+      const eventMonthNum = typeof event.month === 'string' ? parseInt(event.month) : event.month
+      return eventYearNum === targetYear && eventMonthNum === targetMonth
+    })
+
+    if (eventFilteredEvents.length === 0) {
+      return (
+        <div className="text-center py-20" style={{ color: '#22211A', opacity: 0.6 }}>
+          データがありません
+        </div>
+      )
+    }
+
+    // 週ごとにグループ化
+    const weeklyData: Record<number, any> = {}
+    eventFilteredEvents.forEach((event: any) => {
+      const weekNum = event.week_number || 1
+      if (!weeklyData[weekNum]) {
+        weeklyData[weekNum] = {
+          week: `第${weekNum}週`,
+          weekNumber: weekNum,
+          venues: {}
+        }
+      }
+
+      const venue = event.venue
+      if (!weeklyData[weekNum].venues[venue]) {
+        weeklyData[weekNum].venues[venue] = {
+          venue,
+          mnp: 0,
+          hs: 0
+        }
+      }
+
+      weeklyData[weekNum].venues[venue].mnp += (event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0)
+      weeklyData[weekNum].venues[venue].hs += (event.actual_au_new || 0) + (event.actual_uq_new || 0)
+    })
+
+    const eventWeeklyStats = Object.values(weeklyData)
+      .map((weekData: any) => {
+        const venuesArray = Object.values(weekData.venues)
+        const totalMnp = venuesArray.reduce((sum: number, v: any) => sum + v.mnp, 0)
+        const totalHs = venuesArray.reduce((sum: number, v: any) => sum + v.hs, 0)
+
+        return {
+          week: weekData.week,
+          weekNumber: weekData.weekNumber,
+          venues: venuesArray,
+          totalMnp,
+          totalHs,
+          total: totalMnp + totalHs
+        }
+      })
+      .sort((a, b) => a.weekNumber - b.weekNumber)
+
+    return (
+      <div className="glass rounded-lg p-6 border" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+        <div className="mb-4">
+          <h3 className="text-lg font-bold flex items-center mb-3" style={{ color: '#22211A' }}>
+            <Calendar className="w-5 h-5 mr-2" style={{ color: '#22211A' }} />
+            イベント別実績
+          </h3>
+        </div>
+        {eventWeeklyStats && eventWeeklyStats.length > 0 ? (
+          <ResponsiveContainer width="100%" height={400} key={panelKey}>
+            <BarChart data={eventWeeklyStats}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="week" stroke="#22211A" fontSize={12} />
+              <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length > 0) {
+                    const data = payload[0].payload
+                    return (
+                      <div style={{ ...tooltipStyle, maxHeight: '300px', overflowY: 'auto' }}>
+                        <p className="font-bold mb-2">{data.week}</p>
+                        <p className="mb-1">合計: {data.total}件</p>
+                        <p className="mb-2 text-sm">　MNP: {data.totalMnp}件 / 新規: {data.totalHs}件</p>
+                        <div className="border-t pt-2 mt-2" style={{ borderColor: '#22211A' }}>
+                          <p className="font-semibold mb-1 text-sm">会場別内訳:</p>
+                          {data.venues.map((venue: any, idx: number) => (
+                            <div key={idx} className="text-sm mb-1">
+                              <p className="font-medium">{venue.venue}</p>
+                              <p className="ml-2 text-xs">MNP: {venue.mnp}件 / 新規: {venue.hs}件</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                }}
+              />
+              <Legend />
+              <Bar dataKey="totalMnp" fill="#FFB300" name="MNP" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
+              <Bar dataKey="totalHs" fill="#ffe680" name="新規" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center" style={{ height: '400px' }}>
+            <div className="text-center">
+              <p style={{ color: '#22211A', opacity: 0.6 }}>
+                表示できるデータがありません
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    )
   }
 
   // 各パネルの比較用コンポーネント - 元のパネルと同じデザインで表示
@@ -1153,6 +1365,48 @@ export function PerformanceAnalyticsV2({
         return dataPoint
       })
 
+      // イベント別実績（週次・会場別）
+      const eventWeeklyData: Record<number, any> = {}
+      events.forEach((event: any) => {
+        const weekNum = event.week_number || 1
+        if (!eventWeeklyData[weekNum]) {
+          eventWeeklyData[weekNum] = {
+            week: `第${weekNum}週`,
+            weekNumber: weekNum,
+            venues: {}
+          }
+        }
+
+        const venue = event.venue
+        if (!eventWeeklyData[weekNum].venues[venue]) {
+          eventWeeklyData[weekNum].venues[venue] = {
+            venue,
+            mnp: 0,
+            hs: 0
+          }
+        }
+
+        eventWeeklyData[weekNum].venues[venue].mnp += (event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0)
+        eventWeeklyData[weekNum].venues[venue].hs += (event.actual_au_new || 0) + (event.actual_uq_new || 0)
+      })
+
+      const eventWeeklyStats = Object.values(eventWeeklyData)
+        .map((weekData: any) => {
+          const venuesArray = Object.values(weekData.venues)
+          const totalMnp = venuesArray.reduce((sum: number, v: any) => sum + v.mnp, 0)
+          const totalHs = venuesArray.reduce((sum: number, v: any) => sum + v.hs, 0)
+
+          return {
+            week: weekData.week,
+            weekNumber: weekData.weekNumber,
+            venues: venuesArray,
+            totalMnp,
+            totalHs,
+            total: totalMnp + totalHs
+          }
+        })
+        .sort((a, b) => a.weekNumber - b.weekNumber)
+
       return {
         monthlyAchievementTrend,
         weeklyStats,
@@ -1161,7 +1415,8 @@ export function PerformanceAnalyticsV2({
         venueStats,
         agencyStats,
         staffWeeklyStats,
-        venueMonthlyTrend
+        venueMonthlyTrend,
+        eventWeeklyStats
       }
     }
 
@@ -1488,6 +1743,65 @@ export function PerformanceAnalyticsV2({
               <div className="text-center">
                 <p style={{ color: '#22211A', opacity: 0.6 }}>
                   表示できる値がありません
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    // イベント別実績
+    if (type === 'eventWeekly') {
+      return (
+        <div className="glass rounded-lg p-6 border" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+          <div className="mb-4">
+            <h3 className="text-lg font-bold flex items-center mb-3" style={{ color: '#22211A' }}>
+              <Calendar className="w-5 h-5 mr-2" style={{ color: '#22211A' }} />
+              イベント別実績
+            </h3>
+          </div>
+          {data.eventWeeklyStats && data.eventWeeklyStats.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={data.eventWeeklyStats}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="week" stroke="#22211A" fontSize={12} />
+                <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length > 0) {
+                      const data = payload[0].payload
+                      return (
+                        <div style={{ ...tooltipStyle, maxHeight: '300px', overflowY: 'auto' }}>
+                          <p className="font-bold mb-2">{data.week}</p>
+                          <p className="mb-1">合計: {data.total}件</p>
+                          <p className="mb-2 text-sm">　MNP: {data.totalMnp}件 / 新規: {data.totalHs}件</p>
+                          <div className="border-t pt-2 mt-2" style={{ borderColor: '#22211A' }}>
+                            <p className="font-semibold mb-1 text-sm">会場別内訳:</p>
+                            {data.venues.map((venue: any, idx: number) => (
+                              <div key={idx} className="text-sm mb-1">
+                                <p className="font-medium">{venue.venue}</p>
+                                <p className="ml-2 text-xs">MNP: {venue.mnp}件 / 新規: {venue.hs}件</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    }
+                    return null
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="totalMnp" fill="#FFB300" name="MNP" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
+                <Bar dataKey="totalHs" fill="#ffe680" name="新規" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center" style={{ height: '400px' }}>
+              <div className="text-center">
+                <p style={{ color: '#22211A', opacity: 0.6 }}>
+                  表示できるデータがありません
                 </p>
               </div>
             </div>
@@ -2132,8 +2446,93 @@ export function PerformanceAnalyticsV2({
                 </div>
               )}
 
-              {/* その他のパネルの比較 */}
-              {(
+              {/* イベント別実績の比較（年・月選択） */}
+              {compareType === 'eventWeekly' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* 左側のパネル */}
+                  <div className="border rounded-lg p-4" style={{ borderColor: '#22211A' }}>
+                    <h4 className="font-bold mb-3" style={{ color: '#22211A' }}>期間1</h4>
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span style={{ color: '#22211A' }}>年:</span>
+                        <select
+                          value={compareLeftEventYear}
+                          onChange={(e) => setCompareLeftEventYear(e.target.value)}
+                          className="border rounded px-2 py-1"
+                          style={{ borderColor: '#22211A', color: '#22211A' }}
+                        >
+                          <option value="">選択してください</option>
+                          {years.map(year => (
+                            <option key={year} value={year}>{year}年</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span style={{ color: '#22211A' }}>月:</span>
+                        <select
+                          value={compareLeftEventMonth}
+                          onChange={(e) => setCompareLeftEventMonth(e.target.value)}
+                          className="border rounded px-2 py-1"
+                          style={{ borderColor: '#22211A', color: '#22211A' }}
+                        >
+                          <option value="">選択してください</option>
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => (
+                            <option key={month} value={month}>{month}月</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div key={`left-${compareLeftEventYear}-${compareLeftEventMonth}`}>
+                      <CompareEventWeeklyPanel
+                        year={compareLeftEventYear}
+                        month={compareLeftEventMonth}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 右側のパネル */}
+                  <div className="border rounded-lg p-4" style={{ borderColor: '#22211A' }}>
+                    <h4 className="font-bold mb-3" style={{ color: '#22211A' }}>期間2</h4>
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span style={{ color: '#22211A' }}>年:</span>
+                        <select
+                          value={compareRightEventYear}
+                          onChange={(e) => setCompareRightEventYear(e.target.value)}
+                          className="border rounded px-2 py-1"
+                          style={{ borderColor: '#22211A', color: '#22211A' }}
+                        >
+                          <option value="">選択してください</option>
+                          {years.map(year => (
+                            <option key={year} value={year}>{year}年</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span style={{ color: '#22211A' }}>月:</span>
+                        <select
+                          value={compareRightEventMonth}
+                          onChange={(e) => setCompareRightEventMonth(e.target.value)}
+                          className="border rounded px-2 py-1"
+                          style={{ borderColor: '#22211A', color: '#22211A' }}
+                        >
+                          <option value="">選択してください</option>
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => (
+                            <option key={month} value={month}>{month}月</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div key={`right-${compareRightEventYear}-${compareRightEventMonth}`}>
+                      <CompareEventWeeklyPanel
+                        year={compareRightEventYear}
+                        month={compareRightEventMonth}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* その他のパネルの比較 */
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* 左側のパネル */}
                   <div className="border rounded-lg p-4" style={{ borderColor: '#22211A' }}>
@@ -3019,6 +3418,165 @@ export function PerformanceAnalyticsV2({
                 </div>
               )})()}
             </div>
+          </div>
+
+          {/* イベント別実績 */}
+          <div className="lg:col-span-2 glass rounded-lg p-6 border" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold flex items-center" style={{ color: '#22211A' }}>
+                  <Calendar className="w-5 h-5 mr-2" style={{ color: '#22211A' }} />
+                  イベント別実績
+                </h3>
+                <button
+                  onClick={() => openCompareModal('eventWeekly')}
+                  className="inline-flex items-center px-3 py-1.5 rounded-lg border hover:opacity-80 transition-all text-sm font-medium"
+                  style={{ backgroundColor: '#F1AD26', color: '#FFFFFF', borderColor: '#F1AD26' }}
+                >
+                  <GitCompare className="w-4 h-4 mr-1" />
+                  比較
+                </button>
+              </div>
+              <div className="space-y-3">
+                {/* 年月選択 */}
+                <div className="flex gap-4 items-center">
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#22211A' }}>年</label>
+                    <select
+                      value={eventYear}
+                      onChange={(e) => setEventYear(e.target.value)}
+                      className="px-3 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{ borderColor: '#22211A' }}
+                    >
+                      <option value="">選択してください</option>
+                      {years.map(year => (
+                        <option key={year} value={year}>{year}年</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#22211A' }}>月</label>
+                    <select
+                      value={eventMonth}
+                      onChange={(e) => setEventMonth(e.target.value)}
+                      className="px-3 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{ borderColor: '#22211A' }}
+                    >
+                      <option value="">選択してください</option>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => (
+                        <option key={month} value={month}>{month}月</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* 代理店選択 */}
+                <div className="relative event-agency-select-container">
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#22211A' }}>代理店を選択</label>
+                  <button
+                    onClick={() => setIsEventAgencySelectOpen(!isEventAgencySelectOpen)}
+                    className="w-full px-3 py-2 border rounded-lg text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ borderColor: '#22211A' }}
+                  >
+                    <span style={{ color: '#22211A' }}>
+                      {selectedEventAgencies.length === 0 ? '代理店を選択してください' :
+                       `${selectedEventAgencies.length}社選択中`}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isEventAgencySelectOpen ? 'rotate-180' : ''}`} style={{ color: '#22211A' }} />
+                  </button>
+
+                  {isEventAgencySelectOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto" style={{ borderColor: '#22211A' }}>
+                      {/* 全選択/全解除 */}
+                      <div className="border-b p-2 flex gap-2" style={{ borderColor: '#22211A' }}>
+                        <button
+                          onClick={() => setSelectedEventAgencies([...agencies])}
+                          className="flex-1 px-3 py-2 text-sm rounded hover:bg-gray-50 transition-colors"
+                          style={{ color: '#22211A', border: '1px solid #22211A' }}
+                        >
+                          全て選択
+                        </button>
+                        <button
+                          onClick={() => setSelectedEventAgencies([])}
+                          className="flex-1 px-3 py-2 text-sm rounded hover:bg-gray-50 transition-colors"
+                          style={{ color: '#22211A', border: '1px solid #22211A' }}
+                        >
+                          全てのチェックを外す
+                        </button>
+                      </div>
+
+                      {/* 個別代理店選択 */}
+                      {agencies.map(agency => (
+                        <div key={agency} className="p-2">
+                          <label className="w-full px-3 py-2 text-sm flex items-center rounded hover:bg-gray-50 transition-colors cursor-pointer" style={{ color: '#22211A' }}>
+                            <input
+                              type="checkbox"
+                              checked={selectedEventAgencies.includes(agency)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedEventAgencies(prev => [...prev, agency])
+                                } else {
+                                  setSelectedEventAgencies(prev => prev.filter(a => a !== agency))
+                                }
+                              }}
+                              className="mr-2"
+                            />
+                            {agency}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* グラフ表示 */}
+            {analysisData.eventWeeklyStats && analysisData.eventWeeklyStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={analysisData.eventWeeklyStats}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="week" stroke="#22211A" fontSize={12} />
+                  <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length > 0) {
+                        const data = payload[0].payload
+                        return (
+                          <div style={{ ...tooltipStyle, maxHeight: '300px', overflowY: 'auto' }}>
+                            <p className="font-bold mb-2">{data.week}</p>
+                            <p className="mb-1">合計: {data.total}件</p>
+                            <p className="mb-2 text-sm">　MNP: {data.totalMnp}件 / 新規: {data.totalHs}件</p>
+                            <div className="border-t pt-2 mt-2" style={{ borderColor: '#22211A' }}>
+                              <p className="font-semibold mb-1 text-sm">会場別内訳:</p>
+                              {data.venues.map((venue: any, idx: number) => (
+                                <div key={idx} className="text-sm mb-1">
+                                  <p className="font-medium">{venue.venue}</p>
+                                  <p className="ml-2 text-xs">MNP: {venue.mnp}件 / 新規: {venue.hs}件</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      }
+                      return null
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="totalMnp" fill="#FFB300" name="MNP" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
+                  <Bar dataKey="totalHs" fill="#ffe680" name="新規" stroke="none" animationBegin={0} animationDuration={800} animationEasing="ease-out" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center" style={{ height: '400px' }}>
+                <div className="text-center">
+                  <p style={{ color: '#22211A', opacity: 0.6 }}>
+                    {!eventYear || !eventMonth ? '年月を選択してください' : '表示できるデータがありません'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* スタッフ別週次獲得件数 */}

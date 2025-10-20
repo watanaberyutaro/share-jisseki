@@ -1126,11 +1126,11 @@ export function PerformanceAnalyticsV2({
                   if (active && payload && payload.length > 0) {
                     const data = payload[0].payload
                     return (
-                      <div style={{ ...tooltipStyle, maxHeight: '300px', overflowY: 'auto' }}>
+                      <div style={{ ...tooltipStyle, maxHeight: '400px', overflowY: 'auto', display: 'block' }}>
                         <p className="font-bold mb-2">{data.week}</p>
                         <p className="mb-1">合計: {data.total}件</p>
                         <p className="mb-2 text-sm">　MNP: {data.totalMnp}件 / 新規: {data.totalHs}件</p>
-                        <div className="border-t pt-2 mt-2" style={{ borderColor: '#22211A' }}>
+                        <div className="border-t pt-2 mt-2 pb-2" style={{ borderColor: '#22211A' }}>
                           <p className="font-semibold mb-1 text-sm">会場別内訳:</p>
                           {data.venues.map((venue: any, idx: number) => (
                             <div key={idx} className="text-sm mb-1">
@@ -1773,11 +1773,11 @@ export function PerformanceAnalyticsV2({
                     if (active && payload && payload.length > 0) {
                       const data = payload[0].payload
                       return (
-                        <div style={{ ...tooltipStyle, maxHeight: '300px', overflowY: 'auto' }}>
+                        <div style={{ ...tooltipStyle, maxHeight: '400px', overflowY: 'auto', display: 'block' }}>
                           <p className="font-bold mb-2">{data.week}</p>
                           <p className="mb-1">合計: {data.total}件</p>
                           <p className="mb-2 text-sm">　MNP: {data.totalMnp}件 / 新規: {data.totalHs}件</p>
-                          <div className="border-t pt-2 mt-2" style={{ borderColor: '#22211A' }}>
+                          <div className="border-t pt-2 mt-2 pb-2" style={{ borderColor: '#22211A' }}>
                             <p className="font-semibold mb-1 text-sm">会場別内訳:</p>
                             {data.venues.map((venue: any, idx: number) => (
                               <div key={idx} className="text-sm mb-1">
@@ -3544,11 +3544,11 @@ export function PerformanceAnalyticsV2({
                       if (active && payload && payload.length > 0) {
                         const data = payload[0].payload
                         return (
-                          <div style={{ ...tooltipStyle, maxHeight: '300px', overflowY: 'auto' }}>
+                          <div style={{ ...tooltipStyle, maxHeight: '400px', overflowY: 'auto', display: 'block' }}>
                             <p className="font-bold mb-2">{data.week}</p>
                             <p className="mb-1">合計: {data.total}件</p>
                             <p className="mb-2 text-sm">　MNP: {data.totalMnp}件 / 新規: {data.totalHs}件</p>
-                            <div className="border-t pt-2 mt-2" style={{ borderColor: '#22211A' }}>
+                            <div className="border-t pt-2 mt-2 pb-2" style={{ borderColor: '#22211A' }}>
                               <p className="font-semibold mb-1 text-sm">会場別内訳:</p>
                               {data.venues.map((venue: any, idx: number) => (
                                 <div key={idx} className="text-sm mb-1">

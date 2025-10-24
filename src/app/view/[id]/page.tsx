@@ -36,6 +36,35 @@ interface EventDetail {
   challenges_and_solutions?: string
 }
 
+interface DailyPerformance {
+  id: string
+  staff_name: string
+  day_number: number
+  event_date: string
+  au_mnp_sp1: number
+  au_mnp_sp2: number
+  au_mnp_sim: number
+  uq_mnp_sp1: number
+  uq_mnp_sp2: number
+  uq_mnp_sim: number
+  au_hs_sp1: number
+  au_hs_sp2: number
+  au_hs_sim: number
+  uq_hs_sp1: number
+  uq_hs_sp2: number
+  uq_hs_sim: number
+  cell_up_sp1: number
+  cell_up_sp2: number
+  cell_up_sim: number
+  credit_card: number
+  gold_card: number
+  ji_bank_account: number
+  warranty: number
+  ott: number
+  electricity: number
+  gas: number
+}
+
 interface StaffPerformance {
   staff_name: string
   au_mnp: number
@@ -50,6 +79,7 @@ interface StaffPerformance {
   ott: number
   electricity: number
   gas: number
+  daily_performances?: DailyPerformance[]
 }
 
 interface Photo {
@@ -68,6 +98,7 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true)
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
   const [expandedStaff, setExpandedStaff] = useState<Set<number>>(new Set())
+  const [staffViewMode, setStaffViewMode] = useState<'summary' | 'daily'>('summary')
 
   const eventId = params?.id as string
   const isRefresh = searchParams?.get('refresh') === 'true'
@@ -296,100 +327,244 @@ export default function EventDetailPage() {
           {/* Staff Performances */}
           {event.staff_performances && event.staff_performances.length > 0 && (
             <div className="glass rounded-lg p-6 border" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
-              <h2 className="text-xl font-bold mb-4 flex items-center" style={{ color: '#22211A' }}>
-                <Users className="w-5 h-5 mr-2" style={{ color: '#22211A' }} />
-                スタッフ実績
-              </h2>
-              <div className="space-y-4">
-                {event.staff_performances.map((staff, index) => (
-                  <div key={index} className="bg-background/50 rounded-lg border" style={{ borderColor: '#22211A' }}>
-                    <button
-                      onClick={() => toggleStaffExpansion(index)}
-                      className="w-full p-4 flex items-center justify-between hover:bg-background/70 transition-colors rounded-lg"
-                    >
-                      <h3 className="font-semibold" style={{ color: '#22211A' }}>{staff.staff_name}</h3>
-                      {expandedStaff.has(index) ? (
-                        <ChevronDown className="w-5 h-5" style={{ color: '#22211A' }} />
-                      ) : (
-                        <ChevronRight className="w-5 h-5" style={{ color: '#22211A' }} />
-                      )}
-                    </button>
-                    
-                    {expandedStaff.has(index) && (
-                      <div className="px-4 pb-4 space-y-4">
-                        {/* 新規実績 */}
-                        <div>
-                          <h4 className="text-sm font-semibold mb-2" style={{ color: '#22211A' }}>新規実績</h4>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <span style={{ color: '#22211A' }}>au MNP: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.au_mnp || 0}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: '#22211A' }}>UQ MNP: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.uq_mnp || 0}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: '#22211A' }}>au 新規: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.au_new || 0}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: '#22211A' }}>UQ 新規: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.uq_new || 0}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: '#22211A' }}>セルアップ: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.cellup || 0}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* LTV実績 */}
-                        <div>
-                          <h4 className="text-sm font-semibold mb-2" style={{ color: '#22211A' }}>LTV実績</h4>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <span style={{ color: '#22211A' }}>クレジットカード: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.credit_card || 0}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: '#22211A' }}>ゴールドカード: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.gold_card || 0}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: '#22211A' }}>じぶん銀行: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.ji_bank_account || 0}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: '#22211A' }}>保証: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.warranty || 0}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: '#22211A' }}>OTT: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.ott || 0}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: '#22211A' }}>電気: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.electricity || 0}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: '#22211A' }}>ガス: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>{staff.gas || 0}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: '#22211A' }}>LTV合計: </span>
-                              <span className="font-medium" style={{ color: '#22211A' }}>
-                                {(staff.credit_card || 0) + (staff.gold_card || 0) + (staff.ji_bank_account || 0) + 
-                                 (staff.warranty || 0) + (staff.ott || 0) + (staff.electricity || 0) + (staff.gas || 0)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold flex items-center" style={{ color: '#22211A' }}>
+                  <Users className="w-5 h-5 mr-2" style={{ color: '#22211A' }} />
+                  スタッフ実績
+                </h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setStaffViewMode('summary')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      staffViewMode === 'summary'
+                        ? 'text-white'
+                        : 'border'
+                    }`}
+                    style={staffViewMode === 'summary'
+                      ? { backgroundColor: '#22211A' }
+                      : { borderColor: '#22211A', color: '#22211A', backgroundColor: 'transparent' }
+                    }
+                  >
+                    スタッフ別集計
+                  </button>
+                  <button
+                    onClick={() => setStaffViewMode('daily')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      staffViewMode === 'daily'
+                        ? 'text-white'
+                        : 'border'
+                    }`}
+                    style={staffViewMode === 'daily'
+                      ? { backgroundColor: '#22211A' }
+                      : { borderColor: '#22211A', color: '#22211A', backgroundColor: 'transparent' }
+                    }
+                  >
+                    日毎詳細
+                  </button>
+                </div>
               </div>
+
+              {staffViewMode === 'summary' ? (
+                <div className="space-y-4">
+                  {event.staff_performances.map((staff, index) => (
+                    <div key={index} className="bg-background/50 rounded-lg border" style={{ borderColor: '#22211A' }}>
+                      <button
+                        onClick={() => toggleStaffExpansion(index)}
+                        className="w-full p-4 flex items-center justify-between hover:bg-background/70 transition-colors rounded-lg"
+                      >
+                        <h3 className="font-semibold" style={{ color: '#22211A' }}>{staff.staff_name}</h3>
+                        {expandedStaff.has(index) ? (
+                          <ChevronDown className="w-5 h-5" style={{ color: '#22211A' }} />
+                        ) : (
+                          <ChevronRight className="w-5 h-5" style={{ color: '#22211A' }} />
+                        )}
+                      </button>
+
+                      {expandedStaff.has(index) && (
+                        <div className="px-4 pb-4 space-y-4">
+                          {/* 新規実績 */}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-2" style={{ color: '#22211A' }}>新規実績</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                              <div>
+                                <span style={{ color: '#22211A' }}>au MNP: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.au_mnp || 0}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: '#22211A' }}>UQ MNP: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.uq_mnp || 0}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: '#22211A' }}>au 新規: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.au_new || 0}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: '#22211A' }}>UQ 新規: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.uq_new || 0}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: '#22211A' }}>セルアップ: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.cellup || 0}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* LTV実績 */}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-2" style={{ color: '#22211A' }}>LTV実績</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                              <div>
+                                <span style={{ color: '#22211A' }}>クレジットカード: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.credit_card || 0}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: '#22211A' }}>ゴールドカード: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.gold_card || 0}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: '#22211A' }}>じぶん銀行: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.ji_bank_account || 0}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: '#22211A' }}>保証: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.warranty || 0}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: '#22211A' }}>OTT: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.ott || 0}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: '#22211A' }}>電気: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.electricity || 0}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: '#22211A' }}>ガス: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>{staff.gas || 0}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: '#22211A' }}>LTV合計: </span>
+                                <span className="font-medium" style={{ color: '#22211A' }}>
+                                  {(staff.credit_card || 0) + (staff.gold_card || 0) + (staff.ji_bank_account || 0) +
+                                   (staff.warranty || 0) + (staff.ott || 0) + (staff.electricity || 0) + (staff.gas || 0)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {(() => {
+                    // 日付ごとにデータをグループ化
+                    const dailyDataMap: Record<string, DailyPerformance[]> = {}
+                    event.staff_performances.forEach(staff => {
+                      if (staff.daily_performances) {
+                        staff.daily_performances.forEach(daily => {
+                          const dateKey = daily.event_date
+                          if (!dailyDataMap[dateKey]) {
+                            dailyDataMap[dateKey] = []
+                          }
+                          dailyDataMap[dateKey].push(daily)
+                        })
+                      }
+                    })
+
+                    // 日付でソート
+                    const sortedDates = Object.keys(dailyDataMap).sort()
+
+                    return sortedDates.map((date, dateIndex) => {
+                      const dailyRecords = dailyDataMap[date]
+                      return (
+                        <div key={date} className="bg-background/50 rounded-lg border p-4" style={{ borderColor: '#22211A' }}>
+                          <h3 className="text-lg font-bold mb-4" style={{ color: '#22211A' }}>
+                            {format(new Date(date), 'M月d日（E）', { locale: ja })} - {dateIndex + 1}日目
+                          </h3>
+                          <div className="space-y-4">
+                            {dailyRecords.map((daily, index) => {
+                              const auMnp = (Number(daily.au_mnp_sp1) || 0) + (Number(daily.au_mnp_sp2) || 0) + (Number(daily.au_mnp_sim) || 0)
+                              const uqMnp = (Number(daily.uq_mnp_sp1) || 0) + (Number(daily.uq_mnp_sp2) || 0) + (Number(daily.uq_mnp_sim) || 0)
+                              const auNew = (Number(daily.au_hs_sp1) || 0) + (Number(daily.au_hs_sp2) || 0) + (Number(daily.au_hs_sim) || 0)
+                              const uqNew = (Number(daily.uq_hs_sp1) || 0) + (Number(daily.uq_hs_sp2) || 0) + (Number(daily.uq_hs_sim) || 0)
+                              const cellup = (Number(daily.cell_up_sp1) || 0) + (Number(daily.cell_up_sp2) || 0) + (Number(daily.cell_up_sim) || 0)
+
+                              return (
+                                <div key={daily.id} className="border-l-4 pl-4 py-2" style={{ borderColor: '#22211A' }}>
+                                  <h4 className="font-semibold mb-3" style={{ color: '#22211A' }}>{daily.staff_name}</h4>
+
+                                  {/* 新規実績 */}
+                                  <div className="mb-3">
+                                    <p className="text-xs font-semibold mb-2" style={{ color: '#22211A' }}>新規実績</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>au MNP: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{auMnp}</span>
+                                      </div>
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>UQ MNP: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{uqMnp}</span>
+                                      </div>
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>au 新規: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{auNew}</span>
+                                      </div>
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>UQ 新規: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{uqNew}</span>
+                                      </div>
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>セルアップ: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{cellup}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* LTV実績 */}
+                                  <div>
+                                    <p className="text-xs font-semibold mb-2" style={{ color: '#22211A' }}>LTV実績</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>クレカ: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{daily.credit_card || 0}</span>
+                                      </div>
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>金カード: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{daily.gold_card || 0}</span>
+                                      </div>
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>じぶん銀: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{daily.ji_bank_account || 0}</span>
+                                      </div>
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>保証: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{daily.warranty || 0}</span>
+                                      </div>
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>OTT: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{daily.ott || 0}</span>
+                                      </div>
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>電気: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{daily.electricity || 0}</span>
+                                      </div>
+                                      <div className="bg-background/80 p-2 rounded">
+                                        <span className="text-xs" style={{ color: '#22211A' }}>ガス: </span>
+                                        <span className="font-medium" style={{ color: '#22211A' }}>{daily.gas || 0}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+              )}
             </div>
           )}
 

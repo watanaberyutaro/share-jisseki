@@ -102,6 +102,14 @@ export default function EventDetailPage() {
   const [expandedDailyStaff, setExpandedDailyStaff] = useState<Set<number>>(new Set())
   const [expandedDailyDays, setExpandedDailyDays] = useState<Set<string>>(new Set())
 
+  // ビューモード切り替え時に展開状態をリセット
+  const handleViewModeChange = (mode: 'summary' | 'daily') => {
+    setStaffViewMode(mode)
+    setExpandedStaff(new Set())
+    setExpandedDailyStaff(new Set())
+    setExpandedDailyDays(new Set())
+  }
+
   const eventId = params?.id as string
   const isRefresh = searchParams?.get('refresh') === 'true'
 
@@ -358,7 +366,7 @@ export default function EventDetailPage() {
                 </h2>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setStaffViewMode('summary')}
+                    onClick={() => handleViewModeChange('summary')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       staffViewMode === 'summary'
                         ? 'text-white'
@@ -372,7 +380,7 @@ export default function EventDetailPage() {
                     スタッフ別集計
                   </button>
                   <button
-                    onClick={() => setStaffViewMode('daily')}
+                    onClick={() => handleViewModeChange('daily')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       staffViewMode === 'daily'
                         ? 'text-white'
@@ -481,13 +489,14 @@ export default function EventDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {event.staff_performances.map((staff, staffIndex) => {
-                    // 日付でソートされた日別データ
-                    const sortedDailyPerformances = staff.daily_performances
-                      ? [...staff.daily_performances].sort((a, b) => a.day_number - b.day_number)
-                      : []
+                  {event.staff_performances && event.staff_performances.length > 0 ? (
+                    event.staff_performances.map((staff, staffIndex) => {
+                      // 日付でソートされた日別データ
+                      const sortedDailyPerformances = staff.daily_performances
+                        ? [...staff.daily_performances].sort((a, b) => a.day_number - b.day_number)
+                        : []
 
-                    return (
+                      return (
                       <div key={staffIndex} className="glass rounded-lg overflow-hidden" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
                         {/* スタッフヘッダー */}
                         <div className="px-6 py-4" style={{ backgroundColor: 'rgba(34, 33, 26, 0.1)', borderBottom: '1px solid #22211A' }}>
@@ -646,7 +655,10 @@ export default function EventDetailPage() {
                         )}
                       </div>
                     )
-                  })}
+                    })
+                  ) : (
+                    <p className="text-center py-8" style={{ color: '#22211A' }}>スタッフ実績データがありません</p>
+                  )}
                 </div>
               )}
             </div>

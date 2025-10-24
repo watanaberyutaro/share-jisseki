@@ -32,9 +32,10 @@ interface EventSummary {
 const COLORS = [
   '#4abf79', '#7cd08e', '#a6e09e',
   '#ffd942', '#ffe680', '#ffedb3', '#fff5e0',
-  '#3dae6c', '#FFB300', '#DCEDC8', '#b7e59e', '#FAFAFA', '#FFFBF3', '#c8e6c9', '#f9e79f',
+  '#3dae6c', '#FFB300', '#DCEDC8', '#b7e59e', '#c8e6c9', '#f9e79f',
   '#ffbb00', '#f8d549', '#f4e3a4', '#aed581',
-  '#ffcc80', '#ffab91', '#d5cec3', '#e8e2ce', '#dcedc8', '#2c9b5e'
+  '#ffcc80', '#ffab91', '#ffe0b2', '#e8e2ce', '#dcedc8', '#2c9b5e',
+  '#81c784', '#66bb6a', '#4db6ac', '#26a69a', '#ffd54f', '#ffca28'
 ]
 
 // カスタムラベルコンポーネント - 実績レベル分析用
@@ -773,6 +774,32 @@ export function PerformanceAnalyticsV2({
     // スタッフ別週次実績の集計
     const staffWeeklyData: Record<string, any> = {}
 
+    // デバッグ: データ構造を確認
+    console.log('===== スタッフパフォーマンスデータ分析 =====')
+    console.log('総レコード数:', staffPerformances.length)
+    if (staffPerformances.length > 0) {
+      console.log('サンプルデータ:', staffPerformances[0])
+      console.log('テーブルのカラム:', Object.keys(staffPerformances[0]))
+
+      // イベントIDごとのレコード数をカウント
+      const eventCounts: Record<string, number> = {}
+      staffPerformances.forEach((perf: any) => {
+        const eventId = perf.event_id
+        eventCounts[eventId] = (eventCounts[eventId] || 0) + 1
+      })
+      console.log('イベントIDごとのレコード数（上位5件）:', Object.entries(eventCounts).slice(0, 5))
+
+      // スタッフ名ごとのレコード数をカウント
+      const staffCounts: Record<string, number> = {}
+      staffPerformances.forEach((perf: any) => {
+        const staffName = perf.staff_name
+        if (staffName) {
+          staffCounts[staffName] = (staffCounts[staffName] || 0) + 1
+        }
+      })
+      console.log('スタッフ名ごとのレコード数（上位5件）:', Object.entries(staffCounts).slice(0, 5))
+    }
+
     staffPerformances.forEach((perf: any) => {
       if (!perf.staff_name) return
 
@@ -796,6 +823,19 @@ export function PerformanceAnalyticsV2({
       const mnpTotal = auMnp + uqMnp
       const newTotal = auNew + uqNew + cellup
 
+      // デバッグ: 最初の数件のデータを詳しく出力
+      if (staffPerformances.indexOf(perf) < 3) {
+        console.log(`レコード${staffPerformances.indexOf(perf) + 1}:`, {
+          staff_name: perf.staff_name,
+          event_id: perf.event_id,
+          day_number: perf.day_number,
+          weekKey,
+          mnpTotal,
+          newTotal,
+          auMnp, uqMnp, auNew, uqNew, cellup
+        })
+      }
+
       // スタッフ名_MNP と スタッフ名_新規 で分けて保存
       const mnpKey = `${perf.staff_name}_MNP`
       const newKey = `${perf.staff_name}_新規`
@@ -810,6 +850,8 @@ export function PerformanceAnalyticsV2({
       staffWeeklyData[weekKey][mnpKey] += mnpTotal
       staffWeeklyData[weekKey][newKey] += newTotal
     })
+
+    console.log('週次集計結果（最初の2週）:', Object.values(staffWeeklyData).slice(0, 2))
 
     let staffWeeklyStats = Object.values(staffWeeklyData)
       .sort((a: any, b: any) => a.sortKey.localeCompare(b.sortKey))

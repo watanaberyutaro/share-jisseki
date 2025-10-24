@@ -481,120 +481,54 @@ export default function EventDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {(() => {
-                    console.log('Staff performances:', event.staff_performances)
-                    return event.staff_performances.map((staff, staffIndex) => {
-                      console.log(`Staff ${staff.staff_name}:`, {
-                        hasDailyPerformances: !!staff.daily_performances,
-                        isArray: Array.isArray(staff.daily_performances),
-                        length: staff.daily_performances?.length,
-                        data: staff.daily_performances
-                      })
-                      const hasDailyData = staff.daily_performances && Array.isArray(staff.daily_performances) && staff.daily_performances.length > 0
-
-                      if (!hasDailyData) {
-                        return (
-                          <div key={staffIndex} className="p-4 bg-background/50 rounded-lg border" style={{ borderColor: '#22211A' }}>
-                            <p className="text-sm" style={{ color: '#22211A' }}>
-                              {staff.staff_name}: 日別データがありません
-                            </p>
-                          </div>
-                        )
-                      }
-
+                  {event.staff_performances.map((staff, staffIndex) => {
                     // 日付でソートされた日別データ
-                    const sortedDailyPerformances = staff.daily_performances ? [...staff.daily_performances].sort((a, b) => {
-                      return new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
-                    }) : []
+                    const sortedDailyPerformances = staff.daily_performances
+                      ? [...staff.daily_performances].sort((a, b) => a.day_number - b.day_number)
+                      : []
 
                     return (
-                      <div key={staffIndex} className="bg-background/50 rounded-lg border" style={{ borderColor: '#22211A' }}>
-                        {/* スタッフ名 */}
-                        <button
-                          onClick={() => toggleDailyStaffExpansion(staffIndex)}
-                          className="w-full p-4 flex items-center justify-between hover:bg-background/70 transition-colors rounded-lg"
-                        >
-                          <h3 className="font-semibold" style={{ color: '#22211A' }}>{staff.staff_name}</h3>
-                          {expandedDailyStaff.has(staffIndex) ? (
-                            <ChevronDown className="w-5 h-5" style={{ color: '#22211A' }} />
-                          ) : (
-                            <ChevronRight className="w-5 h-5" style={{ color: '#22211A' }} />
-                          )}
-                        </button>
-
-                        {expandedDailyStaff.has(staffIndex) && (
-                          <div className="px-4 pb-4 space-y-4">
-                            {/* 合計実績 */}
-                            <div className="p-4 bg-muted/50 rounded-lg">
-                              <h4 className="text-sm font-bold mb-3" style={{ color: '#22211A' }}>期間合計</h4>
-
-                              {/* 新規実績合計 */}
-                              <div className="mb-3">
-                                <p className="text-xs font-semibold mb-2" style={{ color: '#22211A' }}>新規実績</p>
-                                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>au MNP: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.au_mnp || 0}</span>
-                                  </div>
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>UQ MNP: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.uq_mnp || 0}</span>
-                                  </div>
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>au 新規: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.au_new || 0}</span>
-                                  </div>
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>UQ 新規: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.uq_new || 0}</span>
-                                  </div>
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>セルアップ: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.cellup || 0}</span>
-                                  </div>
-                                </div>
+                      <div key={staffIndex} className="glass rounded-lg overflow-hidden" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+                        {/* スタッフヘッダー */}
+                        <div className="px-6 py-4" style={{ backgroundColor: 'rgba(34, 33, 26, 0.1)', borderBottom: '1px solid #22211A' }}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => toggleDailyStaffExpansion(staffIndex)}
+                                className="p-1 hover:bg-[#22211A33] rounded-lg transition-colors"
+                              >
+                                {expandedDailyStaff.has(staffIndex) ? (
+                                  <ChevronDown className="w-5 h-5" style={{ color: '#22211A' }} />
+                                ) : (
+                                  <ChevronRight className="w-5 h-5" style={{ color: '#22211A' }} />
+                                )}
+                              </button>
+                              <h3 className="text-lg font-semibold" style={{ color: '#22211A' }}>{staff.staff_name}</h3>
+                            </div>
+                            {/* 統計情報 */}
+                            <div className="flex items-center gap-4 text-sm">
+                              <div className="flex items-center gap-1">
+                                <span style={{ color: '#22211A' }}>HS総販:</span>
+                                <span className="font-bold" style={{ color: '#22211A' }}>
+                                  {(staff.au_mnp || 0) + (staff.uq_mnp || 0) + (staff.au_new || 0) + (staff.uq_new || 0) + (staff.cellup || 0)}件
+                                </span>
                               </div>
-
-                              {/* LTV実績合計 */}
-                              <div>
-                                <p className="text-xs font-semibold mb-2" style={{ color: '#22211A' }}>LTV実績</p>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>クレカ: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.credit_card || 0}</span>
-                                  </div>
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>金カード: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.gold_card || 0}</span>
-                                  </div>
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>じぶん銀: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.ji_bank_account || 0}</span>
-                                  </div>
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>保証: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.warranty || 0}</span>
-                                  </div>
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>OTT: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.ott || 0}</span>
-                                  </div>
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>電気: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.electricity || 0}</span>
-                                  </div>
-                                  <div className="bg-background/80 p-2 rounded">
-                                    <span className="text-xs" style={{ color: '#22211A' }}>ガス: </span>
-                                    <span className="font-medium" style={{ color: '#22211A' }}>{staff.gas || 0}</span>
-                                  </div>
-                                </div>
+                              <div className="flex items-center gap-1">
+                                <span style={{ color: '#22211A' }}>LTV:</span>
+                                <span className="font-bold" style={{ color: '#22211A' }}>
+                                  {(staff.credit_card || 0) + (staff.gold_card || 0) + (staff.ji_bank_account || 0) + (staff.warranty || 0) + (staff.ott || 0) + (staff.electricity || 0) + (staff.gas || 0)}件
+                                </span>
                               </div>
                             </div>
+                          </div>
+                        </div>
 
-                            {/* 日毎詳細 */}
-                            <div className="space-y-2">
-                              <h4 className="text-sm font-bold" style={{ color: '#22211A' }}>日毎詳細</h4>
-                              {sortedDailyPerformances.map((daily, dayIndex) => {
+                        {/* 日別実績詳細（展開時のみ表示） */}
+                        {expandedDailyStaff.has(staffIndex) && (
+                          <div className="p-6 space-y-4">
+                            {sortedDailyPerformances.length > 0 ? (
+                              sortedDailyPerformances.map((daily, dayIndex) => {
                                 const dayKey = `${staffIndex}-${dayIndex}`
                                 const auMnp = (Number(daily.au_mnp_sp1) || 0) + (Number(daily.au_mnp_sp2) || 0) + (Number(daily.au_mnp_sim) || 0)
                                 const uqMnp = (Number(daily.uq_mnp_sp1) || 0) + (Number(daily.uq_mnp_sp2) || 0) + (Number(daily.uq_mnp_sim) || 0)
@@ -603,26 +537,45 @@ export default function EventDetailPage() {
                                 const cellup = (Number(daily.cell_up_sp1) || 0) + (Number(daily.cell_up_sp2) || 0) + (Number(daily.cell_up_sim) || 0)
 
                                 return (
-                                  <div key={dayKey} className="border rounded-lg" style={{ borderColor: '#22211A' }}>
-                                    <button
-                                      onClick={() => toggleDailyDayExpansion(dayKey)}
-                                      className="w-full p-3 flex items-center justify-between hover:bg-background/70 transition-colors rounded-lg"
-                                    >
-                                      <span className="text-sm font-medium" style={{ color: '#22211A' }}>
-                                        {daily.day_number}日目 - {format(new Date(daily.event_date), 'M月d日（E）', { locale: ja })}
-                                      </span>
-                                      {expandedDailyDays.has(dayKey) ? (
-                                        <ChevronDown className="w-4 h-4" style={{ color: '#22211A' }} />
-                                      ) : (
-                                        <ChevronRight className="w-4 h-4" style={{ color: '#22211A' }} />
-                                      )}
-                                    </button>
+                                  <div key={dayKey} className="rounded-xl overflow-hidden" style={{ borderColor: '#22211A' }}>
+                                    {/* 日別ヘッダー */}
+                                    <div className="px-4 py-3" style={{ backgroundColor: 'rgba(34, 33, 26, 0.05)', borderBottom: '1px solid #22211A' }}>
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-3">
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleDailyDayExpansion(dayKey)}
+                                            className="p-1 hover:bg-[#22211A33] rounded transition-colors"
+                                          >
+                                            {expandedDailyDays.has(dayKey) ? (
+                                              <ChevronDown className="w-4 h-4" style={{ color: '#22211A' }} />
+                                            ) : (
+                                              <ChevronRight className="w-4 h-4" style={{ color: '#22211A' }} />
+                                            )}
+                                          </button>
+                                          <span className="font-medium text-sm" style={{ color: '#22211A' }}>
+                                            {daily.day_number}日目 - {format(new Date(daily.event_date), 'M月d日（E）', { locale: ja })}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-4 text-xs">
+                                          <span style={{ color: '#22211A' }}>
+                                            HS: <span className="font-bold">{auMnp + uqMnp + auNew + uqNew + cellup}件</span>
+                                          </span>
+                                          <span style={{ color: '#22211A' }}>
+                                            LTV: <span className="font-bold">
+                                              {(daily.credit_card || 0) + (daily.gold_card || 0) + (daily.ji_bank_account || 0) + (daily.warranty || 0) + (daily.ott || 0) + (daily.electricity || 0) + (daily.gas || 0)}件
+                                            </span>
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
 
+                                    {/* 日別詳細（展開時のみ表示） */}
                                     {expandedDailyDays.has(dayKey) && (
-                                      <div className="px-3 pb-3 space-y-3">
+                                      <div className="p-4 space-y-4" style={{ backgroundColor: 'rgba(34, 33, 26, 0.02)' }}>
                                         {/* 新規実績 */}
                                         <div>
-                                          <p className="text-xs font-semibold mb-2" style={{ color: '#22211A' }}>新規実績</p>
+                                          <h4 className="text-xs font-bold mb-2" style={{ color: '#22211A' }}>新規実績</h4>
                                           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
                                             <div className="bg-background/80 p-2 rounded">
                                               <span className="text-xs" style={{ color: '#22211A' }}>au MNP: </span>
@@ -649,7 +602,7 @@ export default function EventDetailPage() {
 
                                         {/* LTV実績 */}
                                         <div>
-                                          <p className="text-xs font-semibold mb-2" style={{ color: '#22211A' }}>LTV実績</p>
+                                          <h4 className="text-xs font-bold mb-2" style={{ color: '#22211A' }}>LTV実績</h4>
                                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                                             <div className="bg-background/80 p-2 rounded">
                                               <span className="text-xs" style={{ color: '#22211A' }}>クレカ: </span>
@@ -685,14 +638,15 @@ export default function EventDetailPage() {
                                     )}
                                   </div>
                                 )
-                              })}
-                            </div>
+                              })
+                            ) : (
+                              <p className="text-sm text-center py-4" style={{ color: '#22211A' }}>日別データがありません</p>
+                            )}
                           </div>
                         )}
                       </div>
                     )
-                    })
-                  })()}
+                  })}
                 </div>
               )}
             </div>

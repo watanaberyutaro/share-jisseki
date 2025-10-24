@@ -160,9 +160,8 @@ export function PerformanceAnalyticsV2({
   const [isVenueVenueSelectOpen, setIsVenueVenueSelectOpen] = useState(false)
 
   // スタッフ別週次獲得件数用の状態
-  const [staffWeeklyStartDate, setStaffWeeklyStartDate] = useState<string>('')
-  const [staffWeeklyEndDate, setStaffWeeklyEndDate] = useState<string>('')
-  const [isStaffWeeklyDateManuallySet, setIsStaffWeeklyDateManuallySet] = useState(false)
+  const [staffWeeklyYear, setStaffWeeklyYear] = useState<string>('')
+  const [staffWeeklyMonth, setStaffWeeklyMonth] = useState<string>('')
   const [selectedStaff, setSelectedStaff] = useState<string[]>([])
   const [isStaffSelectOpen, setIsStaffSelectOpen] = useState(false)
 
@@ -297,12 +296,9 @@ export function PerformanceAnalyticsV2({
         setVenueStartDate(bulkStartDate)
         setVenueEndDate(bulkEndDate)
       }
-      if (!isStaffWeeklyDateManuallySet) {
-        setStaffWeeklyStartDate(bulkStartDate)
-        setStaffWeeklyEndDate(bulkEndDate)
-      }
+      // スタッフ別週次は年月選択なので一括設定対象外
     }
-  }, [appliedBulkStartDate, appliedBulkEndDate, isAchievementDateManuallySet, isWeeklyDateManuallySet, isLevelDateManuallySet, isAchievementStatusDateManuallySet, isAgencyDateManuallySet, isVenueDateManuallySet, isStaffWeeklyDateManuallySet])
+  }, [appliedBulkStartDate, appliedBulkEndDate, isAchievementDateManuallySet, isWeeklyDateManuallySet, isLevelDateManuallySet, isAchievementStatusDateManuallySet, isAgencyDateManuallySet, isVenueDateManuallySet])
 
   // ページトップのフィルターが変更されたときに全パネルの期間を反映
   useEffect(() => {
@@ -337,10 +333,9 @@ export function PerformanceAnalyticsV2({
         setVenueStartDate(dateStr)
         setVenueEndDate(dateStr)
       }
-      if (!isStaffWeeklyDateManuallySet) {
-        setStaffWeeklyStartDate(dateStr)
-        setStaffWeeklyEndDate(dateStr)
-      }
+      // スタッフ別週次は年月で設定
+      setStaffWeeklyYear(yearFilter.toString())
+      setStaffWeeklyMonth(monthFilter.toString())
     } else if (yearFilter !== 'all' && monthFilter === 'all') {
       // 年のみ指定されている場合、その年の1月から12月を設定
       const yearStr = yearFilter.toString()
@@ -369,10 +364,9 @@ export function PerformanceAnalyticsV2({
         setVenueStartDate(`${yearStr}-01`)
         setVenueEndDate(`${yearStr}-12`)
       }
-      if (!isStaffWeeklyDateManuallySet) {
-        setStaffWeeklyStartDate(`${yearStr}-01`)
-        setStaffWeeklyEndDate(`${yearStr}-12`)
-      }
+      // スタッフ別週次は年のみ設定、月はクリア
+      setStaffWeeklyYear(yearFilter.toString())
+      setStaffWeeklyMonth('')
     } else if (yearFilter === 'all' && monthFilter !== 'all') {
       // 月のみ指定されている場合は何もしない（年が必要）
       // 期間選択はクリア
@@ -400,10 +394,9 @@ export function PerformanceAnalyticsV2({
         setVenueStartDate('')
         setVenueEndDate('')
       }
-      if (!isStaffWeeklyDateManuallySet) {
-        setStaffWeeklyStartDate('')
-        setStaffWeeklyEndDate('')
-      }
+      // スタッフ別週次をクリア
+      setStaffWeeklyYear('')
+      setStaffWeeklyMonth('')
     } else {
       // 全て「all」の場合は期間選択をクリア
       if (!isAchievementDateManuallySet) {
@@ -430,12 +423,11 @@ export function PerformanceAnalyticsV2({
         setVenueStartDate('')
         setVenueEndDate('')
       }
-      if (!isStaffWeeklyDateManuallySet) {
-        setStaffWeeklyStartDate('')
-        setStaffWeeklyEndDate('')
-      }
+      // スタッフ別週次をクリア
+      setStaffWeeklyYear('')
+      setStaffWeeklyMonth('')
     }
-  }, [yearFilter, monthFilter, isAchievementDateManuallySet, isWeeklyDateManuallySet, isLevelDateManuallySet, isAchievementStatusDateManuallySet, isAgencyDateManuallySet, isVenueDateManuallySet, isStaffWeeklyDateManuallySet])
+  }, [yearFilter, monthFilter, isAchievementDateManuallySet, isWeeklyDateManuallySet, isLevelDateManuallySet, isAchievementStatusDateManuallySet, isAgencyDateManuallySet, isVenueDateManuallySet])
 
   // 外部クリックでポップアップを閉じる
   useEffect(() => {
@@ -807,12 +799,9 @@ export function PerformanceAnalyticsV2({
       .sort((a: any, b: any) => a.sortKey.localeCompare(b.sortKey))
 
     // スタッフ別週次獲得件数の期間フィルタリング
-    if (staffWeeklyStartDate && staffWeeklyEndDate) {
-      staffWeeklyStats = staffWeeklyStats.filter(item => item.yearMonth >= staffWeeklyStartDate && item.yearMonth <= staffWeeklyEndDate)
-    } else if (staffWeeklyStartDate) {
-      staffWeeklyStats = staffWeeklyStats.filter(item => item.yearMonth >= staffWeeklyStartDate)
-    } else if (staffWeeklyEndDate) {
-      staffWeeklyStats = staffWeeklyStats.filter(item => item.yearMonth <= staffWeeklyEndDate)
+    if (staffWeeklyYear && staffWeeklyMonth) {
+      const targetYearMonth = `${staffWeeklyYear}-${String(staffWeeklyMonth).padStart(2, '0')}`
+      staffWeeklyStats = staffWeeklyStats.filter(item => item.yearMonth === targetYearMonth)
     } else {
       // フィルタなしの場合は最新8週分のみ表示
       staffWeeklyStats = staffWeeklyStats.slice(-8)
@@ -901,6 +890,8 @@ export function PerformanceAnalyticsV2({
   const venues = [...new Set(events.map(e => e.venue))].sort()
   const agencies = [...new Set(events.map(e => e.agency_name))].sort()
   const allStaffNames = [...new Set(staffPerformances.map((p: any) => p.staff_name).filter(Boolean))].sort()
+  const availableYears = [...new Set(events.map((e: any) => e.year).filter(Boolean))].sort((a, b) => b - a)
+  const availableMonths = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
   // ツールチップの共通スタイル
   const tooltipStyle = {
@@ -3598,34 +3589,34 @@ export function PerformanceAnalyticsV2({
                 {/* 期間選択 */}
                 <div className="space-y-2 mb-3">
                   <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span style={{ color: '#22211A' }}>期間:</span>
-                    <input
-                      type="month"
-                      value={staffWeeklyStartDate}
-                      onChange={(e) => {
-                        setStaffWeeklyStartDate(e.target.value)
-                        setIsStaffWeeklyDateManuallySet(true)
-                      }}
+                    <span style={{ color: '#22211A' }}>対象:</span>
+                    <select
+                      value={staffWeeklyYear}
+                      onChange={(e) => setStaffWeeklyYear(e.target.value)}
                       className="px-2 py-1 border rounded"
                       style={{ borderColor: '#22211A', fontSize: '12px' }}
-                    />
-                    <span style={{ color: '#22211A' }}>〜</span>
-                    <input
-                      type="month"
-                      value={staffWeeklyEndDate}
-                      onChange={(e) => {
-                        setStaffWeeklyEndDate(e.target.value)
-                        setIsStaffWeeklyDateManuallySet(true)
-                      }}
+                    >
+                      <option value="">年を選択</option>
+                      {availableYears.map(year => (
+                        <option key={year} value={year}>{year}年</option>
+                      ))}
+                    </select>
+                    <select
+                      value={staffWeeklyMonth}
+                      onChange={(e) => setStaffWeeklyMonth(e.target.value)}
                       className="px-2 py-1 border rounded"
                       style={{ borderColor: '#22211A', fontSize: '12px' }}
-                    />
-                    {(staffWeeklyStartDate || staffWeeklyEndDate) && (
+                    >
+                      <option value="">月を選択</option>
+                      {availableMonths.map(month => (
+                        <option key={month} value={month}>{month}月</option>
+                      ))}
+                    </select>
+                    {(staffWeeklyYear || staffWeeklyMonth) && (
                       <button
                         onClick={() => {
-                          setStaffWeeklyStartDate('')
-                          setStaffWeeklyEndDate('')
-                          setIsStaffWeeklyDateManuallySet(false)
+                          setStaffWeeklyYear('')
+                          setStaffWeeklyMonth('')
                         }}
                         className="px-2 py-1 text-xs rounded hover:bg-gray-100"
                         style={{ color: '#22211A' }}

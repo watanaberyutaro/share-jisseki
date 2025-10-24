@@ -461,19 +461,30 @@ export default function EventDetailPage() {
                     // 日付ごとにデータをグループ化
                     const dailyDataMap: Record<string, DailyPerformance[]> = {}
                     event.staff_performances.forEach(staff => {
-                      if (staff.daily_performances) {
+                      if (staff.daily_performances && Array.isArray(staff.daily_performances)) {
                         staff.daily_performances.forEach(daily => {
-                          const dateKey = daily.event_date
-                          if (!dailyDataMap[dateKey]) {
-                            dailyDataMap[dateKey] = []
+                          if (daily && daily.event_date) {
+                            const dateKey = daily.event_date
+                            if (!dailyDataMap[dateKey]) {
+                              dailyDataMap[dateKey] = []
+                            }
+                            dailyDataMap[dateKey].push(daily)
                           }
-                          dailyDataMap[dateKey].push(daily)
                         })
                       }
                     })
 
                     // 日付でソート
                     const sortedDates = Object.keys(dailyDataMap).sort()
+
+                    // データがない場合の表示
+                    if (sortedDates.length === 0) {
+                      return (
+                        <div className="text-center py-8">
+                          <p style={{ color: '#22211A' }}>日別データが登録されていません</p>
+                        </div>
+                      )
+                    }
 
                     return sortedDates.map((date, dateIndex) => {
                       const dailyRecords = dailyDataMap[date]

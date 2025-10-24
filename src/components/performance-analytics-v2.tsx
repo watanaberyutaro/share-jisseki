@@ -798,10 +798,9 @@ export function PerformanceAnalyticsV2({
         staffWeeklyData[weekKey][perf.staff_name] = 0
       }
 
-      // MNP + HS の合計
-      const mnpTotal = (perf.au_mnp_total || 0) + (perf.uq_mnp_total || 0)
-      const hsTotal = perf.hs_total || 0
-      staffWeeklyData[weekKey][perf.staff_name] += mnpTotal + hsTotal
+      // HS総販 = au MNP + UQ MNP + au新規 + UQ新規 + セルアップ
+      const hsTotal = (perf.au_mnp || 0) + (perf.uq_mnp || 0) + (perf.au_new || 0) + (perf.uq_new || 0) + (perf.cellup || 0)
+      staffWeeklyData[weekKey][perf.staff_name] += hsTotal
     })
 
     let staffWeeklyStats = Object.values(staffWeeklyData)
@@ -1323,10 +1322,9 @@ export function PerformanceAnalyticsV2({
           staffWeeklyData[weekKey][perf.staff_name] = 0
         }
 
-        // MNP + HS の合計
-        const mnpTotal = (perf.au_mnp_total || 0) + (perf.uq_mnp_total || 0)
-        const hsTotal = perf.hs_total || 0
-        staffWeeklyData[weekKey][perf.staff_name] += mnpTotal + hsTotal
+        // HS総販 = au MNP + UQ MNP + au新規 + UQ新規 + セルアップ
+        const hsTotal = (perf.au_mnp || 0) + (perf.uq_mnp || 0) + (perf.au_new || 0) + (perf.uq_new || 0) + (perf.cellup || 0)
+        staffWeeklyData[weekKey][perf.staff_name] += hsTotal
       })
 
       const staffWeeklyStats = Object.values(staffWeeklyData)

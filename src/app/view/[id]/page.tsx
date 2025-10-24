@@ -595,7 +595,7 @@ export default function EventDetailPage() {
                                       className="w-full p-3 flex items-center justify-between hover:bg-background/70 transition-colors rounded-lg"
                                     >
                                       <span className="text-sm font-medium" style={{ color: '#22211A' }}>
-                                        {dayIndex + 1}日目 - {format(new Date(daily.event_date), 'M月d日（E）', { locale: ja })}
+                                        {daily.day_number}日目 - {format(new Date(daily.event_date), 'M月d日（E）', { locale: ja })}
                                       </span>
                                       {expandedDailyDays.has(dayKey) ? (
                                         <ChevronDown className="w-4 h-4" style={{ color: '#22211A' }} />

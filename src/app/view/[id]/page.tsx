@@ -481,17 +481,31 @@ export default function EventDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {event.staff_performances.map((staff, staffIndex) => {
-                    const hasDailyData = staff.daily_performances && Array.isArray(staff.daily_performances) && staff.daily_performances.length > 0
+                  {(() => {
+                    console.log('Staff performances:', event.staff_performances)
+                    return event.staff_performances.map((staff, staffIndex) => {
+                      console.log(`Staff ${staff.staff_name}:`, {
+                        hasDailyPerformances: !!staff.daily_performances,
+                        isArray: Array.isArray(staff.daily_performances),
+                        length: staff.daily_performances?.length,
+                        data: staff.daily_performances
+                      })
+                      const hasDailyData = staff.daily_performances && Array.isArray(staff.daily_performances) && staff.daily_performances.length > 0
 
-                    if (!hasDailyData) {
-                      return null
-                    }
+                      if (!hasDailyData) {
+                        return (
+                          <div key={staffIndex} className="p-4 bg-background/50 rounded-lg border" style={{ borderColor: '#22211A' }}>
+                            <p className="text-sm" style={{ color: '#22211A' }}>
+                              {staff.staff_name}: 日別データがありません
+                            </p>
+                          </div>
+                        )
+                      }
 
                     // 日付でソートされた日別データ
-                    const sortedDailyPerformances = [...staff.daily_performances].sort((a, b) => {
+                    const sortedDailyPerformances = staff.daily_performances ? [...staff.daily_performances].sort((a, b) => {
                       return new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
-                    })
+                    }) : []
 
                     return (
                       <div key={staffIndex} className="bg-background/50 rounded-lg border" style={{ borderColor: '#22211A' }}>
@@ -677,7 +691,8 @@ export default function EventDetailPage() {
                         )}
                       </div>
                     )
-                  })}
+                    })
+                  })()}
                 </div>
               )}
             </div>

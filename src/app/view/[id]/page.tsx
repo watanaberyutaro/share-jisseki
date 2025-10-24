@@ -499,7 +499,7 @@ export default function EventDetailPage() {
                       return (
                       <div key={staffIndex} className="glass rounded-lg overflow-hidden" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
                         {/* スタッフヘッダー */}
-                        <div className="px-6 py-4" style={{ backgroundColor: 'rgba(34, 33, 26, 0.1)', borderBottom: '1px solid #22211A' }}>
+                        <div className="px-6 py-4 bg-background/50" style={{ borderBottom: '1px solid #22211A' }}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <button
@@ -546,9 +546,9 @@ export default function EventDetailPage() {
                                 const cellup = (Number(daily.cell_up_sp1) || 0) + (Number(daily.cell_up_sp2) || 0) + (Number(daily.cell_up_sim) || 0)
 
                                 return (
-                                  <div key={dayKey} className="rounded-xl overflow-hidden" style={{ borderColor: '#22211A' }}>
+                                  <div key={dayKey} className="rounded-xl overflow-hidden border" style={{ borderColor: '#22211A' }}>
                                     {/* 日別ヘッダー */}
-                                    <div className="px-4 py-3" style={{ backgroundColor: 'rgba(34, 33, 26, 0.05)', borderBottom: '1px solid #22211A' }}>
+                                    <div className="px-4 py-3 bg-background/30" style={{ borderBottom: '1px solid #22211A' }}>
                                       <div className="flex items-center justify-between">
                                         <div className="flex items-center space-x-3">
                                           <button
@@ -581,7 +581,7 @@ export default function EventDetailPage() {
 
                                     {/* 日別詳細（展開時のみ表示） */}
                                     {expandedDailyDays.has(dayKey) && (
-                                      <div className="p-4 space-y-4" style={{ backgroundColor: 'rgba(34, 33, 26, 0.02)' }}>
+                                      <div className="p-4 space-y-4 bg-background/20">
                                         {/* 新規実績 */}
                                         <div>
                                           <h4 className="text-xs font-bold mb-2" style={{ color: '#22211A' }}>新規実績</h4>

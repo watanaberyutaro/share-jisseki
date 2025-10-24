@@ -554,7 +554,7 @@ export default function EventDetailPage() {
                                             )}
                                           </button>
                                           <span className="font-medium text-sm" style={{ color: '#22211A' }}>
-                                            {daily.day_number}日目 - {format(new Date(daily.event_date), 'M月d日（E）', { locale: ja })}
+                                            {daily.day_number}日目{daily.event_date ? ` - ${format(new Date(daily.event_date), 'M月d日（E）', { locale: ja })}` : ''}
                                           </span>
                                         </div>
                                         <div className="flex items-center gap-4 text-xs">

@@ -209,6 +209,9 @@ export function PerformanceAnalyticsV2({
       const response = await fetch('/api/performances/staff')
       if (!response.ok) throw new Error('Failed to fetch staff performances')
       const data = await response.json()
+      console.log('スタッフパフォーマンスデータ取得:', data)
+      console.log('データ件数:', data.length)
+      console.log('サンプルデータ:', data[0])
       setStaffPerformances(data)
     } catch (error) {
       console.error('Error fetching staff performances:', error)
@@ -776,9 +779,9 @@ export function PerformanceAnalyticsV2({
     staffPerformances.forEach((perf: any) => {
       if (!perf.staff_name) return
 
-      const eventYear = perf.performance?.year || new Date(perf.performance?.created_at).getFullYear()
-      const eventMonth = perf.performance?.month || new Date(perf.performance?.created_at).getMonth() + 1
-      const eventWeek = perf.performance?.week_number || 1
+      const eventYear = perf.event?.year || new Date(perf.event?.created_at).getFullYear()
+      const eventMonth = perf.event?.month || new Date(perf.event?.created_at).getMonth() + 1
+      const eventWeek = perf.event?.week_number || 1
       const weekKey = `${eventYear}-W${String(eventWeek).padStart(2, '0')}`
       const yearMonth = `${eventYear}-${String(eventMonth).padStart(2, '0')}`
 
@@ -1306,9 +1309,9 @@ export function PerformanceAnalyticsV2({
       staffPerformances.forEach((perf: any) => {
         if (!perf.staff_name) return
 
-        const eventYear = perf.performance?.year || new Date(perf.performance?.created_at).getFullYear()
-        const eventMonth = perf.performance?.month || new Date(perf.performance?.created_at).getMonth() + 1
-        const eventWeek = perf.performance?.week_number || 1
+        const eventYear = perf.event?.year || new Date(perf.event?.created_at).getFullYear()
+        const eventMonth = perf.event?.month || new Date(perf.event?.created_at).getMonth() + 1
+        const eventWeek = perf.event?.week_number || 1
         const weekKey = `${eventYear}-W${String(eventWeek).padStart(2, '0')}`
         const yearMonth = `${eventYear}-${String(eventMonth).padStart(2, '0')}`
 
@@ -3587,23 +3590,30 @@ export function PerformanceAnalyticsV2({
 
           {/* スタッフ別週次獲得件数 */}
           <div className="lg:col-span-2 glass rounded-lg p-6 border" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
-            <div className="mb-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-bold flex items-center" style={{ color: '#22211A' }}>
-                    <Users className="w-5 h-5 mr-2" style={{ color: '#22211A' }} />
-                    スタッフ別週次獲得件数
-                  </h3>
-                  <button
-                    onClick={() => openCompareModal('staff')}
-                    className="inline-flex items-center px-3 py-1.5 rounded-lg border hover:opacity-80 transition-all text-sm font-medium"
-                    style={{ backgroundColor: '#F1AD26', color: '#FFFFFF', borderColor: '#F1AD26' }}
-                  >
-                    <GitCompare className="w-4 h-4 mr-1" />
-                    比較
-                  </button>
-                </div>
+            {(() => {
+              // スタッフ名のリストを取得
+              const allStaffNames = [...new Set(staffPerformances.map((p: any) => p.staff_name).filter(Boolean))].sort()
+              console.log('全スタッフ名:', allStaffNames)
+              console.log('staffPerformances件数:', staffPerformances.length)
 
-                {/* 期間選択 */}
+              return (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold flex items-center" style={{ color: '#22211A' }}>
+                      <Users className="w-5 h-5 mr-2" style={{ color: '#22211A' }} />
+                      スタッフ別週次獲得件数
+                    </h3>
+                    <button
+                      onClick={() => openCompareModal('staff')}
+                      className="inline-flex items-center px-3 py-1.5 rounded-lg border hover:opacity-80 transition-all text-sm font-medium"
+                      style={{ backgroundColor: '#F1AD26', color: '#FFFFFF', borderColor: '#F1AD26' }}
+                    >
+                      <GitCompare className="w-4 h-4 mr-1" />
+                      比較
+                    </button>
+                  </div>
+
+                  {/* 期間選択 */}
                 <div className="space-y-2 mb-3">
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     <span style={{ color: '#22211A' }}>対象:</span>
@@ -3703,39 +3713,43 @@ export function PerformanceAnalyticsV2({
                     </div>
                   )}
                 </div>
+
+                {/* グラフ表示 */}
+                {analysisData.staffWeeklyStats && analysisData.staffWeeklyStats.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={analysisData.staffWeeklyStats}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="week" stroke="#22211A" fontSize={12} />
+                      <YAxis stroke="#22211A" fontSize={12} label={{ value: '獲得件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Legend />
+                      {selectedStaff.map((staffName, index) => (
+                        <Bar
+                          key={staffName}
+                          dataKey={staffName}
+                          stackId="a"
+                          fill={COLORS[index % COLORS.length]}
+                          name={staffName}
+                          stroke="none"
+                          animationBegin={0}
+                          animationDuration={800}
+                          animationEasing="ease-out"
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center" style={{ height: '400px' }}>
+                    <div className="text-center">
+                      <p style={{ color: '#22211A', opacity: 0.6 }}>
+                        表示できる値がありません
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-            {analysisData.staffWeeklyStats && analysisData.staffWeeklyStats.length > 0 ? (
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={analysisData.staffWeeklyStats}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="week" stroke="#22211A" fontSize={12} />
-                  <YAxis stroke="#22211A" fontSize={12} label={{ value: '獲得件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Legend />
-                  {selectedStaff.map((staffName, index) => (
-                    <Bar
-                      key={staffName}
-                      dataKey={staffName}
-                      stackId="a"
-                      fill={COLORS[index % COLORS.length]}
-                      name={staffName}
-                      stroke="none"
-                      animationBegin={0}
-                      animationDuration={800}
-                      animationEasing="ease-out"
-                    />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center" style={{ height: '400px' }}>
-                <div className="text-center">
-                  <p style={{ color: '#22211A', opacity: 0.6 }}>
-                    表示できる値がありません
-                  </p>
-                </div>
-              </div>
-            )}
+            )
+            })()}
           </div>
 
           {/* 会場別月次実績推移 */}

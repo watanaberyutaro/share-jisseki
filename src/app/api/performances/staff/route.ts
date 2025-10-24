@@ -11,13 +11,12 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // スタッフ実績データを取得（イベント情報も含む）
+    // スタッフ日別実績データを取得（performance経由でイベント情報も含む）
     const { data: staffPerformances, error } = await supabase
-      .from('staff_performances')
+      .from('staff_daily_performances')
       .select(`
         *,
-        event:events (
-          id,
+        performance:performances!performance_id (
           year,
           month,
           week_number,

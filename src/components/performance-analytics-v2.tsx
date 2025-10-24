@@ -776,9 +776,9 @@ export function PerformanceAnalyticsV2({
     staffPerformances.forEach((perf: any) => {
       if (!perf.staff_name) return
 
-      const eventYear = perf.event?.year || new Date(perf.event?.created_at).getFullYear()
-      const eventMonth = perf.event?.month || new Date(perf.event?.created_at).getMonth() + 1
-      const eventWeek = perf.event?.week_number || 1
+      const eventYear = perf.performance?.year || new Date(perf.performance?.created_at).getFullYear()
+      const eventMonth = perf.performance?.month || new Date(perf.performance?.created_at).getMonth() + 1
+      const eventWeek = perf.performance?.week_number || 1
       const weekKey = `${eventYear}-W${String(eventWeek).padStart(2, '0')}`
       const yearMonth = `${eventYear}-${String(eventMonth).padStart(2, '0')}`
 
@@ -791,7 +791,12 @@ export function PerformanceAnalyticsV2({
       }
 
       // HS総販 = au MNP + UQ MNP + au新規 + UQ新規 + セルアップ
-      const hsTotal = (perf.au_mnp || 0) + (perf.uq_mnp || 0) + (perf.au_new || 0) + (perf.uq_new || 0) + (perf.cellup || 0)
+      const auMnp = (perf.au_mnp_sp1 || 0) + (perf.au_mnp_sp2 || 0) + (perf.au_mnp_sim || 0)
+      const uqMnp = (perf.uq_mnp_sp1 || 0) + (perf.uq_mnp_sp2 || 0) + (perf.uq_mnp_sim || 0)
+      const auNew = (perf.au_hs_sp1 || 0) + (perf.au_hs_sp2 || 0) + (perf.au_hs_sim || 0)
+      const uqNew = (perf.uq_hs_sp1 || 0) + (perf.uq_hs_sp2 || 0) + (perf.uq_hs_sim || 0)
+      const cellup = (perf.cell_up_sp1 || 0) + (perf.cell_up_sp2 || 0) + (perf.cell_up_sim || 0)
+      const hsTotal = auMnp + uqMnp + auNew + uqNew + cellup
       staffWeeklyData[weekKey][perf.staff_name] += hsTotal
     })
 
@@ -1301,9 +1306,9 @@ export function PerformanceAnalyticsV2({
       staffPerformances.forEach((perf: any) => {
         if (!perf.staff_name) return
 
-        const eventYear = perf.event?.year || new Date(perf.event?.created_at).getFullYear()
-        const eventMonth = perf.event?.month || new Date(perf.event?.created_at).getMonth() + 1
-        const eventWeek = perf.event?.week_number || 1
+        const eventYear = perf.performance?.year || new Date(perf.performance?.created_at).getFullYear()
+        const eventMonth = perf.performance?.month || new Date(perf.performance?.created_at).getMonth() + 1
+        const eventWeek = perf.performance?.week_number || 1
         const weekKey = `${eventYear}-W${String(eventWeek).padStart(2, '0')}`
         const yearMonth = `${eventYear}-${String(eventMonth).padStart(2, '0')}`
 
@@ -1321,7 +1326,12 @@ export function PerformanceAnalyticsV2({
         }
 
         // HS総販 = au MNP + UQ MNP + au新規 + UQ新規 + セルアップ
-        const hsTotal = (perf.au_mnp || 0) + (perf.uq_mnp || 0) + (perf.au_new || 0) + (perf.uq_new || 0) + (perf.cellup || 0)
+        const auMnp = (perf.au_mnp_sp1 || 0) + (perf.au_mnp_sp2 || 0) + (perf.au_mnp_sim || 0)
+        const uqMnp = (perf.uq_mnp_sp1 || 0) + (perf.uq_mnp_sp2 || 0) + (perf.uq_mnp_sim || 0)
+        const auNew = (perf.au_hs_sp1 || 0) + (perf.au_hs_sp2 || 0) + (perf.au_hs_sim || 0)
+        const uqNew = (perf.uq_hs_sp1 || 0) + (perf.uq_hs_sp2 || 0) + (perf.uq_hs_sim || 0)
+        const cellup = (perf.cell_up_sp1 || 0) + (perf.cell_up_sp2 || 0) + (perf.cell_up_sim || 0)
+        const hsTotal = auMnp + uqMnp + auNew + uqNew + cellup
         staffWeeklyData[weekKey][perf.staff_name] += hsTotal
       })
 

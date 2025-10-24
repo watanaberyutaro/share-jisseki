@@ -209,9 +209,6 @@ export function PerformanceAnalyticsV2({
       const response = await fetch('/api/performances/staff')
       if (!response.ok) throw new Error('Failed to fetch staff performances')
       const data = await response.json()
-      console.log('スタッフパフォーマンスデータ取得:', data)
-      console.log('データ件数:', data.length)
-      console.log('サンプルデータ:', data[0])
       setStaffPerformances(data)
     } catch (error) {
       console.error('Error fetching staff performances:', error)
@@ -789,38 +786,42 @@ export function PerformanceAnalyticsV2({
         staffWeeklyData[weekKey] = { week: `第${eventWeek}週`, sortKey: weekKey, yearMonth }
       }
 
-      if (!staffWeeklyData[weekKey][perf.staff_name]) {
-        staffWeeklyData[weekKey][perf.staff_name] = 0
-      }
-
-      // HS総販 = au MNP + UQ MNP + au新規 + UQ新規 + セルアップ
+      // MNPと新規を分けて集計
       const auMnp = (perf.au_mnp_sp1 || 0) + (perf.au_mnp_sp2 || 0) + (perf.au_mnp_sim || 0)
       const uqMnp = (perf.uq_mnp_sp1 || 0) + (perf.uq_mnp_sp2 || 0) + (perf.uq_mnp_sim || 0)
       const auNew = (perf.au_hs_sp1 || 0) + (perf.au_hs_sp2 || 0) + (perf.au_hs_sim || 0)
       const uqNew = (perf.uq_hs_sp1 || 0) + (perf.uq_hs_sp2 || 0) + (perf.uq_hs_sim || 0)
       const cellup = (perf.cell_up_sp1 || 0) + (perf.cell_up_sp2 || 0) + (perf.cell_up_sim || 0)
-      const hsTotal = auMnp + uqMnp + auNew + uqNew + cellup
-      staffWeeklyData[weekKey][perf.staff_name] += hsTotal
+
+      const mnpTotal = auMnp + uqMnp
+      const newTotal = auNew + uqNew + cellup
+
+      // スタッフ名_MNP と スタッフ名_新規 で分けて保存
+      const mnpKey = `${perf.staff_name}_MNP`
+      const newKey = `${perf.staff_name}_新規`
+
+      if (!staffWeeklyData[weekKey][mnpKey]) {
+        staffWeeklyData[weekKey][mnpKey] = 0
+      }
+      if (!staffWeeklyData[weekKey][newKey]) {
+        staffWeeklyData[weekKey][newKey] = 0
+      }
+
+      staffWeeklyData[weekKey][mnpKey] += mnpTotal
+      staffWeeklyData[weekKey][newKey] += newTotal
     })
 
     let staffWeeklyStats = Object.values(staffWeeklyData)
       .sort((a: any, b: any) => a.sortKey.localeCompare(b.sortKey))
 
     // スタッフ別週次獲得件数の期間フィルタリング
-    console.log('スタッフ週次データ（フィルタ前）:', staffWeeklyStats)
-    console.log('選択された年:', staffWeeklyYear, '月:', staffWeeklyMonth)
     if (staffWeeklyYear && staffWeeklyMonth) {
       const targetYearMonth = `${staffWeeklyYear}-${String(staffWeeklyMonth).padStart(2, '0')}`
-      console.log('ターゲット年月:', targetYearMonth)
-      staffWeeklyStats = staffWeeklyStats.filter(item => {
-        console.log('アイテム yearMonth:', item.yearMonth)
-        return item.yearMonth === targetYearMonth
-      })
+      staffWeeklyStats = staffWeeklyStats.filter(item => item.yearMonth === targetYearMonth)
     } else {
       // フィルタなしの場合は最新8週分のみ表示
       staffWeeklyStats = staffWeeklyStats.slice(-8)
     }
-    console.log('スタッフ週次データ（フィルタ後）:', staffWeeklyStats)
 
     // イベント別実績（週次・会場別）
     let eventWeeklyStats: any[] = []
@@ -1324,18 +1325,29 @@ export function PerformanceAnalyticsV2({
           staffWeeklyData[weekKey] = { week: `第${eventWeek}週`, sortKey: weekKey, yearMonth }
         }
 
-        if (!staffWeeklyData[weekKey][perf.staff_name]) {
-          staffWeeklyData[weekKey][perf.staff_name] = 0
-        }
-
-        // HS総販 = au MNP + UQ MNP + au新規 + UQ新規 + セルアップ
+        // MNPと新規を分けて集計
         const auMnp = (perf.au_mnp_sp1 || 0) + (perf.au_mnp_sp2 || 0) + (perf.au_mnp_sim || 0)
         const uqMnp = (perf.uq_mnp_sp1 || 0) + (perf.uq_mnp_sp2 || 0) + (perf.uq_mnp_sim || 0)
         const auNew = (perf.au_hs_sp1 || 0) + (perf.au_hs_sp2 || 0) + (perf.au_hs_sim || 0)
         const uqNew = (perf.uq_hs_sp1 || 0) + (perf.uq_hs_sp2 || 0) + (perf.uq_hs_sim || 0)
         const cellup = (perf.cell_up_sp1 || 0) + (perf.cell_up_sp2 || 0) + (perf.cell_up_sim || 0)
-        const hsTotal = auMnp + uqMnp + auNew + uqNew + cellup
-        staffWeeklyData[weekKey][perf.staff_name] += hsTotal
+
+        const mnpTotal = auMnp + uqMnp
+        const newTotal = auNew + uqNew + cellup
+
+        // スタッフ名_MNP と スタッフ名_新規 で分けて保存
+        const mnpKey = `${perf.staff_name}_MNP`
+        const newKey = `${perf.staff_name}_新規`
+
+        if (!staffWeeklyData[weekKey][mnpKey]) {
+          staffWeeklyData[weekKey][mnpKey] = 0
+        }
+        if (!staffWeeklyData[weekKey][newKey]) {
+          staffWeeklyData[weekKey][newKey] = 0
+        }
+
+        staffWeeklyData[weekKey][mnpKey] += mnpTotal
+        staffWeeklyData[weekKey][newKey] += newTotal
       })
 
       const staffWeeklyStats = Object.values(staffWeeklyData)
@@ -1732,19 +1744,30 @@ export function PerformanceAnalyticsV2({
                 <YAxis stroke="#22211A" fontSize={12} label={{ value: '獲得件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend />
-                {displayStaff.map((staffName, index) => (
+                {displayStaff.flatMap((staffName, index) => [
                   <Bar
-                    key={staffName}
-                    dataKey={staffName}
-                    stackId="a"
+                    key={`${staffName}_MNP`}
+                    dataKey={`${staffName}_MNP`}
+                    stackId={staffName}
                     fill={COLORS[index % COLORS.length]}
-                    name={staffName}
+                    name={`${staffName} (MNP)`}
+                    stroke="none"
+                    animationBegin={0}
+                    animationDuration={800}
+                    animationEasing="ease-out"
+                  />,
+                  <Bar
+                    key={`${staffName}_新規`}
+                    dataKey={`${staffName}_新規`}
+                    stackId={staffName}
+                    fill={COLORS[(index + COLORS.length/2) % COLORS.length]}
+                    name={`${staffName} (新規)`}
                     stroke="none"
                     animationBegin={0}
                     animationDuration={800}
                     animationEasing="ease-out"
                   />
-                ))}
+                ])}
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -3593,8 +3616,6 @@ export function PerformanceAnalyticsV2({
             {(() => {
               // スタッフ名のリストを取得
               const allStaffNames = [...new Set(staffPerformances.map((p: any) => p.staff_name).filter(Boolean))].sort()
-              console.log('全スタッフ名:', allStaffNames)
-              console.log('staffPerformances件数:', staffPerformances.length)
 
               return (
                 <div className="mb-4">
@@ -3723,19 +3744,30 @@ export function PerformanceAnalyticsV2({
                       <YAxis stroke="#22211A" fontSize={12} label={{ value: '獲得件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
                       <Tooltip contentStyle={tooltipStyle} />
                       <Legend />
-                      {selectedStaff.map((staffName, index) => (
+                      {selectedStaff.flatMap((staffName, index) => [
                         <Bar
-                          key={staffName}
-                          dataKey={staffName}
-                          stackId="a"
+                          key={`${staffName}_MNP`}
+                          dataKey={`${staffName}_MNP`}
+                          stackId={staffName}
                           fill={COLORS[index % COLORS.length]}
-                          name={staffName}
+                          name={`${staffName} (MNP)`}
+                          stroke="none"
+                          animationBegin={0}
+                          animationDuration={800}
+                          animationEasing="ease-out"
+                        />,
+                        <Bar
+                          key={`${staffName}_新規`}
+                          dataKey={`${staffName}_新規`}
+                          stackId={staffName}
+                          fill={COLORS[(index + COLORS.length/2) % COLORS.length]}
+                          name={`${staffName} (新規)`}
                           stroke="none"
                           animationBegin={0}
                           animationDuration={800}
                           animationEasing="ease-out"
                         />
-                      ))}
+                      ])}
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (

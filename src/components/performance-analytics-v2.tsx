@@ -799,13 +799,20 @@ export function PerformanceAnalyticsV2({
       .sort((a: any, b: any) => a.sortKey.localeCompare(b.sortKey))
 
     // スタッフ別週次獲得件数の期間フィルタリング
+    console.log('スタッフ週次データ（フィルタ前）:', staffWeeklyStats)
+    console.log('選択された年:', staffWeeklyYear, '月:', staffWeeklyMonth)
     if (staffWeeklyYear && staffWeeklyMonth) {
       const targetYearMonth = `${staffWeeklyYear}-${String(staffWeeklyMonth).padStart(2, '0')}`
-      staffWeeklyStats = staffWeeklyStats.filter(item => item.yearMonth === targetYearMonth)
+      console.log('ターゲット年月:', targetYearMonth)
+      staffWeeklyStats = staffWeeklyStats.filter(item => {
+        console.log('アイテム yearMonth:', item.yearMonth)
+        return item.yearMonth === targetYearMonth
+      })
     } else {
       // フィルタなしの場合は最新8週分のみ表示
       staffWeeklyStats = staffWeeklyStats.slice(-8)
     }
+    console.log('スタッフ週次データ（フィルタ後）:', staffWeeklyStats)
 
     // イベント別実績（週次・会場別）
     let eventWeeklyStats: any[] = []

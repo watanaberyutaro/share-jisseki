@@ -3660,8 +3660,8 @@ export function PerformanceAnalyticsV2({
               return (
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-bold flex items-center" style={{ color: '#22211A' }}>
-                      <Users className="w-5 h-5 mr-2" style={{ color: '#22211A' }} />
+                    <h3 className="text-lg font-bold flex items-center" style={{ color: '#3dae6c' }}>
+                      <Users className="w-5 h-5 mr-2" style={{ color: '#3dae6c' }} />
                       スタッフ別週次獲得件数
                     </h3>
                     <button
@@ -3677,7 +3677,7 @@ export function PerformanceAnalyticsV2({
                   {/* 期間選択 */}
                 <div className="space-y-2 mb-3">
                   <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span style={{ color: '#22211A' }}>対象:</span>
+                    <span style={{ color: '#3dae6c' }}>対象:</span>
                     <select
                       value={staffWeeklyYear}
                       onChange={(e) => setStaffWeeklyYear(e.target.value)}
@@ -3717,7 +3717,7 @@ export function PerformanceAnalyticsV2({
 
                 {/* スタッフ選択 */}
                 <div className="relative staff-select-container">
-                  <label className="block text-sm font-medium mb-2" style={{ color: '#22211A' }}>表示スタッフを選択</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#3dae6c' }}>表示スタッフを選択</label>
                   <button
                     onClick={() => setIsStaffSelectOpen(!isStaffSelectOpen)}
                     className="w-full px-3 py-2 border rounded-lg text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500"

@@ -32,10 +32,10 @@ interface EventSummary {
 const COLORS = [
   '#4abf79', '#7cd08e', '#a6e09e',
   '#ffd942', '#ffe680', '#ffedb3', '#fff5e0',
-  '#3dae6c', '#FFB300', '#DCEDC8', '#b7e59e', '#c8e6c9', '#f9e79f',
+  '#8bc34a', '#FFB300', '#DCEDC8', '#b7e59e', '#c8e6c9', '#f9e79f',
   '#ffbb00', '#f8d549', '#f4e3a4', '#aed581',
-  '#ffcc80', '#ffab91', '#ffe0b2', '#e8e2ce', '#dcedc8', '#2c9b5e',
-  '#81c784', '#66bb6a', '#4db6ac', '#26a69a', '#ffd54f', '#ffca28'
+  '#ffcc80', '#ffab91', '#ffe0b2', '#e8e2ce', '#dcedc8', '#9ccc65',
+  '#81c784', '#66bb6a', '#80cbc4', '#4dd0e1', '#ffd54f', '#ffca28'
 ]
 
 // カスタムラベルコンポーネント - 実績レベル分析用

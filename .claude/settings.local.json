@@ -16,7 +16,8 @@
       "Read(//Users/harukaosu/Desktop/myProject/**)",
       "Bash(git remote set-url:*)",
       "Bash(node:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git revert --no-edit HEAD)"
     ],
     "deny": [],
     "ask": []

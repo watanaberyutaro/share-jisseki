@@ -1780,7 +1780,7 @@ export function PerformanceAnalyticsV2({
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={data.staffWeeklyStats}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
+                <XAxis dataKey="week" stroke="#3dae6c" fontSize={12} />
                 <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '獲得件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend />
@@ -1789,7 +1789,7 @@ export function PerformanceAnalyticsV2({
                     key={`${staffName}_MNP`}
                     dataKey={`${staffName}_MNP`}
                     stackId={staffName}
-                    fill={COLORS[index % COLORS.length]}
+                    fill="#FFB300"
                     name={`${staffName} (MNP)`}
                     stroke="none"
                     animationBegin={0}
@@ -1800,7 +1800,7 @@ export function PerformanceAnalyticsV2({
                     key={`${staffName}_新規`}
                     dataKey={`${staffName}_新規`}
                     stackId={staffName}
-                    fill={COLORS[(index + COLORS.length/2) % COLORS.length]}
+                    fill="#ffe680"
                     name={`${staffName} (新規)`}
                     stroke="none"
                     animationBegin={0}
@@ -3789,7 +3789,7 @@ export function PerformanceAnalyticsV2({
                           key={`${staffName}_MNP`}
                           dataKey={`${staffName}_MNP`}
                           stackId={staffName}
-                          fill={COLORS[index % COLORS.length]}
+                          fill="#FFB300"
                           name={`${staffName} (MNP)`}
                           stroke="none"
                           animationBegin={0}
@@ -3800,7 +3800,7 @@ export function PerformanceAnalyticsV2({
                           key={`${staffName}_新規`}
                           dataKey={`${staffName}_新規`}
                           stackId={staffName}
-                          fill={COLORS[(index + COLORS.length/2) % COLORS.length]}
+                          fill="#ffe680"
                           name={`${staffName} (新規)`}
                           stroke="none"
                           animationBegin={0}

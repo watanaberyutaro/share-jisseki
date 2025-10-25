@@ -953,23 +953,21 @@ export function PerformanceAnalyticsV2({
 
   // ツールチップの共通スタイル
   const tooltipStyle = {
-    backgroundColor: '#FAFAFA',
-    border: '2px solid #d5cec3',
+    backgroundColor: '#fffef7',
+    border: '2px solid #FFB300',
     borderRadius: '8px',
-    color: '#a58a69',
+    color: '#3dae6c',
     fontWeight: 'bold',
-    padding: '8px',
-    textShadow: '0.5px 0.5px 1px rgba(0,0,0,0.6)'
+    padding: '8px'
   }
 
   // 円グラフ用のカスタムツールチップスタイル
   const pieTooltipStyle = {
-    backgroundColor: '#FAFAFA',
-    border: '2px solid #d5cec3',
+    backgroundColor: '#fffef7',
+    border: '2px solid #FFB300',
     borderRadius: '8px',
     fontWeight: 'bold',
-    padding: '8px',
-    textShadow: '0.5px 0.5px 1px rgba(0,0,0,0.6)'
+    padding: '8px'
   }
 
   // カスタムツールチップコンポーネント
@@ -1166,8 +1164,8 @@ export function PerformanceAnalyticsV2({
           <ResponsiveContainer width="100%" height={400} key={panelKey}>
             <BarChart data={eventWeeklyStats}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="week" stroke="#22211A" fontSize={12} />
-              <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+              <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
+              <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
               <Tooltip
                 contentStyle={tooltipStyle}
                 content={({ active, payload }) => {
@@ -1178,7 +1176,7 @@ export function PerformanceAnalyticsV2({
                         <p className="font-bold mb-2">{data.week}</p>
                         <p className="mb-1">合計: {data.total}件</p>
                         <p className="mb-2 text-sm">　MNP: {data.totalMnp}件 / 新規: {data.totalHs}件</p>
-                        <div className="border-t pt-2 mt-2 pb-2" style={{ borderColor: '#22211A' }}>
+                        <div className="border-t pt-2 mt-2 pb-2" style={{ borderColor: '#FFB300' }}>
                           <p className="font-semibold mb-1 text-sm">会場別内訳:</p>
                           {data.venues.map((venue: any, idx: number) => (
                             <div key={idx} className="text-sm mb-1">
@@ -1499,8 +1497,8 @@ export function PerformanceAnalyticsV2({
             <ResponsiveContainer width="100%" height={350}>
               <LineChart data={data.monthlyAchievementTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="period" stroke="#22211A" fontSize={12} />
-                <YAxis stroke="#22211A" fontSize={12} domain={[0, 100]} unit="%" />
+                <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
+                <YAxis stroke="#3dae6c" fontSize={12} domain={[0, 100]} unit="%" />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(value: any, name: string) => {
@@ -1539,8 +1537,8 @@ export function PerformanceAnalyticsV2({
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={data.weeklyStats}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="period" stroke="#22211A" fontSize={12} />
-                <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
+                <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(value: any, name: string) => {
@@ -1683,8 +1681,8 @@ export function PerformanceAnalyticsV2({
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={data.venueStats.slice(0, 10)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="venue" stroke="#22211A" fontSize={12} angle={-45} textAnchor="end" height={100} />
-                <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} angle={-45} textAnchor="end" height={100} />
+                <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(value: any, name: string) => {
@@ -1735,8 +1733,8 @@ export function PerformanceAnalyticsV2({
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={filteredAgencyStats}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="agency" stroke="#22211A" fontSize={12} angle={-45} textAnchor="end" height={100} />
-                <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} angle={-45} textAnchor="end" height={100} />
+                <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(value: any, name: string) => {
@@ -1782,8 +1780,8 @@ export function PerformanceAnalyticsV2({
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={data.staffWeeklyStats}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="week" stroke="#22211A" fontSize={12} />
-                <YAxis stroke="#22211A" fontSize={12} label={{ value: '獲得件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
+                <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '獲得件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend />
                 {displayStaff.flatMap((staffName, index) => [
@@ -1839,8 +1837,8 @@ export function PerformanceAnalyticsV2({
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={data.eventWeeklyStats}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="week" stroke="#22211A" fontSize={12} />
-                <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
+                <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   content={({ active, payload }) => {
@@ -1851,7 +1849,7 @@ export function PerformanceAnalyticsV2({
                           <p className="font-bold mb-2">{data.week}</p>
                           <p className="mb-1">合計: {data.total}件</p>
                           <p className="mb-2 text-sm">　MNP: {data.totalMnp}件 / 新規: {data.totalHs}件</p>
-                          <div className="border-t pt-2 mt-2 pb-2" style={{ borderColor: '#22211A' }}>
+                          <div className="border-t pt-2 mt-2 pb-2" style={{ borderColor: '#FFB300' }}>
                             <p className="font-semibold mb-1 text-sm">会場別内訳:</p>
                             {data.venues.map((venue: any, idx: number) => (
                               <div key={idx} className="text-sm mb-1">
@@ -2122,7 +2120,7 @@ export function PerformanceAnalyticsV2({
                       value: '総実績（MNP + HS）',
                       angle: -90,
                       position: 'insideLeft',
-                      style: { fill: '#22211A', fontSize: 12 }
+                      style: { fill: '#3dae6c', fontSize: 12 }
                     }}
                   />
                   <Tooltip
@@ -2890,8 +2888,8 @@ export function PerformanceAnalyticsV2({
               <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={analysisData.monthlyAchievementTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="period" stroke="#22211A" fontSize={12} />
-                  <YAxis stroke="#22211A" fontSize={12} domain={[0, 100]} unit="%" />
+                  <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
+                  <YAxis stroke="#3dae6c" fontSize={12} domain={[0, 100]} unit="%" />
                   <Tooltip
                     contentStyle={tooltipStyle}
                     formatter={(value: any, name: string) => {
@@ -2975,8 +2973,8 @@ export function PerformanceAnalyticsV2({
               <ResponsiveContainer width="100%" height={350}>
                 <BarChart data={analysisData.weeklyStats}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="period" stroke="#22211A" fontSize={12} />
-                  <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                  <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
+                  <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                   <Tooltip
                     contentStyle={tooltipStyle}
                     formatter={(value: any, name: string) => {
@@ -3310,8 +3308,8 @@ export function PerformanceAnalyticsV2({
                   <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={filteredAgencyStats}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="agency" stroke="#22211A" fontSize={12} angle={-45} textAnchor="end" height={100} />
-                    <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                    <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} angle={-45} textAnchor="end" height={100} />
+                    <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                     <Tooltip
                       contentStyle={tooltipStyle}
                       formatter={(value: any, name: string) => {
@@ -3467,8 +3465,8 @@ export function PerformanceAnalyticsV2({
                   <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={filteredVenueStats}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="venue" stroke="#22211A" fontSize={12} angle={-45} textAnchor="end" height={100} />
-                    <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                    <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} angle={-45} textAnchor="end" height={100} />
+                    <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                     <Tooltip
                       contentStyle={tooltipStyle}
                       formatter={(value: any, name: string) => {
@@ -3610,8 +3608,8 @@ export function PerformanceAnalyticsV2({
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={analysisData.eventWeeklyStats}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="week" stroke="#22211A" fontSize={12} />
-                  <YAxis stroke="#22211A" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                  <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
+                  <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                   <Tooltip
                     contentStyle={tooltipStyle}
                     content={({ active, payload }) => {
@@ -3622,7 +3620,7 @@ export function PerformanceAnalyticsV2({
                             <p className="font-bold mb-2">{data.week}</p>
                             <p className="mb-1">合計: {data.total}件</p>
                             <p className="mb-2 text-sm">　MNP: {data.totalMnp}件 / 新規: {data.totalHs}件</p>
-                            <div className="border-t pt-2 mt-2 pb-2" style={{ borderColor: '#22211A' }}>
+                            <div className="border-t pt-2 mt-2 pb-2" style={{ borderColor: '#FFB300' }}>
                               <p className="font-semibold mb-1 text-sm">会場別内訳:</p>
                               {data.venues.map((venue: any, idx: number) => (
                                 <div key={idx} className="text-sm mb-1">
@@ -3782,8 +3780,8 @@ export function PerformanceAnalyticsV2({
                   <ResponsiveContainer width="100%" height={400}>
                     <BarChart data={analysisData.staffWeeklyStats}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="week" stroke="#22211A" fontSize={12} />
-                      <YAxis stroke="#22211A" fontSize={12} label={{ value: '獲得件数', angle: -90, position: 'insideLeft', style: { fill: '#22211A' } }} />
+                      <XAxis dataKey="week" stroke="#3dae6c" fontSize={12} />
+                      <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '獲得件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                       <Tooltip contentStyle={tooltipStyle} />
                       <Legend />
                       {selectedStaff.flatMap((staffName, index) => [
@@ -3958,7 +3956,7 @@ export function PerformanceAnalyticsV2({
                       value: '総実績（MNP + HS）',
                       angle: -90,
                       position: 'insideLeft',
-                      style: { fill: '#22211A', fontSize: 12 }
+                      style: { fill: '#3dae6c', fontSize: 12 }
                     }}
                   />
                   <Tooltip

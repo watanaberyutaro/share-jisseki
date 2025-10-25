@@ -1784,30 +1784,42 @@ export function PerformanceAnalyticsV2({
                 <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '獲得件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend />
-                {displayStaff.flatMap((staffName, index) => [
-                  <Bar
-                    key={`${staffName}_MNP`}
-                    dataKey={`${staffName}_MNP`}
-                    stackId={staffName}
-                    fill="#FFB300"
-                    name={`${staffName} (MNP)`}
-                    stroke="none"
-                    animationBegin={0}
-                    animationDuration={800}
-                    animationEasing="ease-out"
-                  />,
-                  <Bar
-                    key={`${staffName}_新規`}
-                    dataKey={`${staffName}_新規`}
-                    stackId={staffName}
-                    fill="#ffe680"
-                    name={`${staffName} (新規)`}
-                    stroke="none"
-                    animationBegin={0}
-                    animationDuration={800}
-                    animationEasing="ease-out"
-                  />
-                ])}
+                {displayStaff.flatMap((staffName, index) => {
+                  // 明るい緑・青・オレンジ・黄色系の色を使用
+                  const brightColors = [
+                    '#4abf79', '#66bb6a', '#81c784', '#a5d6a7', // 緑系
+                    '#4fc3f7', '#80deea', '#4dd0e1', '#80cbc4', // 青・シアン系
+                    '#FFB300', '#ffcc80', '#ffca28', '#ffd54f', // オレンジ・金色系
+                    '#ffd942', '#ffe680', '#fff9c4', '#f9e79f'  // 黄色系
+                  ]
+                  const mnpColor = brightColors[index % brightColors.length]
+                  const newColor = brightColors[(index + 8) % brightColors.length]
+
+                  return [
+                    <Bar
+                      key={`${staffName}_MNP`}
+                      dataKey={`${staffName}_MNP`}
+                      stackId={staffName}
+                      fill={mnpColor}
+                      name={`${staffName} (MNP)`}
+                      stroke="none"
+                      animationBegin={0}
+                      animationDuration={800}
+                      animationEasing="ease-out"
+                    />,
+                    <Bar
+                      key={`${staffName}_新規`}
+                      dataKey={`${staffName}_新規`}
+                      stackId={staffName}
+                      fill={newColor}
+                      name={`${staffName} (新規)`}
+                      stroke="none"
+                      animationBegin={0}
+                      animationDuration={800}
+                      animationEasing="ease-out"
+                    />
+                  ]
+                })}
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -3784,30 +3796,42 @@ export function PerformanceAnalyticsV2({
                       <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '獲得件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                       <Tooltip contentStyle={tooltipStyle} />
                       <Legend />
-                      {selectedStaff.flatMap((staffName, index) => [
-                        <Bar
-                          key={`${staffName}_MNP`}
-                          dataKey={`${staffName}_MNP`}
-                          stackId={staffName}
-                          fill="#FFB300"
-                          name={`${staffName} (MNP)`}
-                          stroke="none"
-                          animationBegin={0}
-                          animationDuration={800}
-                          animationEasing="ease-out"
-                        />,
-                        <Bar
-                          key={`${staffName}_新規`}
-                          dataKey={`${staffName}_新規`}
-                          stackId={staffName}
-                          fill="#ffe680"
-                          name={`${staffName} (新規)`}
-                          stroke="none"
-                          animationBegin={0}
-                          animationDuration={800}
-                          animationEasing="ease-out"
-                        />
-                      ])}
+                      {selectedStaff.flatMap((staffName, index) => {
+                        // 明るい緑・青・オレンジ・黄色系の色を使用
+                        const brightColors = [
+                          '#4abf79', '#66bb6a', '#81c784', '#a5d6a7', // 緑系
+                          '#4fc3f7', '#80deea', '#4dd0e1', '#80cbc4', // 青・シアン系
+                          '#FFB300', '#ffcc80', '#ffca28', '#ffd54f', // オレンジ・金色系
+                          '#ffd942', '#ffe680', '#fff9c4', '#f9e79f'  // 黄色系
+                        ]
+                        const mnpColor = brightColors[index % brightColors.length]
+                        const newColor = brightColors[(index + 8) % brightColors.length]
+
+                        return [
+                          <Bar
+                            key={`${staffName}_MNP`}
+                            dataKey={`${staffName}_MNP`}
+                            stackId={staffName}
+                            fill={mnpColor}
+                            name={`${staffName} (MNP)`}
+                            stroke="none"
+                            animationBegin={0}
+                            animationDuration={800}
+                            animationEasing="ease-out"
+                          />,
+                          <Bar
+                            key={`${staffName}_新規`}
+                            dataKey={`${staffName}_新規`}
+                            stackId={staffName}
+                            fill={newColor}
+                            name={`${staffName} (新規)`}
+                            stroke="none"
+                            animationBegin={0}
+                            animationDuration={800}
+                            animationEasing="ease-out"
+                          />
+                        ]
+                      })}
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (

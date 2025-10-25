@@ -1793,7 +1793,7 @@ export function PerformanceAnalyticsV2({
                     '#ffd942', '#ffe680', '#fff9c4', '#f9e79f'  // 黄色系
                   ]
                   const mnpColor = brightColors[index % brightColors.length]
-                  const newColor = brightColors[(index + 8) % brightColors.length]
+                  const newColor = mnpColor // 同一スタッフはMNPと新規で同じ色
 
                   return [
                     <Bar
@@ -3805,7 +3805,7 @@ export function PerformanceAnalyticsV2({
                           '#ffd942', '#ffe680', '#fff9c4', '#f9e79f'  // 黄色系
                         ]
                         const mnpColor = brightColors[index % brightColors.length]
-                        const newColor = brightColors[(index + 8) % brightColors.length]
+                        const newColor = mnpColor // 同一スタッフはMNPと新規で同じ色
 
                         return [
                           <Bar

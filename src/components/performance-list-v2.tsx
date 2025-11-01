@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import { Calendar, MapPin, Users, TrendingUp, CheckCircle, XCircle, Search, Filter, Building2, Eye, LayoutGrid, List } from 'lucide-react'
+import { Calendar, MapPin, Users, TrendingUp, CheckCircle, XCircle, Search, Filter, Building2, Eye, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react'
 import { LoadingAnimation } from '@/components/loading-animation'
 
 interface EventSummary {
@@ -39,6 +39,8 @@ export function PerformanceListV2() {
   const [achievementFilter, setAchievementFilter] = useState<'all' | 'achieved' | 'not_achieved'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'actual_hs_total' | 'venue'>('date')
   const [viewMode, setViewMode] = useState<'panel' | 'list'>('panel')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     let cancelled = false
@@ -70,6 +72,11 @@ export function PerformanceListV2() {
     }
   }, [])
 
+
+  // フィルターが変更されたときに、ページを1にリセット
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, yearFilter, monthFilter, weekFilter, achievementFilter, sortBy])
 
   // 年の選択肢を生成
   const availableYears = [...new Set(events.map(e => e.year))].sort((a, b) => b - a)
@@ -108,6 +115,21 @@ export function PerformanceListV2() {
           return 0
       }
     })
+
+  // ページネーション計算
+  const totalPages = Math.ceil(filteredAndSortedEvents.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentPageEvents = filteredAndSortedEvents.slice(startIndex, endIndex)
+
+  // ページ変更ハンドラー
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+      // ページトップへスクロール
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 
   if (loading) {
     return <LoadingAnimation />
@@ -253,7 +275,7 @@ export function PerformanceListV2() {
       {viewMode === 'panel' ? (
         // Panel View
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredAndSortedEvents.map((event, index) => (
+          {currentPageEvents.map((event, index) => (
           <div
             key={event.id}
             className="group glass rounded-lg border p-6"
@@ -399,7 +421,7 @@ export function PerformanceListV2() {
       ) : (
         // List View
         <div className="space-y-2">
-          {filteredAndSortedEvents.map((event, index) => (
+          {currentPageEvents.map((event, index) => (
             <div
               key={event.id}
               className="glass rounded-lg border p-3"
@@ -488,6 +510,120 @@ export function PerformanceListV2() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {filteredAndSortedEvents.length > 0 && totalPages > 1 && (
+        <div className="glass rounded-lg border p-4" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* ページ情報 */}
+            <div className="text-sm" style={{ color: '#22211A' }}>
+              <span className="font-medium">
+                {startIndex + 1} 〜 {Math.min(endIndex, filteredAndSortedEvents.length)} 件
+              </span>
+              <span className="mx-2">/</span>
+              <span>全 {filteredAndSortedEvents.length} 件</span>
+            </div>
+
+            {/* ページネーションボタン */}
+            <div className="flex items-center gap-2">
+              {/* 前へボタン */}
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-80"
+                style={{
+                  borderColor: '#22211A',
+                  backgroundColor: currentPage === 1 ? 'transparent' : '#FFB300',
+                  color: currentPage === 1 ? '#22211A' : '#FFFFFF'
+                }}
+                title="前のページ"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              {/* ページ番号 */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  // 最初のページ、最後のページ、現在のページの前後2ページを表示
+                  const showPage =
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 2 && page <= currentPage + 2)
+
+                  // 省略記号を表示する条件
+                  const showEllipsisBefore = page === currentPage - 3 && currentPage > 4
+                  const showEllipsisAfter = page === currentPage + 3 && currentPage < totalPages - 3
+
+                  if (!showPage && !showEllipsisBefore && !showEllipsisAfter) {
+                    return null
+                  }
+
+                  if (showEllipsisBefore || showEllipsisAfter) {
+                    return (
+                      <span key={`ellipsis-${page}`} className="px-2" style={{ color: '#22211A' }}>
+                        ...
+                      </span>
+                    )
+                  }
+
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className="min-w-[40px] h-10 rounded-lg border transition-all font-medium hover:opacity-80"
+                      style={{
+                        borderColor: '#22211A',
+                        backgroundColor: currentPage === page ? '#FFB300' : 'transparent',
+                        color: currentPage === page ? '#FFFFFF' : '#22211A'
+                      }}
+                    >
+                      {page}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* 次へボタン */}
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-80"
+                style={{
+                  borderColor: '#22211A',
+                  backgroundColor: currentPage === totalPages ? 'transparent' : '#FFB300',
+                  color: currentPage === totalPages ? '#22211A' : '#FFFFFF'
+                }}
+                title="次のページ"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* ページ移動 */}
+            <div className="flex items-center gap-2 text-sm">
+              <span style={{ color: '#22211A' }}>ページ:</span>
+              <select
+                value={currentPage}
+                onChange={(e) => goToPage(Number(e.target.value))}
+                className="px-3 py-2 bg-muted rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none bg-no-repeat bg-right pr-8"
+                style={{
+                  borderColor: '#22211A',
+                  color: '#22211A',
+                  backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMS41TDYgNi41TDExIDEuNSIgc3Ryb2tlPSIjMjIyMTFBIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+")',
+                  backgroundPosition: 'right 8px center',
+                  backgroundSize: '10px 6px'
+                }}
+              >
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <option key={page} value={page}>
+                    {page} / {totalPages}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       )}
 

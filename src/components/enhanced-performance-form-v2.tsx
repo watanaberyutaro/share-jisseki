@@ -954,7 +954,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
     const remainingSlots = 5 - eventPhotos.length
-    const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
+    const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
     console.log('[handlePhotoUpload] アップロードされたファイル数:', files.length)
     console.log('[handlePhotoUpload] 追加可能なファイル数:', remainingSlots)
@@ -963,7 +963,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE)
     if (oversizedFiles.length > 0) {
       const fileNames = oversizedFiles.map(f => f.name).join(', ')
-      const errorMsg = `以下のファイルは20MBを超えているため、アップロードできません:\n${fileNames}`
+      const errorMsg = `以下のファイルは50MBを超えているため、アップロードできません:\n${fileNames}`
       setPhotoUploadError(errorMsg)
       console.error('[handlePhotoUpload] ファイルサイズ超過:', oversizedFiles)
       // 3秒後にエラーメッセージをクリア
@@ -2049,7 +2049,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
                       写真を選択 ({eventPhotos.length}/5)
                     </span>
                     <span className="text-xs mt-1" style={{ color: '#22211A' }}>
-                      PNG, JPG, JPEG (最大20MB)
+                      PNG, JPG, JPEG (最大50MB)
                     </span>
                     <input
                       type="file"

@@ -5,6 +5,10 @@ import { createClient } from '@supabase/supabase-js'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+// 大きな画像ファイルをアップロードできるように最大実行時間を設定
+export const maxDuration = 60 // 最大60秒
+export const runtime = 'nodejs'
+
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }

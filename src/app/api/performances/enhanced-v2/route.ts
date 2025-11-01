@@ -4,6 +4,10 @@ import { uploadEventPhotos } from '@/lib/supabase/storage'
 
 export const dynamic = 'force-dynamic'
 
+// 大きな画像ファイルをアップロードできるように最大実行時間とbodyサイズ制限を設定
+export const maxDuration = 60 // 最大60秒
+export const runtime = 'nodejs'
+
 export async function POST(request: NextRequest) {
   try {
     // Service roleを使用してRLSをバイパス

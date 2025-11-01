@@ -950,8 +950,77 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     }
   }
   
+  // 画像圧縮関数（Canvas APIを使用）
+  const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = (e) => {
+        const img = document.createElement('img') as HTMLImageElement
+        img.src = e.target?.result as string
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+
+          if (!ctx) {
+            reject(new Error('Canvas context not available'))
+            return
+          }
+
+          // 最大幅・高さを設定（アスペクト比を維持）
+          const MAX_WIDTH = 1920
+          const MAX_HEIGHT = 1920
+          let width = img.width
+          let height = img.height
+
+          // リサイズ計算
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width
+              width = MAX_WIDTH
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height
+              height = MAX_HEIGHT
+            }
+          }
+
+          canvas.width = width
+          canvas.height = height
+
+          // 画像を描画
+          ctx.drawImage(img, 0, 0, width, height)
+
+          // 圧縮品質を調整（0.8 = 80%品質）
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Image compression failed'))
+                return
+              }
+
+              // 元のファイル名と拡張子を維持
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              })
+
+              console.log(`[圧縮完了] ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`)
+              resolve(compressedFile)
+            },
+            'image/jpeg',
+            0.8 // 圧縮品質（80%）
+          )
+        }
+        img.onerror = () => reject(new Error('Image load failed'))
+      }
+      reader.onerror = () => reject(new Error('File read failed'))
+    })
+  }
+
   // 写真アップロード関連の関数
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
     const remainingSlots = 5 - eventPhotos.length
     const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
@@ -976,20 +1045,37 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     console.log('[handlePhotoUpload] 追加するファイル:', newFiles)
 
     if (newFiles.length > 0) {
-      setPhotoUploadError('') // エラーメッセージをクリア
-      const newPhotos = [...eventPhotos, ...newFiles]
-      console.log('[handlePhotoUpload] 新しいeventPhotos:', newPhotos)
-      console.log('[handlePhotoUpload] 新しいeventPhotos.length:', newPhotos.length)
-      setEventPhotos(newPhotos)
+      try {
+        setPhotoUploadError('') // エラーメッセージをクリア
 
-      // プレビュー用のURLを生成
-      const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file))
-      setPreviewUrls(prev => [...prev, ...newPreviewUrls])
+        // 画像を圧縮（並列処理）
+        console.log('[handlePhotoUpload] 画像圧縮開始...')
+        const compressedFiles = await Promise.all(
+          newFiles.map(file => compressImage(file))
+        )
+        console.log('[handlePhotoUpload] 画像圧縮完了')
 
-      // フォームのフィールドに設定
-      setValue('eventPhotos', newPhotos)
-      console.log('[handlePhotoUpload] setValueとsetEventPhotos完了')
+        const newPhotos = [...eventPhotos, ...compressedFiles]
+        console.log('[handlePhotoUpload] 新しいeventPhotos:', newPhotos)
+        console.log('[handlePhotoUpload] 新しいeventPhotos.length:', newPhotos.length)
+        setEventPhotos(newPhotos)
+
+        // プレビュー用のURLを生成
+        const newPreviewUrls = compressedFiles.map(file => URL.createObjectURL(file))
+        setPreviewUrls(prev => [...prev, ...newPreviewUrls])
+
+        // フォームのフィールドに設定
+        setValue('eventPhotos', newPhotos)
+        console.log('[handlePhotoUpload] setValueとsetEventPhotos完了')
+      } catch (error) {
+        console.error('[handlePhotoUpload] 画像圧縮エラー:', error)
+        setPhotoUploadError('画像の処理中にエラーが発生しました')
+        setTimeout(() => setPhotoUploadError(''), 5000)
+      }
     }
+
+    // inputをリセット
+    event.target.value = ''
   }
   
   const removePhoto = (index: number) => {
@@ -2049,7 +2135,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
                       写真を選択 ({eventPhotos.length}/5)
                     </span>
                     <span className="text-xs mt-1" style={{ color: '#22211A' }}>
-                      PNG, JPG, JPEG (最大50MB)
+                      PNG, JPG, JPEG (最大50MB) ※自動圧縮
                     </span>
                     <input
                       type="file"

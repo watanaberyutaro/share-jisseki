@@ -64,28 +64,27 @@ export async function uploadEventPhotos(eventId: string, photos: File[]) {
       console.log('Target bucket found:', targetBucket)
     }
     
-    for (let i = 0; i < photos.length; i++) {
-      const photo = photos[i]
-      
+    // 並列アップロード処理（高速化）
+    const uploadPromises = photos.map(async (photo, i) => {
       console.log(`Processing photo ${i + 1}:`, {
         name: photo.name,
         size: photo.size,
         type: photo.type
       })
-      
+
       // ファイル検証
       if (photo.size > MAX_FILE_SIZE) {
         throw new Error(`ファイル "${photo.name}" のサイズが大きすぎます（最大10MB）`)
       }
-      
+
       if (!photo.type.startsWith('image/')) {
         throw new Error(`ファイル "${photo.name}" は画像ファイルではありません`)
       }
-      
+
       // ファイル名を生成（重複回避）
       const fileExt = photo.name.split('.').pop()
       const fileName = `${eventId}/${Date.now()}_${i}.${fileExt}`
-      
+
       // Supabase Storageにアップロード
       console.log(`Attempting to upload file: ${fileName} to bucket: ${BUCKET_NAME}`)
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -95,7 +94,7 @@ export async function uploadEventPhotos(eventId: string, photos: File[]) {
           cacheControl: '3600',
           upsert: false
         })
-      
+
       if (uploadError) {
         console.error('Upload error details:', {
           error: uploadError,
@@ -106,13 +105,13 @@ export async function uploadEventPhotos(eventId: string, photos: File[]) {
         })
         throw new Error(`写真のアップロードに失敗しました: ${uploadError.message}`)
       }
-      
+
       console.log('Upload successful:', {
         fileName,
         uploadPath: uploadData.path,
         uploadId: uploadData.id
       })
-      
+
       // データベースに写真情報を保存
       console.log('Saving photo record to database:', {
         event_id: eventId,
@@ -123,7 +122,7 @@ export async function uploadEventPhotos(eventId: string, photos: File[]) {
         mime_type: photo.type,
         upload_order: i
       })
-      
+
       const { data: photoRecord, error: dbError } = await supabase
         .from('event_photos')
         .insert({
@@ -137,7 +136,7 @@ export async function uploadEventPhotos(eventId: string, photos: File[]) {
         })
         .select()
         .single()
-      
+
       if (dbError) {
         console.error('Database error details:', {
           error: dbError,
@@ -149,11 +148,15 @@ export async function uploadEventPhotos(eventId: string, photos: File[]) {
         await supabase.storage.from(BUCKET_NAME).remove([fileName])
         throw new Error(`写真情報の保存に失敗しました: ${dbError.message}`)
       }
-      
+
       console.log('Photo record saved successfully:', photoRecord)
-      
-      uploadedPhotos.push(photoRecord)
-    }
+
+      return photoRecord
+    })
+
+    // 全ての画像を並列アップロード
+    const results = await Promise.all(uploadPromises)
+    uploadedPhotos.push(...results)
     
     return { success: true, photos: uploadedPhotos }
     

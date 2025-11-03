@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { PerformanceListV2 } from '@/components/performance-list-v2'
 import { MagneticDots } from '@/components/MagneticDots'
+import { LoadingAnimation } from '@/components/loading-animation'
 
 export default function ViewPage() {
   const [displayedTitle, setDisplayedTitle] = useState('')
@@ -59,7 +60,9 @@ export default function ViewPage() {
           </p>
         </div>
 
-        <PerformanceListV2 />
+        <Suspense fallback={<LoadingAnimation />}>
+          <PerformanceListV2 />
+        </Suspense>
       </div>
     </div>
   )

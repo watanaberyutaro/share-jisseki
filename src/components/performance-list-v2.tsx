@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import { Calendar, MapPin, Users, TrendingUp, CheckCircle, XCircle, Search, Filter, Building2, Eye, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Calendar, MapPin, Users, TrendingUp, CheckCircle, XCircle, Search, Filter, Building2, Eye, LayoutGrid, List, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { LoadingAnimation } from '@/components/loading-animation'
 
 interface EventSummary {
@@ -29,18 +30,114 @@ interface EventSummary {
   created_at: string
 }
 
+const STORAGE_KEY = 'performanceListFilters'
+
 export function PerformanceListV2() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [events, setEvents] = useState<EventSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [yearFilter, setYearFilter] = useState<number | 'all'>('all')
   const [monthFilter, setMonthFilter] = useState<number | 'all'>('all')
   const [weekFilter, setWeekFilter] = useState<number | 'all'>('all')
+  const [agencyFilter, setAgencyFilter] = useState<string | 'all'>('all')
   const [achievementFilter, setAchievementFilter] = useState<'all' | 'achieved' | 'not_achieved'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'actual_hs_total' | 'venue'>('date')
   const [viewMode, setViewMode] = useState<'panel' | 'list'>('panel')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+
+  // 初期化: URLパラメータ > localStorage の優先順位で復元
+  useEffect(() => {
+    const urlYear = searchParams?.get('year')
+    const urlMonth = searchParams?.get('month')
+    const urlWeek = searchParams?.get('week')
+    const urlAgency = searchParams?.get('agency')
+    const urlAchievement = searchParams?.get('achievement')
+    const urlSort = searchParams?.get('sort')
+    const urlSearch = searchParams?.get('search')
+    const urlView = searchParams?.get('view')
+
+    // URLパラメータがある場合は優先
+    if (urlYear || urlMonth || urlWeek || urlAgency || urlAchievement || urlSort || urlSearch || urlView) {
+      if (urlYear) setYearFilter(urlYear === 'all' ? 'all' : Number(urlYear))
+      if (urlMonth) setMonthFilter(urlMonth === 'all' ? 'all' : Number(urlMonth))
+      if (urlWeek) setWeekFilter(urlWeek === 'all' ? 'all' : Number(urlWeek))
+      if (urlAgency) setAgencyFilter(urlAgency)
+      if (urlAchievement) setAchievementFilter(urlAchievement as any)
+      if (urlSort) setSortBy(urlSort as any)
+      if (urlSearch) setSearchTerm(urlSearch)
+      if (urlView) setViewMode(urlView as any)
+    } else {
+      // URLパラメータがない場合はlocalStorageから復元
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          const filters = JSON.parse(saved)
+          setSearchTerm(filters.searchTerm || '')
+          setYearFilter(filters.yearFilter || 'all')
+          setMonthFilter(filters.monthFilter || 'all')
+          setWeekFilter(filters.weekFilter || 'all')
+          setAgencyFilter(filters.agencyFilter || 'all')
+          setAchievementFilter(filters.achievementFilter || 'all')
+          setSortBy(filters.sortBy || 'date')
+          setViewMode(filters.viewMode || 'panel')
+        }
+      } catch (error) {
+        console.error('Failed to load filters from localStorage:', error)
+      }
+    }
+  }, [])
+
+  // フィルター変更時にlocalStorageとURLを更新
+  useEffect(() => {
+    const filters = {
+      searchTerm,
+      yearFilter,
+      monthFilter,
+      weekFilter,
+      agencyFilter,
+      achievementFilter,
+      sortBy,
+      viewMode
+    }
+
+    // localStorageに保存
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(filters))
+    } catch (error) {
+      console.error('Failed to save filters to localStorage:', error)
+    }
+
+    // URLパラメータを更新
+    const params = new URLSearchParams()
+    if (searchTerm) params.set('search', searchTerm)
+    if (yearFilter !== 'all') params.set('year', String(yearFilter))
+    if (monthFilter !== 'all') params.set('month', String(monthFilter))
+    if (weekFilter !== 'all') params.set('week', String(weekFilter))
+    if (agencyFilter !== 'all') params.set('agency', agencyFilter)
+    if (achievementFilter !== 'all') params.set('achievement', achievementFilter)
+    if (sortBy !== 'date') params.set('sort', sortBy)
+    if (viewMode !== 'panel') params.set('view', viewMode)
+
+    const queryString = params.toString()
+    const newUrl = queryString ? `/view?${queryString}` : '/view'
+    router.replace(newUrl, { scroll: false })
+  }, [searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, achievementFilter, sortBy, viewMode])
+
+  // リセット関数
+  const handleReset = () => {
+    setSearchTerm('')
+    setYearFilter('all')
+    setMonthFilter('all')
+    setWeekFilter('all')
+    setAgencyFilter('all')
+    setAchievementFilter('all')
+    setSortBy('date')
+    setViewMode('panel')
+    setCurrentPage(1)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -76,10 +173,27 @@ export function PerformanceListV2() {
   // フィルターが変更されたときに、ページを1にリセット
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, yearFilter, monthFilter, weekFilter, achievementFilter, sortBy])
+  }, [searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, achievementFilter, sortBy])
 
   // 年の選択肢を生成
   const availableYears = [...new Set(events.map(e => e.year))].sort((a, b) => b - a)
+
+  // 代理店の選択肢を生成
+  const availableAgencies = [...new Set(events.map(e => e.agency_name))].sort()
+
+  // 現在のURLパラメータを取得してリンクに使用
+  const getCurrentQueryString = () => {
+    const params = new URLSearchParams()
+    if (searchTerm) params.set('search', searchTerm)
+    if (yearFilter !== 'all') params.set('year', String(yearFilter))
+    if (monthFilter !== 'all') params.set('month', String(monthFilter))
+    if (weekFilter !== 'all') params.set('week', String(weekFilter))
+    if (agencyFilter !== 'all') params.set('agency', agencyFilter)
+    if (achievementFilter !== 'all') params.set('achievement', achievementFilter)
+    if (sortBy !== 'date') params.set('sort', sortBy)
+    if (viewMode !== 'panel') params.set('view', viewMode)
+    return params.toString()
+  }
 
   const filteredAndSortedEvents = events
     .filter(event => {
@@ -89,10 +203,11 @@ export function PerformanceListV2() {
         event.agency_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.period_display.toLowerCase().includes(searchTerm.toLowerCase())
 
-      // 年月週フィルター
+      // 年月週代理店フィルター
       const matchesYear = yearFilter === 'all' || event.year === yearFilter
       const matchesMonth = monthFilter === 'all' || event.month === monthFilter
       const matchesWeek = weekFilter === 'all' || event.week_number === weekFilter
+      const matchesAgency = agencyFilter === 'all' || event.agency_name === agencyFilter
 
       // 達成フィルター
       const isAchieved = event.target_hs_total > 0 && event.actual_hs_total >= event.target_hs_total
@@ -101,7 +216,7 @@ export function PerformanceListV2() {
         (achievementFilter === 'achieved' && isAchieved) ||
         (achievementFilter === 'not_achieved' && event.target_hs_total > 0 && !isAchieved)
 
-      return matchesSearch && matchesYear && matchesMonth && matchesWeek && matchesAchievement
+      return matchesSearch && matchesYear && matchesMonth && matchesWeek && matchesAgency && matchesAchievement
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -218,6 +333,18 @@ export function PerformanceListV2() {
                   ))}
                 </select>
 
+                {/* 代理店 */}
+                <select
+                  value={agencyFilter}
+                  onChange={(e) => setAgencyFilter(e.target.value)}
+                  className="px-2 md:px-3 py-1.5 md:py-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-xs md:text-sm appearance-none bg-no-repeat bg-right pr-6 md:pr-8" style={{ border: '1px solid #22211A', color: '#22211A', backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMS41TDYgNi41TDExIDEuNSIgc3Ryb2tlPSIjMjIyMTFBIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+")', backgroundPosition: 'right 8px center', backgroundSize: '10px 6px' }}
+                >
+                  <option value="all">全代理店</option>
+                  {availableAgencies.map(agency => (
+                    <option key={agency} value={agency}>{agency}</option>
+                  ))}
+                </select>
+
                 {/* 達成状態 */}
                 <select
                   value={achievementFilter}
@@ -239,6 +366,17 @@ export function PerformanceListV2() {
                   <option value="actual_hs_total">実績順</option>
                   <option value="venue">会場順</option>
                 </select>
+
+                {/* リセットボタン */}
+                <button
+                  onClick={handleReset}
+                  className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg border transition-all hover:opacity-80 flex items-center gap-1 text-xs md:text-sm"
+                  style={{ borderColor: '#22211A', color: '#22211A' }}
+                  title="検索条件をリセット"
+                >
+                  <RotateCcw className="w-3 md:w-4 h-3 md:h-4" />
+                  <span className="hidden md:inline">リセット</span>
+                </button>
               </div>
             </div>
 
@@ -407,7 +545,7 @@ export function PerformanceListV2() {
             {/* Action Buttons */}
             <div className="mt-4 pt-4 border-t border-border">
               <Link
-                href={`/view/${event.id}`}
+                href={`/view/${event.id}${getCurrentQueryString() ? `?${getCurrentQueryString()}` : ''}`}
                 className="group flex items-center justify-center w-full px-4 py-2 rounded-lg hover:opacity-90 transition-all duration-200 border font-bold"
                 style={{ backgroundColor: '#FFB300', color: '#FFFFFF', borderColor: '#FFB300' }}
               >
@@ -499,7 +637,7 @@ export function PerformanceListV2() {
                   </div>
 
                   <Link
-                    href={`/view/${event.id}`}
+                    href={`/view/${event.id}${getCurrentQueryString() ? `?${getCurrentQueryString()}` : ''}`}
                     className="px-2 md:px-3 py-1.5 rounded-lg hover:opacity-90 transition-all flex items-center gap-1 border font-bold shrink-0"
                     style={{ backgroundColor: '#FFB300', color: '#FFFFFF', borderColor: '#FFB300' }}
                   >

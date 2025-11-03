@@ -102,6 +102,31 @@ export default function EventDetailPage() {
   const [expandedDailyStaff, setExpandedDailyStaff] = useState<Set<number>>(new Set())
   const [expandedDailyDays, setExpandedDailyDays] = useState<Set<string>>(new Set())
 
+  // URLパラメータから戻り先のフィルター条件を取得
+  const getBackUrl = () => {
+    const year = searchParams?.get('year')
+    const month = searchParams?.get('month')
+    const week = searchParams?.get('week')
+    const agency = searchParams?.get('agency')
+    const achievement = searchParams?.get('achievement')
+    const sort = searchParams?.get('sort')
+    const search = searchParams?.get('search')
+    const view = searchParams?.get('view')
+
+    const params = new URLSearchParams()
+    if (year) params.set('year', year)
+    if (month) params.set('month', month)
+    if (week) params.set('week', week)
+    if (agency) params.set('agency', agency)
+    if (achievement) params.set('achievement', achievement)
+    if (sort) params.set('sort', sort)
+    if (search) params.set('search', search)
+    if (view) params.set('view', view)
+
+    const queryString = params.toString()
+    return queryString ? `/view?${queryString}` : '/view'
+  }
+
   // ビューモード切り替え時に展開状態をリセット
   const handleViewModeChange = (mode: 'summary' | 'daily') => {
     setStaffViewMode(mode)
@@ -200,7 +225,7 @@ export default function EventDetailPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4" style={{ color: '#22211A' }}>イベントが見つかりません</h1>
           <button
-            onClick={() => router.push('/view')}
+            onClick={() => router.push(getBackUrl())}
             className="inline-flex items-center px-4 py-2 rounded-lg hover:opacity-90 transition-colors border" style={{ backgroundColor: '#22211A', color: '#FFFFFF', borderColor: '#22211A' }}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -220,7 +245,7 @@ export default function EventDetailPage() {
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={() => router.push('/view')}
+          onClick={() => router.push(getBackUrl())}
           className="inline-flex items-center hover:opacity-80 transition-colors mb-4" style={{ color: '#22211A' }}
         >
           <ArrowLeft className="w-4 h-4 mr-2" style={{ color: '#22211A' }} />

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { ArrowLeft, Calendar, MapPin, Building2, Users, Camera, Download, ExternalLink, ChevronDown, ChevronRight, Edit } from 'lucide-react'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -102,8 +103,8 @@ export default function EventDetailPage() {
   const [expandedDailyStaff, setExpandedDailyStaff] = useState<Set<number>>(new Set())
   const [expandedDailyDays, setExpandedDailyDays] = useState<Set<string>>(new Set())
 
-  // URLパラメータから戻り先のフィルター条件を取得
-  const getBackUrl = () => {
+  // URLパラメータから戻り先のフィルター条件を取得（メモ化）
+  const getBackUrl = useMemo(() => {
     const year = searchParams?.get('year')
     const month = searchParams?.get('month')
     const week = searchParams?.get('week')
@@ -125,15 +126,15 @@ export default function EventDetailPage() {
 
     const queryString = params.toString()
     return queryString ? `/view?${queryString}` : '/view'
-  }
+  }, [searchParams])
 
-  // ビューモード切り替え時に展開状態をリセット
-  const handleViewModeChange = (mode: 'summary' | 'daily') => {
+  // ビューモード切り替え時に展開状態をリセット（メモ化）
+  const handleViewModeChange = useCallback((mode: 'summary' | 'daily') => {
     setStaffViewMode(mode)
     setExpandedStaff(new Set())
     setExpandedDailyStaff(new Set())
     setExpandedDailyDays(new Set())
-  }
+  }, [])
 
   const eventId = params?.id as string
   const isRefresh = searchParams?.get('refresh') === 'true'
@@ -167,47 +168,53 @@ export default function EventDetailPage() {
     }
   }
 
-  // Calculate event days
-  const calculateEventDays = (startDate: string, endDate: string) => {
+  // Calculate event days（メモ化）
+  const calculateEventDays = useCallback((startDate: string, endDate: string) => {
     const start = new Date(startDate)
     const end = new Date(endDate)
     const diffTime = Math.abs(end.getTime() - start.getTime())
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
     return diffDays
-  }
+  }, [])
 
-  // Toggle staff expansion
-  const toggleStaffExpansion = (index: number) => {
-    const newExpanded = new Set(expandedStaff)
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index)
-    } else {
-      newExpanded.add(index)
-    }
-    setExpandedStaff(newExpanded)
-  }
+  // Toggle staff expansion（メモ化）
+  const toggleStaffExpansion = useCallback((index: number) => {
+    setExpandedStaff(prev => {
+      const newExpanded = new Set(prev)
+      if (newExpanded.has(index)) {
+        newExpanded.delete(index)
+      } else {
+        newExpanded.add(index)
+      }
+      return newExpanded
+    })
+  }, [])
 
-  // Toggle daily staff expansion
-  const toggleDailyStaffExpansion = (index: number) => {
-    const newExpanded = new Set(expandedDailyStaff)
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index)
-    } else {
-      newExpanded.add(index)
-    }
-    setExpandedDailyStaff(newExpanded)
-  }
+  // Toggle daily staff expansion（メモ化）
+  const toggleDailyStaffExpansion = useCallback((index: number) => {
+    setExpandedDailyStaff(prev => {
+      const newExpanded = new Set(prev)
+      if (newExpanded.has(index)) {
+        newExpanded.delete(index)
+      } else {
+        newExpanded.add(index)
+      }
+      return newExpanded
+    })
+  }, [])
 
-  // Toggle daily day expansion
-  const toggleDailyDayExpansion = (key: string) => {
-    const newExpanded = new Set(expandedDailyDays)
-    if (newExpanded.has(key)) {
-      newExpanded.delete(key)
-    } else {
-      newExpanded.add(key)
-    }
-    setExpandedDailyDays(newExpanded)
-  }
+  // Toggle daily day expansion（メモ化）
+  const toggleDailyDayExpansion = useCallback((key: string) => {
+    setExpandedDailyDays(prev => {
+      const newExpanded = new Set(prev)
+      if (newExpanded.has(key)) {
+        newExpanded.delete(key)
+      } else {
+        newExpanded.add(key)
+      }
+      return newExpanded
+    })
+  }, [])
 
   if (loading) {
     return (
@@ -225,7 +232,7 @@ export default function EventDetailPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4" style={{ color: '#22211A' }}>イベントが見つかりません</h1>
           <button
-            onClick={() => router.push(getBackUrl())}
+            onClick={() => router.push(getBackUrl)}
             className="inline-flex items-center px-4 py-2 rounded-lg hover:opacity-90 transition-colors border" style={{ backgroundColor: '#22211A', color: '#FFFFFF', borderColor: '#22211A' }}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -245,7 +252,7 @@ export default function EventDetailPage() {
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={() => router.push(getBackUrl())}
+          onClick={() => router.push(getBackUrl)}
           className="inline-flex items-center hover:opacity-80 transition-colors mb-4" style={{ color: '#22211A' }}
         >
           <ArrowLeft className="w-4 h-4 mr-2" style={{ color: '#22211A' }} />
@@ -760,28 +767,26 @@ export default function EventDetailPage() {
             
             {event.photos && event.photos.length > 0 ? (
               <div className="space-y-4">
-                {event.photos.map((photo) => (
+                {event.photos.map((photo, index) => (
                   <div
                     key={`${photo.id}-${photo.file_url}`}
                     className="group cursor-pointer"
                     onClick={() => setSelectedPhoto(photo)}
                   >
-                    <div className="aspect-video bg-muted/30 rounded-lg overflow-hidden mb-2">
-                      <img
+                    <div className="aspect-video bg-muted/30 rounded-lg overflow-hidden mb-2 relative">
+                      <Image
                         key={photo.file_url}
                         src={photo.file_url}
                         alt={photo.description || 'イベント写真'}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                        onError={(e) => {
-                          // エラー時に画像を再読み込み（よりアグレッシブなリロード）
-                          const target = e.target as HTMLImageElement
-                          const originalSrc = photo.file_url
-                          target.src = ''
-                          setTimeout(() => {
-                            target.src = originalSrc + (originalSrc.includes('?') ? '&' : '?') + `retry=${Date.now()}`
-                          }, 100)
-                        }}
+                        fill
+                        sizes="(max-width: 768px) 95vw, (max-width: 1200px) 45vw, 30vw"
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        priority={index === 0}
+                        quality={75}
+                        loading={index === 0 ? 'eager' : 'lazy'}
+                        placeholder="blur"
+                        blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2UwZTBlMCIvPjwvc3ZnPg=="
+                        unoptimized={false}
                       />
                     </div>
                     <div className="space-y-1">

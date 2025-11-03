@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Image from 'next/image'
-import { Camera, Upload, Calendar, Grid3X3, List, Download, Search, Filter, X, ChevronDown, Heart } from 'lucide-react'
+import { Camera, Upload, Calendar, Grid3X3, List, Download, Search, Filter, X, ChevronDown, Heart, ChevronLeft, ChevronRight } from 'lucide-react'
 import { MagneticDots } from '@/components/MagneticDots'
 
 interface ImageData {
@@ -35,60 +35,75 @@ export default function Album() {
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const weeksPerPage = 2
 
   // 実績データから画像を取得
   useEffect(() => {
     const fetchImagesFromPerformances = async () => {
       try {
-        // まず基本的な実績データを取得
-        const performanceResponse = await fetch('/api/performances/enhanced-v2')
+        // まず基本的な実績データを取得（キャッシュ優先）
+        const performanceResponse = await fetch('/api/performances/enhanced-v2', {
+          next: { revalidate: 3600 },
+          cache: 'force-cache'
+        })
         const allImages: ImageData[] = []
 
         if (performanceResponse.ok) {
           const performanceData = await performanceResponse.json()
 
-          // 各イベントの詳細APIから画像を並列取得
-          const detailPromises = performanceData.map(async (performance: any) => {
-            try {
-              const detailResponse = await fetch(`/api/events/${performance.id}/detail`)
-              if (detailResponse.ok) {
-                const eventDetail = await detailResponse.json()
+          // 各イベントの詳細APIから画像を並列取得（最大10件ずつバッチ処理）
+          const batchSize = 10
+          for (let i = 0; i < performanceData.length; i += batchSize) {
+            const batch = performanceData.slice(i, i + batchSize)
+            const detailPromises = batch.map(async (performance: any) => {
+              try {
+                const detailResponse = await fetch(`/api/events/${performance.id}/detail`, {
+                  next: { revalidate: 3600 },
+                  cache: 'force-cache'
+                })
+                  if (detailResponse.ok) {
+                    const eventDetail = await detailResponse.json()
 
-                // 詳細ページの photos フィールドから画像を取得
-                if (eventDetail.photos && eventDetail.photos.length > 0) {
-                  return eventDetail.photos.map((photo: any, index: number) => ({
-                    id: `${performance.id}_${photo.id}_${index}`,
-                    filename: photo.file_name || `event_${performance.year}_${performance.month}_${performance.week_number}_${index + 1}.jpg`,
-                    originalName: photo.description || photo.file_name || `イベント写真${index + 1}.jpg`,
-                    uploadDate: photo.created_at || performance.start_date,
-                    eventDate: performance.start_date,
-                    url: photo.file_url,
-                    size: 2048000,
-                    type: 'image/jpeg',
-                    venue: performance.venue,
-                    agencyName: performance.agency_name,
-                    year: performance.year,
-                    month: performance.month,
-                    weekNumber: performance.week_number,
-                    performanceId: performance.id
-                  }))
-                }
+                    // 詳細ページの photos フィールドから画像を取得
+                    if (eventDetail.photos && eventDetail.photos.length > 0) {
+                      return eventDetail.photos.map((photo: any, index: number) => ({
+                        id: `${performance.id}_${photo.id}_${index}`,
+                        filename: photo.file_name || `event_${performance.year}_${performance.month}_${performance.week_number}_${index + 1}.jpg`,
+                        originalName: photo.description || photo.file_name || `イベント写真${index + 1}.jpg`,
+                        uploadDate: photo.created_at || performance.start_date,
+                        eventDate: performance.start_date,
+                        url: photo.file_url,
+                        size: 2048000,
+                        type: 'image/jpeg',
+                        venue: performance.venue,
+                        agencyName: performance.agency_name,
+                        year: performance.year,
+                        month: performance.month,
+                        weekNumber: performance.week_number,
+                        performanceId: performance.id
+                      }))
+                    }
+                  }
+                  return []
+              } catch (detailError) {
+                console.log(`詳細データの取得に失敗: ${performance.id}`)
+                return []
               }
-              return []
-            } catch (detailError) {
-              console.log(`詳細データの取得に失敗: ${performance.id}`)
-              return []
-            }
-          })
+            })
 
-          const detailResults = await Promise.all(detailPromises)
-          detailResults.forEach(imageArray => {
-            allImages.push(...imageArray)
-          })
+            const batchResults = await Promise.all(detailPromises)
+            batchResults.forEach(imageArray => {
+              if (imageArray.length > 0) {
+                allImages.push(...imageArray)
+              }
+            })
+
+            // バッチごとに画像を設定（段階的に表示）
+            setImages([...allImages])
+          }
         }
 
-
-        setImages(allImages)
       } catch (error) {
         console.error('画像データの取得に失敗しました:', error)
       }
@@ -163,6 +178,30 @@ export default function Album() {
       return acc
     }, {} as Record<string, ImageData[]>)
   }, [filteredImages])
+
+  // 週のリストを日付順にソート（最新が先頭）
+  const sortedWeeks = useMemo(() => {
+    return Object.entries(groupedImages)
+      .sort(([a], [b]) => {
+        const aImg = groupedImages[a][0]
+        const bImg = groupedImages[b][0]
+        if (aImg.year !== bImg.year) return bImg.year - aImg.year
+        if (aImg.month !== bImg.month) return bImg.month - aImg.month
+        return bImg.weekNumber - aImg.weekNumber
+      })
+  }, [groupedImages])
+
+  // ページネーション計算
+  const totalWeeks = sortedWeeks.length
+  const totalPages = Math.ceil(totalWeeks / weeksPerPage)
+  const startIndex = (currentPage - 1) * weeksPerPage
+  const endIndex = startIndex + weeksPerPage
+  const currentWeeks = sortedWeeks.slice(startIndex, endIndex)
+
+  // フィルター変更時にページを1にリセット
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedYear, selectedMonth, selectedWeek, searchTerm, showFavoritesOnly])
 
   // 利用可能な年・月・週の選択肢を生成（メモ化）
   const availableYears = useMemo(() =>
@@ -381,7 +420,7 @@ export default function Album() {
 
         {/* 画像表示エリア */}
         <div className="space-y-8">
-          {Object.entries(groupedImages).length === 0 ? (
+          {sortedWeeks.length === 0 ? (
             <div className="glass rounded-lg border p-12 text-center" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
               <Camera className="w-16 h-16 mx-auto mb-4" style={{ color: '#22211A', opacity: 0.5 }} />
               <h3 className="text-xl font-semibold mb-2" style={{ color: '#22211A' }}>画像がありません</h3>
@@ -390,15 +429,8 @@ export default function Album() {
               </p>
             </div>
           ) : (
-            Object.entries(groupedImages)
-              .sort(([a], [b]) => {
-                const aImg = groupedImages[a][0]
-                const bImg = groupedImages[b][0]
-                if (aImg.year !== bImg.year) return bImg.year - aImg.year
-                if (aImg.month !== bImg.month) return bImg.month - aImg.month
-                return bImg.weekNumber - aImg.weekNumber
-              })
-              .map(([date, dateImages]) => (
+            <>
+              {currentWeeks.map(([date, dateImages]) => (
                 <div key={date} className="glass rounded-lg border p-6" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
                   <div className="flex items-center justify-between mb-4">
                     <div>
@@ -417,18 +449,30 @@ export default function Album() {
                   </div>
 
                   {viewMode === 'grid' ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                      {dateImages.map((image) => (
-                        <div key={image.id} className="relative group">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-3">
+                      {dateImages.map((image, imageIndex) => {
+                        // 最初のページの最初の週の全画像を優先読み込み
+                        const weekIndex = currentWeeks.findIndex(([d]) => d === date)
+                        const isPriority = currentPage === 1 && weekIndex === 0
+
+                        return (
+                          <div key={image.id} className="relative group">
                           <div
-                            className="aspect-square bg-gray-200 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                            className="aspect-square bg-gray-200 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity relative"
                             onClick={() => setSelectedImage(image)}
                           >
-                            <img
+                            <Image
                               src={image.url}
                               alt={image.originalName}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
+                              fill
+                              sizes="(max-width: 768px) 45vw, (max-width: 1024px) 30vw, (max-width: 1280px) 22vw, 18vw"
+                              className="object-cover"
+                              priority={isPriority}
+                              quality={75}
+                              loading={isPriority ? 'eager' : 'lazy'}
+                              placeholder="blur"
+                              blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2UwZTBlMCIvPjwvc3ZnPg=="
+                              unoptimized={false}
                             />
                           </div>
                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity rounded-lg flex items-center justify-center pointer-events-none">
@@ -468,21 +512,34 @@ export default function Album() {
                             </div>
                           )}
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {dateImages.map((image) => (
-                        <div key={image.id} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                      {dateImages.map((image, imageIndex) => {
+                        // 最初のページの最初の週の全画像を優先読み込み
+                        const weekIndex = currentWeeks.findIndex(([d]) => d === date)
+                        const isPriority = currentPage === 1 && weekIndex === 0
+
+                        return (
+                          <div key={image.id} className="flex items-center p-3 bg-gray-50 rounded-lg">
                           <div
-                            className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden mr-4 cursor-pointer hover:opacity-80 transition-opacity"
+                            className="w-14 h-14 bg-gray-200 rounded-lg overflow-hidden mr-4 cursor-pointer hover:opacity-80 transition-opacity relative"
                             onClick={() => setSelectedImage(image)}
                           >
-                            <img
+                            <Image
                               src={image.url}
                               alt={image.originalName}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
+                              fill
+                              sizes="56px"
+                              className="object-cover"
+                              priority={isPriority}
+                              quality={75}
+                              loading={isPriority ? 'eager' : 'lazy'}
+                              placeholder="blur"
+                              blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2UwZTBlMCIvPjwvc3ZnPg=="
+                              unoptimized={false}
                             />
                           </div>
                           <div className="flex-1 flex items-center">
@@ -521,11 +578,98 @@ export default function Album() {
                             </button>
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
-              ))
+              ))}
+
+              {/* ページネーション */}
+              {totalPages > 1 && (
+                <div className="glass rounded-lg border p-4 mt-8" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-sm" style={{ color: '#22211A' }}>
+                      {totalWeeks}週中 {startIndex + 1}〜{Math.min(endIndex, totalWeeks)}週を表示
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {/* 前へボタン */}
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="p-2 rounded-lg border transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-80"
+                        style={{
+                          borderColor: '#22211A',
+                          backgroundColor: currentPage === 1 ? 'transparent' : '#FFB300',
+                          color: currentPage === 1 ? '#22211A' : '#FFFFFF'
+                        }}
+                        title="前のページ"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+
+                      {/* ページ番号 */}
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          // 最初のページ、最後のページ、現在のページの前後2ページを表示
+                          const showPage =
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 2 && page <= currentPage + 2)
+
+                          // 省略記号を表示する条件
+                          const showEllipsisBefore = page === currentPage - 3 && currentPage > 4
+                          const showEllipsisAfter = page === currentPage + 3 && currentPage < totalPages - 3
+
+                          if (!showPage && !showEllipsisBefore && !showEllipsisAfter) {
+                            return null
+                          }
+
+                          if (showEllipsisBefore || showEllipsisAfter) {
+                            return (
+                              <span key={`ellipsis-${page}`} className="px-2" style={{ color: '#22211A' }}>
+                                ...
+                              </span>
+                            )
+                          }
+
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className="min-w-[40px] h-10 rounded-lg border transition-all font-medium hover:opacity-80"
+                              style={{
+                                borderColor: '#22211A',
+                                backgroundColor: currentPage === page ? '#FFB300' : 'transparent',
+                                color: currentPage === page ? '#FFFFFF' : '#22211A'
+                              }}
+                            >
+                              {page}
+                            </button>
+                          )
+                        })}
+                      </div>
+
+                      {/* 次へボタン */}
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="p-2 rounded-lg border transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-80"
+                        style={{
+                          borderColor: '#22211A',
+                          backgroundColor: currentPage === totalPages ? 'transparent' : '#FFB300',
+                          color: currentPage === totalPages ? '#22211A' : '#FFFFFF'
+                        }}
+                        title="次のページ"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -10,8 +10,16 @@ const nextConfig = {
       },
     ],
     formats: ['image/avif', 'image/webp'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 56, 64, 96, 128, 192, 256],
+    minimumCacheTTL: 31536000, // 1年キャッシュ（画像は不変）
+    dangerouslyAllowSVG: false,
+    contentDispositionType: 'inline',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    loader: 'default',
+    path: '/_next/image',
+    disableStaticImages: false,
+    unoptimized: false,
   },
   // パフォーマンス最適化
   swcMinify: true,

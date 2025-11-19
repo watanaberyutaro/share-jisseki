@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
@@ -42,7 +42,7 @@ export function PerformanceListV2() {
   const [monthFilter, setMonthFilter] = useState<number | 'all'>('all')
   const [weekFilter, setWeekFilter] = useState<number | 'all'>('all')
   const [agencyFilter, setAgencyFilter] = useState<string | 'all'>('all')
-  const [achievementFilter, setAchievementFilter] = useState<'all' | 'achieved' | 'not_achieved'>('all')
+  const [achievementFilter, setAchievementFilter] = useState<'all' | 'achieved' | 'achieved_70' | 'not_achieved'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'actual_hs_total' | 'venue'>('date')
   const [viewMode, setViewMode] = useState<'panel' | 'list'>('panel')
   const [currentPage, setCurrentPage] = useState(1)
@@ -127,7 +127,7 @@ export function PerformanceListV2() {
   }, [searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, achievementFilter, sortBy, viewMode])
 
   // リセット関数
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setSearchTerm('')
     setYearFilter('all')
     setMonthFilter('all')
@@ -137,7 +137,7 @@ export function PerformanceListV2() {
     setSortBy('date')
     setViewMode('panel')
     setCurrentPage(1)
-  }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -175,14 +175,20 @@ export function PerformanceListV2() {
     setCurrentPage(1)
   }, [searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, achievementFilter, sortBy])
 
-  // 年の選択肢を生成
-  const availableYears = [...new Set(events.map(e => e.year))].sort((a, b) => b - a)
+  // 年の選択肢を生成（メモ化）
+  const availableYears = useMemo(() =>
+    [...new Set(events.map(e => e.year))].sort((a, b) => b - a),
+    [events]
+  )
 
-  // 代理店の選択肢を生成
-  const availableAgencies = [...new Set(events.map(e => e.agency_name))].sort()
+  // 代理店の選択肢を生成（メモ化）
+  const availableAgencies = useMemo(() =>
+    [...new Set(events.map(e => e.agency_name))].sort(),
+    [events]
+  )
 
-  // 現在のURLパラメータを取得してリンクに使用
-  const getCurrentQueryString = () => {
+  // 現在のURLパラメータを取得してリンクに使用（メモ化）
+  const getCurrentQueryString = useCallback(() => {
     const params = new URLSearchParams()
     if (searchTerm) params.set('search', searchTerm)
     if (yearFilter !== 'all') params.set('year', String(yearFilter))
@@ -193,58 +199,84 @@ export function PerformanceListV2() {
     if (sortBy !== 'date') params.set('sort', sortBy)
     if (viewMode !== 'panel') params.set('view', viewMode)
     return params.toString()
-  }
+  }, [searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, achievementFilter, sortBy, viewMode])
 
-  const filteredAndSortedEvents = events
-    .filter(event => {
-      // テキスト検索
-      const matchesSearch =
-        event.venue.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        event.agency_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        event.period_display.toLowerCase().includes(searchTerm.toLowerCase())
+  // フィルタリングとソートをメモ化（パフォーマンス最適化）
+  const filteredAndSortedEvents = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase()
 
-      // 年月週代理店フィルター
-      const matchesYear = yearFilter === 'all' || event.year === yearFilter
-      const matchesMonth = monthFilter === 'all' || event.month === monthFilter
-      const matchesWeek = weekFilter === 'all' || event.week_number === weekFilter
-      const matchesAgency = agencyFilter === 'all' || event.agency_name === agencyFilter
+    return events
+      .filter(event => {
+        // テキスト検索
+        if (searchTerm && !(
+          event.venue.toLowerCase().includes(searchLower) ||
+          event.agency_name.toLowerCase().includes(searchLower) ||
+          event.period_display.toLowerCase().includes(searchLower)
+        )) return false
 
-      // 達成フィルター
-      const isAchieved = event.target_hs_total > 0 && event.actual_hs_total >= event.target_hs_total
-      const matchesAchievement =
-        achievementFilter === 'all' ||
-        (achievementFilter === 'achieved' && isAchieved) ||
-        (achievementFilter === 'not_achieved' && event.target_hs_total > 0 && !isAchieved)
+        // 年月週代理店フィルター
+        if (yearFilter !== 'all' && event.year !== yearFilter) return false
+        if (monthFilter !== 'all' && event.month !== monthFilter) return false
+        if (weekFilter !== 'all' && event.week_number !== weekFilter) return false
+        if (agencyFilter !== 'all' && event.agency_name !== agencyFilter) return false
 
-      return matchesSearch && matchesYear && matchesMonth && matchesWeek && matchesAgency && matchesAchievement
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'date':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        case 'actual_hs_total':
-          return b.actual_hs_total - a.actual_hs_total
-        case 'venue':
-          return a.venue.localeCompare(b.venue)
-        default:
-          return 0
-      }
-    })
+        // 達成フィルター
+        if (achievementFilter !== 'all') {
+          if (event.target_hs_total === 0) {
+            // 目標が設定されていない場合は未達成として扱う
+            if (achievementFilter !== 'not_achieved') return false
+          } else {
+            const achievementRate = (event.actual_hs_total / event.target_hs_total) * 100
 
-  // ページネーション計算
-  const totalPages = Math.ceil(filteredAndSortedEvents.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentPageEvents = filteredAndSortedEvents.slice(startIndex, endIndex)
+            if (achievementFilter === 'achieved') {
+              // 100%以上
+              if (achievementRate < 100) return false
+            } else if (achievementFilter === 'achieved_70') {
+              // 70%以上100%未満
+              if (achievementRate < 70 || achievementRate >= 100) return false
+            } else if (achievementFilter === 'not_achieved') {
+              // 70%未満
+              if (achievementRate >= 70) return false
+            }
+          }
+        }
 
-  // ページ変更ハンドラー
-  const goToPage = (page: number) => {
+        return true
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case 'date':
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          case 'actual_hs_total':
+            return b.actual_hs_total - a.actual_hs_total
+          case 'venue':
+            return a.venue.localeCompare(b.venue)
+          default:
+            return 0
+        }
+      })
+  }, [events, searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, achievementFilter, sortBy])
+
+  // ページネーション計算（メモ化）
+  const paginationData = useMemo(() => {
+    const totalPages = Math.ceil(filteredAndSortedEvents.length / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const currentPageEvents = filteredAndSortedEvents.slice(startIndex, endIndex)
+
+    return { totalPages, startIndex, endIndex, currentPageEvents }
+  }, [filteredAndSortedEvents, currentPage, itemsPerPage])
+
+  const { totalPages, startIndex, endIndex, currentPageEvents } = paginationData
+
+  // ページ変更ハンドラー（メモ化）
+  const goToPage = useCallback((page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page)
       // ページトップへスクロール
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
-  }
+  }, [totalPages])
 
   if (loading) {
     return <LoadingAnimation />
@@ -352,8 +384,9 @@ export function PerformanceListV2() {
                   className="px-2 md:px-3 py-1.5 md:py-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-xs md:text-sm appearance-none bg-no-repeat bg-right pr-6 md:pr-8" style={{ border: '1px solid #22211A', color: '#22211A', backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMS41TDYgNi41TDExIDEuNSIgc3Ryb2tlPSIjMjIyMTFBIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+")', backgroundPosition: 'right 8px center', backgroundSize: '10px 6px' }}
                 >
                   <option value="all">全て</option>
-                  <option value="achieved">達成</option>
-                  <option value="not_achieved">未達成</option>
+                  <option value="achieved">達成（100%以上）</option>
+                  <option value="achieved_70">70%以上達成</option>
+                  <option value="not_achieved">未達成（70%未満）</option>
                 </select>
 
                 {/* ソート */}
@@ -450,7 +483,7 @@ export function PerformanceListV2() {
                 </div>
               </div>
               <div className="flex items-center shrink-0">
-                {event.target_hs_total > 0 && event.actual_hs_total >= event.target_hs_total ? (
+                {event.target_hs_total > 0 && (event.actual_hs_total / event.target_hs_total) >= 0.7 ? (
                   <CheckCircle className="w-6 h-6 md:w-8 md:h-8" style={{ color: '#4abf79' }} />
                 ) : (
                   <XCircle className="w-6 h-6 md:w-8 md:h-8" style={{ color: '#ef4444' }} />
@@ -578,7 +611,7 @@ export function PerformanceListV2() {
                     <h3 className="text-sm md:text-base font-bold truncate" style={{ color: '#22211A' }}>
                       {event.period_display}
                     </h3>
-                    {event.target_hs_total > 0 && event.actual_hs_total >= event.target_hs_total ? (
+                    {event.target_hs_total > 0 && (event.actual_hs_total / event.target_hs_total) >= 0.7 ? (
                       <CheckCircle className="w-5 h-5 shrink-0" style={{ color: '#4abf79' }} />
                     ) : event.target_hs_total > 0 ? (
                       <XCircle className="w-5 h-5 shrink-0" style={{ color: '#ef4444' }} />

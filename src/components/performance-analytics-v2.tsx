@@ -456,7 +456,12 @@ export function PerformanceAnalyticsV2({
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch('/api/performances/enhanced-v2')
+      const response = await fetch('/api/performances/enhanced-v2', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         setEvents(data)

@@ -42,10 +42,12 @@ export default function Album() {
   useEffect(() => {
     const fetchImagesFromPerformances = async () => {
       try {
-        // まず基本的な実績データを取得（キャッシュ優先）
+        // まず基本的な実績データを取得（キャッシュ無効化）
         const performanceResponse = await fetch('/api/performances/enhanced-v2', {
-          next: { revalidate: 3600 },
-          cache: 'force-cache'
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
         })
         const allImages: ImageData[] = []
 

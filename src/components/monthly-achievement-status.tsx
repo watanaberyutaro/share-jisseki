@@ -88,7 +88,12 @@ export function MonthlyAchievementStatus({ year, month, onCompare }: MonthlyAchi
   useEffect(() => {
     const fetchMonthlyStats = async () => {
       try {
-        const response = await fetch('/api/performances/enhanced-v2')
+        const response = await fetch('/api/performances/enhanced-v2', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
         if (response.ok) {
           const data = await response.json()
           const currentMonth = selectedDate.getMonth() + 1

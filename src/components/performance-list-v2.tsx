@@ -144,7 +144,12 @@ export function PerformanceListV2() {
 
     const loadData = async () => {
       try {
-        const response = await fetch('/api/performances/enhanced-v2')
+        const response = await fetch('/api/performances/enhanced-v2', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
 
         if (response.ok && !cancelled) {
           const data = await response.json()

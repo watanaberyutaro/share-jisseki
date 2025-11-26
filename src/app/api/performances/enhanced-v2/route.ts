@@ -300,8 +300,8 @@ export async function GET(request: NextRequest) {
     
     const response = NextResponse.json(events || [])
 
-    // キャッシュヘッダーを設定（60秒キャッシュ）
-    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
+    // キャッシュを無効化（常に最新データを取得）
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
 
     return response
     

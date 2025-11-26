@@ -201,20 +201,8 @@ export default function Dashboard() {
       }
     }
   }, [])
-  const [monthlyStats, setMonthlyStats] = useState({
-    totalEvents: 0,
-    achievedEvents: 0,
-    achievementRate: 0,
-    totalTarget: 0,
-    totalActual: 0,
-    totalMnp: 0,
-    totalNew: 0,
-    mnpRatio: 0
-  })
-  const [yearlyData, setYearlyData] = useState<any[]>([])
-  const [eventRanking, setEventRanking] = useState<any[]>([])
-  const [staffRanking, setStaffRanking] = useState<any[]>([])
-  const [weeklyIdData, setWeeklyIdData] = useState<any[]>([])
+  const [allEvents, setAllEvents] = useState<any[]>([])
+  const [staffData, setStaffData] = useState<any[]>([])
   const [memo, setMemo] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [savedMemo, setSavedMemo] = useState('')
@@ -245,137 +233,27 @@ export default function Dashboard() {
   }, [savedMemo])
 
 
+  // データフェッチ処理
   useEffect(() => {
-    const fetchMonthlyStats = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch('/api/performances/enhanced-v2')
+        const response = await fetch('/api/performances/enhanced-v2', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
         if (response.ok) {
           const data = await response.json()
+          setAllEvents(data)
+
+          // 当月イベントIDを取得してスタッフデータをフェッチ
           const currentMonth = currentTime.getMonth() + 1
           const currentYear = currentTime.getFullYear()
-
           const currentMonthEvents = data.filter((event: any) =>
             event.month === currentMonth && event.year === currentYear
           )
-
-          const eventsWithTargets = currentMonthEvents.filter((event: any) => event.target_hs_total > 0)
-          const achievedEvents = eventsWithTargets.filter((event: any) =>
-            event.actual_hs_total >= event.target_hs_total
-          )
-
-          const totalTarget = eventsWithTargets.reduce((sum: number, event: any) => sum + event.target_hs_total, 0)
-          const totalActual = eventsWithTargets.reduce((sum: number, event: any) => sum + event.actual_hs_total, 0)
-          const totalMnp = currentMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0), 0)
-          const totalNew = currentMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_au_new || 0) + (event.actual_uq_new || 0), 0)
-          const totalHs = totalMnp + totalNew
-          const mnpRatio = totalHs > 0 ? Math.round((totalMnp / totalHs) * 100) : 0
-
-          setMonthlyStats({
-            totalEvents: eventsWithTargets.length,
-            achievedEvents: achievedEvents.length,
-            achievementRate: eventsWithTargets.length > 0 ? Math.round((achievedEvents.length / eventsWithTargets.length) * 100) : 0,
-            totalTarget,
-            totalActual,
-            totalMnp,
-            totalNew,
-            mnpRatio
-          })
-
-          // 年ごとの月次データを計算
-          const yearlyMonthlyData: any = {}
-          data.forEach((event: any) => {
-            const year = event.year
-            const month = event.month
-            const key = `${year}-${month}`
-            if (!yearlyMonthlyData[key]) {
-              yearlyMonthlyData[key] = {
-                year,
-                month,
-                totalEvents: 0,
-                achievedEvents: 0,
-                achievementRate: 0
-              }
-            }
-
-            if (event.target_hs_total > 0) {
-              yearlyMonthlyData[key].totalEvents++
-              if (event.actual_hs_total >= event.target_hs_total) {
-                yearlyMonthlyData[key].achievedEvents++
-              }
-            }
-          })
-
-          // 達成率を計算してソート
-          const processedData = Object.values(yearlyMonthlyData).map((data: any) => ({
-            ...data,
-            achievementRate: data.totalEvents > 0 ? Math.round((data.achievedEvents / data.totalEvents) * 100) : 0,
-            monthLabel: `${data.year}年${data.month}月`
-          })).sort((a: any, b: any) => {
-            if (a.year !== b.year) return a.year - b.year
-            return a.month - b.month
-          })
-
-          setYearlyData(processedData)
-
-          // イベント別HS総販ランキングを計算（当月のみ）
-          const allEventRanking = currentMonthEvents.map((event: any) => {
-            return {
-              id: event.id,
-              eventName: `${event.venue} (${event.start_date?.split('-')[0]}/${event.start_date?.split('-')[1]})` || '名称未設定',
-              venue: event.venue,
-              startDate: event.start_date,
-              totalIds: event.actual_hs_total || 0,
-              auMnp: event.actual_au_mnp || 0,
-              uqMnp: event.actual_uq_mnp || 0,
-              auNew: event.actual_au_new || 0,
-              uqNew: event.actual_uq_new || 0,
-              staffCount: event.staff_performances?.length || 0
-            }
-          })
-          .filter((event: any) => event.totalIds > 0)
-          .sort((a: any, b: any) => b.totalIds - a.totalIds)
-
-          // トップ5と同率を含める
-          let eventRankingData: any[] = []
-          if (allEventRanking.length > 0) {
-            const top5 = allEventRanking.slice(0, 5)
-            if (top5.length === 5) {
-              const fifthPlaceScore = top5[4].totalIds
-              eventRankingData = allEventRanking.filter((event: any) =>
-                event.totalIds >= fifthPlaceScore
-              )
-            } else {
-              eventRankingData = top5
-            }
-          }
-
-          setEventRanking(eventRankingData)
-
-          // 当月の週毎HS総販データを計算
-          const weeklyData: any = {}
-          currentMonthEvents.forEach((event: any) => {
-            const week = event.week_number
-
-            if (!weeklyData[week]) {
-              weeklyData[week] = {
-                week: `第${week}週`,
-                weekNumber: week,
-                totalIds: 0,
-                mnp: 0,
-                new: 0
-              }
-            }
-
-            weeklyData[week].totalIds += event.actual_hs_total || 0
-            weeklyData[week].mnp += (event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0)
-            weeklyData[week].new += (event.actual_au_new || 0) + (event.actual_uq_new || 0)
-          })
-
-          const weeklyArray = Object.values(weeklyData).sort((a: any, b: any) => a.weekNumber - b.weekNumber)
-          setWeeklyIdData(weeklyArray)
-
-          // スタッフ当月獲得実績ランキングを計算
           const currentMonthEventIds = currentMonthEvents.map((event: any) => event.id).filter(Boolean)
 
           if (currentMonthEventIds.length > 0) {
@@ -383,86 +261,198 @@ export default function Dashboard() {
               const staffResponse = await fetch(
                 `/api/staff-performances?eventIds=${currentMonthEventIds.join(',')}`
               )
-
               if (staffResponse.ok) {
-                const staffData = await staffResponse.json()
-
-                // スタッフ名でグループ化して合計を計算
-                const staffStats: any = {}
-
-                staffData.forEach((record: any) => {
-                  const staffName = record.staff_name
-
-                  if (!staffStats[staffName]) {
-                    staffStats[staffName] = {
-                      staffName,
-                      totalIds: 0,
-                      mnp: 0,
-                      new: 0,
-                      eventCount: new Set()
-                    }
-                  }
-
-                  // MNP合計
-                  const mnp = (record.au_mnp_sp1 || 0) + (record.au_mnp_sp2 || 0) + (record.au_mnp_sim || 0) +
-                              (record.uq_mnp_sp1 || 0) + (record.uq_mnp_sp2 || 0) + (record.uq_mnp_sim || 0)
-
-                  // 新規合計
-                  const newCount = (record.au_hs_sp1 || 0) + (record.au_hs_sp2 || 0) + (record.au_hs_sim || 0) +
-                                   (record.uq_hs_sp1 || 0) + (record.uq_hs_sp2 || 0) + (record.uq_hs_sim || 0)
-
-                  staffStats[staffName].mnp += mnp
-                  staffStats[staffName].new += newCount
-                  staffStats[staffName].totalIds += mnp + newCount
-                  staffStats[staffName].eventCount.add(record.event_id)
-                })
-
-                // ランキング形式に変換
-                const allStaffRanking = Object.values(staffStats)
-                  .map((staff: any) => ({
-                    staffName: staff.staffName,
-                    totalIds: staff.totalIds,
-                    mnp: staff.mnp,
-                    new: staff.new,
-                    eventCount: staff.eventCount.size
-                  }))
-                  .filter((staff: any) => {
-                    // 「店舗」「他社スタッフ」系を除外
-                    const excludedNames = ['店舗', '他社スタッフ', '他社スタッフA', '他社スタッフB', '他社スタッフC', '他社スタッフD', '他社スタッフE', '他社スタッフF']
-                    return staff.totalIds > 0 && !excludedNames.includes(staff.staffName)
-                  })
-                  .sort((a: any, b: any) => b.totalIds - a.totalIds)
-
-                // トップ5と同率を含める
-                let staffRankingData: any[] = []
-                if (allStaffRanking.length > 0) {
-                  const top5 = allStaffRanking.slice(0, 5)
-                  if (top5.length === 5) {
-                    const fifthPlaceScore = top5[4].totalIds
-                    staffRankingData = allStaffRanking.filter((staff: any) =>
-                      staff.totalIds >= fifthPlaceScore
-                    )
-                  } else {
-                    staffRankingData = top5
-                  }
-                }
-
-                setStaffRanking(staffRankingData)
+                const data = await staffResponse.json()
+                setStaffData(data)
               }
             } catch (staffError) {
-              console.error('Failed to fetch staff ranking:', staffError)
+              console.error('Failed to fetch staff data:', staffError)
             }
           }
         }
       } catch (error) {
-        console.error('Failed to fetch monthly stats:', error)
+        console.error('Failed to fetch data:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchMonthlyStats()
-  }, [currentTime.getMonth(), currentTime.getFullYear()])
+    fetchData()
+  }, [currentTime])
+
+  // 当月イベントのフィルタリング（メモ化）
+  const currentMonthEvents = useMemo(() => {
+    const currentMonth = currentTime.getMonth() + 1
+    const currentYear = currentTime.getFullYear()
+    return allEvents.filter((event: any) =>
+      event.month === currentMonth && event.year === currentYear
+    )
+  }, [allEvents, currentTime])
+
+  // 月次統計の計算（メモ化）
+  const monthlyStats = useMemo(() => {
+    const eventsWithTargets = currentMonthEvents.filter((event: any) => event.target_hs_total > 0)
+    const achievedEvents = eventsWithTargets.filter((event: any) =>
+      event.actual_hs_total >= event.target_hs_total
+    )
+
+    const totalTarget = eventsWithTargets.reduce((sum: number, event: any) => sum + event.target_hs_total, 0)
+    const totalActual = eventsWithTargets.reduce((sum: number, event: any) => sum + event.actual_hs_total, 0)
+    const totalMnp = currentMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0), 0)
+    const totalNew = currentMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_au_new || 0) + (event.actual_uq_new || 0), 0)
+    const totalHs = totalMnp + totalNew
+    const mnpRatio = totalHs > 0 ? Math.round((totalMnp / totalHs) * 100) : 0
+
+    return {
+      totalEvents: eventsWithTargets.length,
+      achievedEvents: achievedEvents.length,
+      achievementRate: eventsWithTargets.length > 0 ? Math.round((achievedEvents.length / eventsWithTargets.length) * 100) : 0,
+      totalTarget,
+      totalActual,
+      totalMnp,
+      totalNew,
+      mnpRatio
+    }
+  }, [currentMonthEvents])
+
+  // 年次データの計算（メモ化）
+  const yearlyData = useMemo(() => {
+    const yearlyMonthlyData: any = {}
+    allEvents.forEach((event: any) => {
+      const year = event.year
+      const month = event.month
+      const key = `${year}-${month}`
+      if (!yearlyMonthlyData[key]) {
+        yearlyMonthlyData[key] = {
+          year,
+          month,
+          totalEvents: 0,
+          achievedEvents: 0,
+          achievementRate: 0
+        }
+      }
+
+      if (event.target_hs_total > 0) {
+        yearlyMonthlyData[key].totalEvents++
+        if (event.actual_hs_total >= event.target_hs_total) {
+          yearlyMonthlyData[key].achievedEvents++
+        }
+      }
+    })
+
+    return Object.values(yearlyMonthlyData).map((data: any) => ({
+      ...data,
+      achievementRate: data.totalEvents > 0 ? Math.round((data.achievedEvents / data.totalEvents) * 100) : 0,
+      monthLabel: `${data.year}年${data.month}月`
+    })).sort((a: any, b: any) => {
+      if (a.year !== b.year) return a.year - b.year
+      return a.month - b.month
+    })
+  }, [allEvents])
+
+  // イベントランキングの計算（メモ化）
+  const eventRanking = useMemo(() => {
+    const allEventRanking = currentMonthEvents
+      .map((event: any) => ({
+        id: event.id,
+        eventName: `${event.venue} (${event.start_date?.split('-')[0]}/${event.start_date?.split('-')[1]})` || '名称未設定',
+        venue: event.venue,
+        startDate: event.start_date,
+        totalIds: event.actual_hs_total || 0,
+        auMnp: event.actual_au_mnp || 0,
+        uqMnp: event.actual_uq_mnp || 0,
+        auNew: event.actual_au_new || 0,
+        uqNew: event.actual_uq_new || 0,
+        staffCount: event.staff_performances?.length || 0
+      }))
+      .filter((event: any) => event.totalIds > 0)
+      .sort((a: any, b: any) => b.totalIds - a.totalIds)
+
+    if (allEventRanking.length === 0) return []
+
+    const top5 = allEventRanking.slice(0, 5)
+    if (top5.length === 5) {
+      const fifthPlaceScore = top5[4].totalIds
+      return allEventRanking.filter((event: any) => event.totalIds >= fifthPlaceScore)
+    }
+    return top5
+  }, [currentMonthEvents])
+
+  // 週次データの計算（メモ化）
+  const weeklyIdData = useMemo(() => {
+    const weeklyData: any = {}
+    currentMonthEvents.forEach((event: any) => {
+      const week = event.week_number
+
+      if (!weeklyData[week]) {
+        weeklyData[week] = {
+          week: `第${week}週`,
+          weekNumber: week,
+          totalIds: 0,
+          mnp: 0,
+          new: 0
+        }
+      }
+
+      weeklyData[week].totalIds += event.actual_hs_total || 0
+      weeklyData[week].mnp += (event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0)
+      weeklyData[week].new += (event.actual_au_new || 0) + (event.actual_uq_new || 0)
+    })
+
+    return Object.values(weeklyData).sort((a: any, b: any) => a.weekNumber - b.weekNumber)
+  }, [currentMonthEvents])
+
+  // スタッフランキングの計算（メモ化）
+  const staffRanking = useMemo(() => {
+    if (staffData.length === 0) return []
+
+    const staffStats: any = {}
+
+    staffData.forEach((record: any) => {
+      const staffName = record.staff_name
+
+      if (!staffStats[staffName]) {
+        staffStats[staffName] = {
+          staffName,
+          totalIds: 0,
+          mnp: 0,
+          new: 0,
+          eventCount: new Set()
+        }
+      }
+
+      const mnp = (record.au_mnp_sp1 || 0) + (record.au_mnp_sp2 || 0) + (record.au_mnp_sim || 0) +
+                  (record.uq_mnp_sp1 || 0) + (record.uq_mnp_sp2 || 0) + (record.uq_mnp_sim || 0)
+      const newCount = (record.au_hs_sp1 || 0) + (record.au_hs_sp2 || 0) + (record.au_hs_sim || 0) +
+                       (record.uq_hs_sp1 || 0) + (record.uq_hs_sp2 || 0) + (record.uq_hs_sim || 0)
+
+      staffStats[staffName].mnp += mnp
+      staffStats[staffName].new += newCount
+      staffStats[staffName].totalIds += mnp + newCount
+      staffStats[staffName].eventCount.add(record.event_id)
+    })
+
+    const excludedNames = ['店舗', '他社スタッフ', '他社スタッフA', '他社スタッフB', '他社スタッフC', '他社スタッフD', '他社スタッフE', '他社スタッフF']
+    const allStaffRanking = Object.values(staffStats)
+      .map((staff: any) => ({
+        staffName: staff.staffName,
+        totalIds: staff.totalIds,
+        mnp: staff.mnp,
+        new: staff.new,
+        eventCount: staff.eventCount.size
+      }))
+      .filter((staff: any) => staff.totalIds > 0 && !excludedNames.includes(staff.staffName))
+      .sort((a: any, b: any) => b.totalIds - a.totalIds)
+
+    if (allStaffRanking.length === 0) return []
+
+    const top5 = allStaffRanking.slice(0, 5)
+    if (top5.length === 5) {
+      const fifthPlaceScore = top5[4].totalIds
+      return allStaffRanking.filter((staff: any) => staff.totalIds >= fifthPlaceScore)
+    }
+    return top5
+  }, [staffData])
 
   // 色パレット定義（分析ページと統一・メモ化）
   const COLORS = useMemo(() => [
@@ -844,7 +834,7 @@ export default function Dashboard() {
             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center justify-between text-sm">
                 <span style={{ color: '#22211A' }}>対象期間: {currentTime.getFullYear()}年{currentTime.getMonth() + 1}月</span>
-                <span style={{ color: '#22211A' }}>総ID数: {weeklyIdData.reduce((sum, week) => sum + week.totalIds, 0).toLocaleString()}</span>
+                <span style={{ color: '#22211A' }}>総ID数: {weeklyIdData.reduce((sum: number, week: any) => sum + week.totalIds, 0).toLocaleString()}</span>
               </div>
             </div>
           </div>

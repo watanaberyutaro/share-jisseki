@@ -5,8 +5,10 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import { Calendar, MapPin, Users, TrendingUp, CheckCircle, XCircle, Search, Filter, Building2, Eye, LayoutGrid, List, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
+import { Calendar, MapPin, Users, TrendingUp, CheckCircle, XCircle, Search, Filter, Building2, Eye, LayoutGrid, List, ChevronLeft, ChevronRight, RotateCcw, FileDown } from 'lucide-react'
 import { LoadingAnimation } from '@/components/loading-animation'
+import { generatePDFPreview, EventDataForPDF, PDFPreviewData } from '@/lib/pdf-export'
+import { PDFPreviewModal } from '@/components/pdf-preview-modal'
 
 interface EventSummary {
   id: string
@@ -47,6 +49,9 @@ export function PerformanceListV2() {
   const [viewMode, setViewMode] = useState<'panel' | 'list'>('panel')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+  const [pdfPreview, setPdfPreview] = useState<PDFPreviewData | null>(null)
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
+  const [pdfEventName, setPdfEventName] = useState('')
 
   // 初期化: URLパラメータ > localStorage の優先順位で復元
   useEffect(() => {
@@ -282,6 +287,62 @@ export function PerformanceListV2() {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [totalPages])
+
+  // PDFエクスポートハンドラー（メモ化）
+  const handleExportPDF = useCallback(async (event: EventSummary) => {
+    try {
+      // 詳細データを取得
+      const response = await fetch(`/api/events/${event.id}/detail?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('イベント詳細の取得に失敗しました')
+      }
+
+      const detailData = await response.json()
+
+      const eventData: EventDataForPDF = {
+        id: detailData.id,
+        venue: detailData.venue,
+        agency_name: detailData.agency_name,
+        start_date: detailData.start_date,
+        end_date: detailData.end_date,
+        year: detailData.year,
+        month: detailData.month,
+        week_number: detailData.week_number,
+        include_cellup_in_hs_total: detailData.include_cellup_in_hs_total,
+        target_hs_total: detailData.target_hs_total,
+        actual_hs_total: detailData.actual_hs_total,
+        actual_au_mnp: detailData.actual_au_mnp,
+        actual_uq_mnp: detailData.actual_uq_mnp,
+        actual_au_new: detailData.actual_au_new,
+        actual_uq_new: detailData.actual_uq_new,
+        actual_cellup: detailData.actual_cellup,
+        staff_performances: detailData.staff_performances,
+        photos: detailData.photos,
+        operation_details: detailData.operation_details,
+        preparation_details: detailData.preparation_details,
+        promotion_method: detailData.promotion_method,
+        success_case_1: detailData.success_case_1,
+        success_case_2: detailData.success_case_2,
+        challenges_and_solutions: detailData.challenges_and_solutions
+      }
+
+      // PDFプレビューを生成
+      const previewData = await generatePDFPreview(eventData, true)
+      setPdfPreview(previewData)
+      setPdfEventName(`${event.venue} - ${event.period_display}`)
+      setIsPdfModalOpen(true)
+    } catch (error) {
+      console.error('PDF export failed:', error)
+      alert('PDFのエクスポートに失敗しました')
+    }
+  }, [])
 
   if (loading) {
     return <LoadingAnimation />
@@ -582,14 +643,27 @@ export function PerformanceListV2() {
 
             {/* Action Buttons */}
             <div className="mt-4 pt-4 border-t border-border">
-              <Link
-                href={`/view/${event.id}${getCurrentQueryString() ? `?${getCurrentQueryString()}` : ''}`}
-                className="group flex items-center justify-center w-full px-4 py-2 rounded-lg hover:opacity-90 transition-all duration-200 border font-bold"
-                style={{ backgroundColor: '#FFB300', color: '#FFFFFF', borderColor: '#FFB300' }}
-              >
-                <Eye className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" style={{ color: '#FFFFFF' }} />
-                詳細を見る
-              </Link>
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href={`/view/${event.id}${getCurrentQueryString() ? `?${getCurrentQueryString()}` : ''}`}
+                  className="group flex items-center justify-center px-4 py-2 rounded-lg hover:opacity-90 transition-all duration-200 border font-bold"
+                  style={{ backgroundColor: '#FFB300', color: '#FFFFFF', borderColor: '#FFB300' }}
+                >
+                  <Eye className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" style={{ color: '#FFFFFF' }} />
+                  詳細を見る
+                </Link>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleExportPDF(event)
+                  }}
+                  className="group flex items-center justify-center px-4 py-2 rounded-lg hover:opacity-90 transition-all duration-200 border font-bold"
+                  style={{ backgroundColor: '#22211A', color: '#FFFFFF', borderColor: '#22211A' }}
+                >
+                  <FileDown className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" style={{ color: '#FFFFFF' }} />
+                  PDF
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -674,14 +748,27 @@ export function PerformanceListV2() {
                     </div>
                   </div>
 
-                  <Link
-                    href={`/view/${event.id}${getCurrentQueryString() ? `?${getCurrentQueryString()}` : ''}`}
-                    className="px-2 md:px-3 py-1.5 rounded-lg hover:opacity-90 transition-all flex items-center gap-1 border font-bold shrink-0"
-                    style={{ backgroundColor: '#FFB300', color: '#FFFFFF', borderColor: '#FFB300' }}
-                  >
-                    <Eye className="w-4 md:w-5 h-4 md:h-5" style={{ color: '#FFFFFF' }} />
-                    <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>詳細</span>
-                  </Link>
+                  <div className="flex gap-1">
+                    <Link
+                      href={`/view/${event.id}${getCurrentQueryString() ? `?${getCurrentQueryString()}` : ''}`}
+                      className="px-2 md:px-3 py-1.5 rounded-lg hover:opacity-90 transition-all flex items-center gap-1 border font-bold shrink-0"
+                      style={{ backgroundColor: '#FFB300', color: '#FFFFFF', borderColor: '#FFB300' }}
+                    >
+                      <Eye className="w-4 md:w-5 h-4 md:h-5" style={{ color: '#FFFFFF' }} />
+                      <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>詳細</span>
+                    </Link>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handleExportPDF(event)
+                      }}
+                      className="px-2 md:px-3 py-1.5 rounded-lg hover:opacity-90 transition-all flex items-center gap-1 border font-bold shrink-0"
+                      style={{ backgroundColor: '#22211A', color: '#FFFFFF', borderColor: '#22211A' }}
+                      title="PDFエクスポート"
+                    >
+                      <FileDown className="w-4 md:w-5 h-4 md:h-5" style={{ color: '#FFFFFF' }} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -816,6 +903,17 @@ export function PerformanceListV2() {
             }
           </p>
         </div>
+      )}
+
+      {/* PDF Preview Modal */}
+      {pdfPreview && (
+        <PDFPreviewModal
+          isOpen={isPdfModalOpen}
+          onClose={() => setIsPdfModalOpen(false)}
+          pdfContent={pdfPreview.previewContent}
+          eventName={pdfEventName}
+          onDownload={pdfPreview.downloadFunction}
+        />
       )}
     </div>
   )

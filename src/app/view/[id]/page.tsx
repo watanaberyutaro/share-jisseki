@@ -3,11 +3,13 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Calendar, MapPin, Building2, Users, Camera, Download, ExternalLink, ChevronDown, ChevronRight, Edit } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Building2, Users, Camera, Download, ExternalLink, ChevronDown, ChevronRight, Edit, FileDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { LoadingAnimation } from '@/components/loading-animation'
 import { MagneticDots } from '@/components/MagneticDots'
+import { generatePDFPreview, EventDataForPDF, PDFPreviewData } from '@/lib/pdf-export'
+import { PDFPreviewModal } from '@/components/pdf-preview-modal'
 
 interface EventDetail {
   id: string
@@ -102,6 +104,8 @@ export default function EventDetailPage() {
   const [staffViewMode, setStaffViewMode] = useState<'summary' | 'daily'>('summary')
   const [expandedDailyStaff, setExpandedDailyStaff] = useState<Set<number>>(new Set())
   const [expandedDailyDays, setExpandedDailyDays] = useState<Set<string>>(new Set())
+  const [pdfPreview, setPdfPreview] = useState<PDFPreviewData | null>(null)
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
 
   // URLパラメータから戻り先のフィルター条件を取得（メモ化）
   const getBackUrl = useMemo(() => {
@@ -216,6 +220,48 @@ export default function EventDetailPage() {
     })
   }, [])
 
+  // PDFエクスポートハンドラー（メモ化）
+  const handleExportPDF = useCallback(async () => {
+    if (!event) return
+
+    try {
+      const eventData: EventDataForPDF = {
+        id: event.id,
+        venue: event.venue,
+        agency_name: event.agency_name,
+        start_date: event.start_date,
+        end_date: event.end_date,
+        year: event.year,
+        month: event.month,
+        week_number: event.week_number,
+        include_cellup_in_hs_total: event.include_cellup_in_hs_total,
+        target_hs_total: event.target_hs_total,
+        actual_hs_total: event.actual_hs_total,
+        actual_au_mnp: event.actual_au_mnp,
+        actual_uq_mnp: event.actual_uq_mnp,
+        actual_au_new: event.actual_au_new,
+        actual_uq_new: event.actual_uq_new,
+        actual_cellup: event.actual_cellup,
+        staff_performances: event.staff_performances,
+        photos: event.photos,
+        operation_details: event.operation_details,
+        preparation_details: event.preparation_details,
+        promotion_method: event.promotion_method,
+        success_case_1: event.success_case_1,
+        success_case_2: event.success_case_2,
+        challenges_and_solutions: event.challenges_and_solutions
+      }
+
+      // PDFプレビューを生成
+      const previewData = await generatePDFPreview(eventData, true)
+      setPdfPreview(previewData)
+      setIsPdfModalOpen(true)
+    } catch (error) {
+      console.error('PDF export failed:', error)
+      alert('PDFのエクスポートに失敗しました')
+    }
+  }, [event])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ paddingTop: '80px' }}>
@@ -280,7 +326,16 @@ export default function EventDetailPage() {
                 </div>
               </div>
             </div>
-            <div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleExportPDF}
+                className="inline-flex items-center px-4 py-2 rounded-lg hover:opacity-90 transition-colors border font-bold"
+                style={{ backgroundColor: '#22211A', color: '#FFFFFF', borderColor: '#22211A' }}
+                title="詳細PDFエクスポート"
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                PDF
+              </button>
               <button
                 onClick={() => router.push(`/edit/${event.id}`)}
                 className="inline-flex items-center px-4 py-2 rounded-lg hover:opacity-90 transition-colors border font-bold"
@@ -856,6 +911,17 @@ export default function EventDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* PDF Preview Modal */}
+      {pdfPreview && event && (
+        <PDFPreviewModal
+          isOpen={isPdfModalOpen}
+          onClose={() => setIsPdfModalOpen(false)}
+          pdfContent={pdfPreview.previewContent}
+          eventName={`${event.venue} - ${format(new Date(event.start_date), 'yyyy年M月d日', { locale: ja })} 〜 ${format(new Date(event.end_date), 'M月d日', { locale: ja })}`}
+          onDownload={pdfPreview.downloadFunction}
+        />
       )}
       </div>
     </div>

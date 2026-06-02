@@ -465,24 +465,24 @@ export function PerformanceListV2() {
                   ))}
                 </select>
 
-                {/* 代理店階層 */}
+                {/* 商流 */}
                 <select
                   value={agencyTierFilter}
                   onChange={(e) => setAgencyTierFilter(e.target.value as typeof agencyTierFilter)}
                   className="px-2 md:px-3 py-1.5 md:py-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-xs md:text-sm appearance-none bg-no-repeat bg-right pr-6 md:pr-8" style={{ border: '1px solid #22211A', color: '#22211A', backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMS41TDYgNi41TDExIDEuNSIgc3Ryb2tlPSIjMjIyMTFBIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+")', backgroundPosition: 'right 8px center', backgroundSize: '10px 6px' }}
                 >
-                  <option value="all">全階層</option>
+                  <option value="all">全商流</option>
                   <option value="一次">一次</option>
                   <option value="二次">二次</option>
                 </select>
 
-                {/* イベント種別 */}
+                {/* イベントタイプ */}
                 <select
                   value={eventTypeFilter}
                   onChange={(e) => setEventTypeFilter(e.target.value as typeof eventTypeFilter)}
                   className="px-2 md:px-3 py-1.5 md:py-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-xs md:text-sm appearance-none bg-no-repeat bg-right pr-6 md:pr-8" style={{ border: '1px solid #22211A', color: '#22211A', backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMS41TDYgNi41TDExIDEuNSIgc3Ryb2tlPSIjMjIyMTFBIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+")', backgroundPosition: 'right 8px center', backgroundSize: '10px 6px' }}
                 >
-                  <option value="all">全種別</option>
+                  <option value="all">全タイプ</option>
                   <option value="外販">外販</option>
                   <option value="店頭">店頭</option>
                 </select>

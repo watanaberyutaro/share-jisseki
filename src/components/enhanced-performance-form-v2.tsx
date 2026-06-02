@@ -122,10 +122,10 @@ const performanceFormSchema = z.object({
   venue: z.string().min(1, '会場を入力してください'),
   agencyName: z.string().min(1, '代理店名を入力してください'),
   agencyTier: z.enum(['一次', '二次'], {
-    errorMap: () => ({ message: '代理店階層を選択してください' })
+    errorMap: () => ({ message: '商流を選択してください' })
   }),
   eventType: z.enum(['外販', '店頭'], {
-    errorMap: () => ({ message: 'イベント種別を選択してください' })
+    errorMap: () => ({ message: 'イベントタイプを選択してください' })
   }),
   startDate: z.string().min(1, '開始日を選択してください'),
   endDate: z.string().min(1, '終了日を選択してください'),
@@ -1427,11 +1427,11 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
           </div>
         </div>
 
-        {/* 代理店階層とイベント種別 */}
+        {/* 商流とイベントタイプ */}
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: '#22211A' }}>
-              代理店階層
+              商流
             </label>
             <select
               {...register('agencyTier')}
@@ -1448,7 +1448,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
 
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: '#22211A' }}>
-              イベント種別
+              イベントタイプ
             </label>
             <select
               {...register('eventType')}

@@ -404,18 +404,14 @@ export function PerformanceListV2() {
           </div>
 
           {/* フィルターと表示切り替え */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex flex-col gap-3">
             {/* フィルター部分 */}
-            <div className="w-full md:flex-1">
-              <div className="flex items-center gap-2 mb-2 md:hidden">
-                <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
-                <span className="text-xs font-medium" style={{ color: '#22211A' }}>絞り込み</span>
+            <div className="w-full">
+              <div className="flex items-center justify-center gap-2 mb-2 md:mb-3">
+                <Filter className="w-4 md:w-5 h-4 md:h-5" style={{ color: '#22211A' }} />
+                <span className="text-xs md:text-sm font-medium" style={{ color: '#22211A' }}>絞り込み</span>
               </div>
-              <div className="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2">
-                <div className="hidden md:flex items-center mr-2">
-                  <Filter className="w-5 h-5 mr-2" style={{ color: '#22211A' }} />
-                  <span className="text-sm font-medium" style={{ color: '#22211A' }}>絞り込み:</span>
-                </div>
+              <div className="grid grid-cols-2 md:flex md:flex-wrap items-center justify-center gap-2">
 
                 {/* 年 */}
                 <select
@@ -524,7 +520,7 @@ export function PerformanceListV2() {
             </div>
 
             {/* 表示切り替えボタン */}
-            <div className="flex items-center justify-center md:justify-start bg-muted border rounded-lg p-1" style={{ borderColor: '#22211A' }}>
+            <div className="flex items-center justify-center bg-muted border rounded-lg p-1 mx-auto" style={{ borderColor: '#22211A', width: 'fit-content' }}>
               <button
                 onClick={() => setViewMode('panel')}
                 className="p-1.5 md:p-2 rounded-md transition-all"

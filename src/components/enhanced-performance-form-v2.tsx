@@ -121,6 +121,12 @@ const performanceFormSchema = z.object({
   // イベント基本情報
   venue: z.string().min(1, '会場を入力してください'),
   agencyName: z.string().min(1, '代理店名を入力してください'),
+  agencyTier: z.enum(['一次', '二次'], {
+    errorMap: () => ({ message: '代理店階層を選択してください' })
+  }),
+  eventType: z.enum(['外販', '店頭'], {
+    errorMap: () => ({ message: 'イベント種別を選択してください' })
+  }),
   startDate: z.string().min(1, '開始日を選択してください'),
   endDate: z.string().min(1, '終了日を選択してください'),
   year: z.number().min(2020).max(2030),
@@ -336,6 +342,8 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
       return {
         venue: initialData.venue || '',
         agencyName: initialData.agency_name || '',
+        agencyTier: initialData.agency_tier || '一次',
+        eventType: initialData.event_type || '外販',
         startDate: initialData.start_date || format(new Date(), 'yyyy-MM-dd'),
         endDate: initialData.end_date || format(new Date(), 'yyyy-MM-dd'),
         year: initialData.year || currentYear,
@@ -358,11 +366,27 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     }
 
     return {
+      venue: '',
+      agencyName: '',
+      agencyTier: '一次' as const,
+      eventType: '外販' as const,
       startDate: format(new Date(), 'yyyy-MM-dd'),
       endDate: format(new Date(), 'yyyy-MM-dd'),
       year: currentYear,
       month: currentMonth,
       weekNumber: currentWeek,
+      includeCellupInHsTotal: false,
+      targetHsTotal: 0,
+      targetAuMnp: 0,
+      targetUqMnp: 0,
+      targetAuNew: 0,
+      targetUqNew: 0,
+      operationDetails: '',
+      preparationDetails: '',
+      promotionMethod: '',
+      successCase1: '',
+      successCase2: '',
+      challengesAndSolutions: '',
       staffPerformances: [
         {
           staffName: '',
@@ -1402,7 +1426,44 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
             )}
           </div>
         </div>
-        
+
+        {/* 代理店階層とイベント種別 */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#22211A' }}>
+              代理店階層
+            </label>
+            <select
+              {...register('agencyTier')}
+              className="w-full px-3 py-2 bg-background/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#22211A33] transition-all"
+              style={{ border: `1px solid ${errors.agencyTier ? '#dc2626' : '#22211A'}`, color: '#22211A' }}
+            >
+              <option value="一次">一次</option>
+              <option value="二次">二次</option>
+            </select>
+            {errors.agencyTier && (
+              <p className="mt-1 text-sm" style={{ color: '#dc2626' }}>{errors.agencyTier.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#22211A' }}>
+              イベント種別
+            </label>
+            <select
+              {...register('eventType')}
+              className="w-full px-3 py-2 bg-background/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#22211A33] transition-all"
+              style={{ border: `1px solid ${errors.eventType ? '#dc2626' : '#22211A'}`, color: '#22211A' }}
+            >
+              <option value="外販">外販</option>
+              <option value="店頭">店頭</option>
+            </select>
+            {errors.eventType && (
+              <p className="mt-1 text-sm" style={{ color: '#dc2626' }}>{errors.eventType.message}</p>
+            )}
+          </div>
+        </div>
+
         {/* 期間設定 */}
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>

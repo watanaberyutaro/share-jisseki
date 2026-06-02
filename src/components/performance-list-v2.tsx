@@ -14,6 +14,8 @@ interface EventSummary {
   id: string
   venue: string
   agency_name: string
+  agency_tier?: string | null
+  event_type?: string | null
   start_date: string
   end_date: string
   year: number
@@ -44,6 +46,8 @@ export function PerformanceListV2() {
   const [monthFilter, setMonthFilter] = useState<number | 'all'>('all')
   const [weekFilter, setWeekFilter] = useState<number | 'all'>('all')
   const [agencyFilter, setAgencyFilter] = useState<string | 'all'>('all')
+  const [agencyTierFilter, setAgencyTierFilter] = useState<'all' | '一次' | '二次'>('all')
+  const [eventTypeFilter, setEventTypeFilter] = useState<'all' | '外販' | '店頭'>('all')
   const [achievementFilter, setAchievementFilter] = useState<'all' | 'achieved' | 'achieved_70' | 'not_achieved'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'actual_hs_total' | 'venue'>('date')
   const [viewMode, setViewMode] = useState<'panel' | 'list'>('panel')
@@ -59,17 +63,21 @@ export function PerformanceListV2() {
     const urlMonth = searchParams?.get('month')
     const urlWeek = searchParams?.get('week')
     const urlAgency = searchParams?.get('agency')
+    const urlAgencyTier = searchParams?.get('agencyTier')
+    const urlEventType = searchParams?.get('eventType')
     const urlAchievement = searchParams?.get('achievement')
     const urlSort = searchParams?.get('sort')
     const urlSearch = searchParams?.get('search')
     const urlView = searchParams?.get('view')
 
     // URLパラメータがある場合は優先
-    if (urlYear || urlMonth || urlWeek || urlAgency || urlAchievement || urlSort || urlSearch || urlView) {
+    if (urlYear || urlMonth || urlWeek || urlAgency || urlAgencyTier || urlEventType || urlAchievement || urlSort || urlSearch || urlView) {
       if (urlYear) setYearFilter(urlYear === 'all' ? 'all' : Number(urlYear))
       if (urlMonth) setMonthFilter(urlMonth === 'all' ? 'all' : Number(urlMonth))
       if (urlWeek) setWeekFilter(urlWeek === 'all' ? 'all' : Number(urlWeek))
       if (urlAgency) setAgencyFilter(urlAgency)
+      if (urlAgencyTier) setAgencyTierFilter(urlAgencyTier as any)
+      if (urlEventType) setEventTypeFilter(urlEventType as any)
       if (urlAchievement) setAchievementFilter(urlAchievement as any)
       if (urlSort) setSortBy(urlSort as any)
       if (urlSearch) setSearchTerm(urlSearch)
@@ -85,6 +93,8 @@ export function PerformanceListV2() {
           setMonthFilter(filters.monthFilter || 'all')
           setWeekFilter(filters.weekFilter || 'all')
           setAgencyFilter(filters.agencyFilter || 'all')
+          setAgencyTierFilter(filters.agencyTierFilter || 'all')
+          setEventTypeFilter(filters.eventTypeFilter || 'all')
           setAchievementFilter(filters.achievementFilter || 'all')
           setSortBy(filters.sortBy || 'date')
           setViewMode(filters.viewMode || 'panel')
@@ -103,6 +113,8 @@ export function PerformanceListV2() {
       monthFilter,
       weekFilter,
       agencyFilter,
+      agencyTierFilter,
+      eventTypeFilter,
       achievementFilter,
       sortBy,
       viewMode
@@ -122,6 +134,8 @@ export function PerformanceListV2() {
     if (monthFilter !== 'all') params.set('month', String(monthFilter))
     if (weekFilter !== 'all') params.set('week', String(weekFilter))
     if (agencyFilter !== 'all') params.set('agency', agencyFilter)
+    if (agencyTierFilter !== 'all') params.set('agencyTier', agencyTierFilter)
+    if (eventTypeFilter !== 'all') params.set('eventType', eventTypeFilter)
     if (achievementFilter !== 'all') params.set('achievement', achievementFilter)
     if (sortBy !== 'date') params.set('sort', sortBy)
     if (viewMode !== 'panel') params.set('view', viewMode)
@@ -129,7 +143,7 @@ export function PerformanceListV2() {
     const queryString = params.toString()
     const newUrl = queryString ? `/view?${queryString}` : '/view'
     router.replace(newUrl, { scroll: false })
-  }, [searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, achievementFilter, sortBy, viewMode])
+  }, [searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, agencyTierFilter, eventTypeFilter, achievementFilter, sortBy, viewMode])
 
   // リセット関数
   const handleReset = useCallback(() => {
@@ -138,6 +152,8 @@ export function PerformanceListV2() {
     setMonthFilter('all')
     setWeekFilter('all')
     setAgencyFilter('all')
+    setAgencyTierFilter('all')
+    setEventTypeFilter('all')
     setAchievementFilter('all')
     setSortBy('date')
     setViewMode('panel')
@@ -230,6 +246,12 @@ export function PerformanceListV2() {
         if (weekFilter !== 'all' && event.week_number !== weekFilter) return false
         if (agencyFilter !== 'all' && event.agency_name !== agencyFilter) return false
 
+        // 代理店階層フィルター
+        if (agencyTierFilter !== 'all' && event.agency_tier !== agencyTierFilter) return false
+
+        // イベント種別フィルター
+        if (eventTypeFilter !== 'all' && event.event_type !== eventTypeFilter) return false
+
         // 達成フィルター
         if (achievementFilter !== 'all') {
           if (event.target_hs_total === 0) {
@@ -265,7 +287,7 @@ export function PerformanceListV2() {
             return 0
         }
       })
-  }, [events, searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, achievementFilter, sortBy])
+  }, [events, searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, agencyTierFilter, eventTypeFilter, achievementFilter, sortBy])
 
   // ページネーション計算（メモ化）
   const paginationData = useMemo(() => {
@@ -441,6 +463,28 @@ export function PerformanceListV2() {
                   {availableAgencies.map(agency => (
                     <option key={agency} value={agency}>{agency}</option>
                   ))}
+                </select>
+
+                {/* 代理店階層 */}
+                <select
+                  value={agencyTierFilter}
+                  onChange={(e) => setAgencyTierFilter(e.target.value as typeof agencyTierFilter)}
+                  className="px-2 md:px-3 py-1.5 md:py-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-xs md:text-sm appearance-none bg-no-repeat bg-right pr-6 md:pr-8" style={{ border: '1px solid #22211A', color: '#22211A', backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMS41TDYgNi41TDExIDEuNSIgc3Ryb2tlPSIjMjIyMTFBIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+")', backgroundPosition: 'right 8px center', backgroundSize: '10px 6px' }}
+                >
+                  <option value="all">全階層</option>
+                  <option value="一次">一次</option>
+                  <option value="二次">二次</option>
+                </select>
+
+                {/* イベント種別 */}
+                <select
+                  value={eventTypeFilter}
+                  onChange={(e) => setEventTypeFilter(e.target.value as typeof eventTypeFilter)}
+                  className="px-2 md:px-3 py-1.5 md:py-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-xs md:text-sm appearance-none bg-no-repeat bg-right pr-6 md:pr-8" style={{ border: '1px solid #22211A', color: '#22211A', backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMS41TDYgNi41TDExIDEuNSIgc3Ryb2tlPSIjMjIyMTFBIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+")', backgroundPosition: 'right 8px center', backgroundSize: '10px 6px' }}
+                >
+                  <option value="all">全種別</option>
+                  <option value="外販">外販</option>
+                  <option value="店頭">店頭</option>
                 </select>
 
                 {/* 達成状態 */}

@@ -58,6 +58,8 @@ export async function PUT(
       .update({
         venue: data.venue,
         agency_name: data.agencyName,
+        agency_tier: data.agencyTier || null,
+        event_type: data.eventType || null,
         start_date: data.startDate,
         end_date: data.endDate,
         year: data.year,

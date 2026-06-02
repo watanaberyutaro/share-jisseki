@@ -505,44 +505,47 @@ export function PerformanceListV2() {
                   <option value="actual_hs_total">実績順</option>
                   <option value="venue">会場順</option>
                 </select>
-
-                {/* リセットボタン */}
-                <button
-                  onClick={handleReset}
-                  className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg border transition-all hover:opacity-80 flex items-center gap-1 text-xs md:text-sm"
-                  style={{ borderColor: '#22211A', color: '#22211A' }}
-                  title="検索条件をリセット"
-                >
-                  <RotateCcw className="w-3 md:w-4 h-3 md:h-4" />
-                  <span className="hidden md:inline">リセット</span>
-                </button>
               </div>
             </div>
 
-            {/* 表示切り替えボタン */}
-            <div className="flex items-center justify-center bg-muted border rounded-lg p-1 mx-auto" style={{ borderColor: '#22211A', width: 'fit-content' }}>
+            {/* リセットボタンと表示切り替えボタン */}
+            <div className="flex items-center justify-center gap-3">
+              {/* リセットボタン */}
               <button
-                onClick={() => setViewMode('panel')}
-                className="p-1.5 md:p-2 rounded-md transition-all"
-                style={{
-                  backgroundColor: viewMode === 'panel' ? '#22211A' : 'transparent',
-                  color: viewMode === 'panel' ? '#FFFFFF' : '#22211A'
-                }}
-                title="パネル表示"
+                onClick={handleReset}
+                className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg border transition-all hover:opacity-80 flex items-center gap-1 text-xs md:text-sm"
+                style={{ borderColor: '#22211A', color: '#22211A' }}
+                title="検索条件をリセット"
               >
-                <LayoutGrid className="w-4 md:w-5 h-4 md:h-5" />
+                <RotateCcw className="w-3 md:w-4 h-3 md:h-4" />
+                <span className="hidden md:inline">リセット</span>
               </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className="p-1.5 md:p-2 rounded-md transition-all"
-                style={{
-                  backgroundColor: viewMode === 'list' ? '#22211A' : 'transparent',
-                  color: viewMode === 'list' ? '#FFFFFF' : '#22211A'
-                }}
-                title="リスト表示"
-              >
-                <List className="w-4 md:w-5 h-4 md:h-5" />
-              </button>
+
+              {/* 表示切り替えボタン */}
+              <div className="flex items-center bg-muted border rounded-lg p-1" style={{ borderColor: '#22211A' }}>
+                <button
+                  onClick={() => setViewMode('panel')}
+                  className="p-1.5 md:p-2 rounded-md transition-all"
+                  style={{
+                    backgroundColor: viewMode === 'panel' ? '#22211A' : 'transparent',
+                    color: viewMode === 'panel' ? '#FFFFFF' : '#22211A'
+                  }}
+                  title="パネル表示"
+                >
+                  <LayoutGrid className="w-4 md:w-5 h-4 md:h-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className="p-1.5 md:p-2 rounded-md transition-all"
+                  style={{
+                    backgroundColor: viewMode === 'list' ? '#22211A' : 'transparent',
+                    color: viewMode === 'list' ? '#FFFFFF' : '#22211A'
+                  }}
+                  title="リスト表示"
+                >
+                  <List className="w-4 md:w-5 h-4 md:h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

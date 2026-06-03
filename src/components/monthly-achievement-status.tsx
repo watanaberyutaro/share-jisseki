@@ -1,8 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Target, ChevronLeft, ChevronRight, Calendar, Search, GitCompare } from 'lucide-react'
+import { Target, ChevronLeft, ChevronRight, Calendar, Search, GitCompare, Filter } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import {
+  StaffFilterConfig,
+  DEFAULT_STAFF_FILTER,
+  INTERNAL_ONLY_FILTER,
+  getFilterDisplayName,
+  aggregateFilteredPerformances
+} from '@/lib/staff-filter'
 
 interface MonthlyAchievementStatusProps {
   year?: number | 'all'
@@ -24,6 +31,7 @@ export function MonthlyAchievementStatus({ year, month, onCompare }: MonthlyAchi
   const [tempYear, setTempYear] = useState(selectedDate.getFullYear())
   const [tempMonth, setTempMonth] = useState(selectedDate.getMonth() + 1)
   const [isControlledByProps, setIsControlledByProps] = useState(false)
+  const [staffFilter, setStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
   const [monthlyStats, setMonthlyStats] = useState({
     totalEvents: 0,
     achievedEvents: 0,
@@ -88,37 +96,78 @@ export function MonthlyAchievementStatus({ year, month, onCompare }: MonthlyAchi
   useEffect(() => {
     const fetchMonthlyStats = async () => {
       try {
-        const response = await fetch('/api/performances/enhanced-v2', {
+        // Fetch events
+        const eventsResponse = await fetch('/api/performances/enhanced-v2', {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache'
           }
         })
-        if (response.ok) {
-          const data = await response.json()
+
+        // Fetch staff performances
+        const staffResponse = await fetch('/api/performances/staff', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
+
+        if (eventsResponse.ok && staffResponse.ok) {
+          const events = await eventsResponse.json()
+          const staffPerformances = await staffResponse.json()
           const currentMonth = selectedDate.getMonth() + 1
           const currentYear = selectedDate.getFullYear()
 
-          const currentMonthEvents = data.filter((event: any) =>
+          const currentMonthEvents = events.filter((event: any) =>
             event.month === currentMonth && event.year === currentYear
           )
 
-          const eventsWithTargets = currentMonthEvents.filter((event: any) => event.target_hs_total > 0)
-          const achievedEvents = eventsWithTargets.filter((event: any) =>
-            event.actual_hs_total >= event.target_hs_total
-          )
+          // Apply staff filter to current month events
+          const filteredEvents = currentMonthEvents.filter((event: any) => {
+            const eventStaffPerformances = staffPerformances.filter((sp: any) => sp.event_id === event.id)
+            if (eventStaffPerformances.length === 0) return true
 
-          const totalTarget = eventsWithTargets.reduce((sum: number, event: any) => sum + event.target_hs_total, 0)
-          const totalActual = eventsWithTargets.reduce((sum: number, event: any) => sum + event.actual_hs_total, 0)
-          const totalMnp = currentMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0), 0)
-          const totalNew = currentMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_au_new || 0) + (event.actual_uq_new || 0), 0)
+            const filteredStaffPerformances = aggregateFilteredPerformances(eventStaffPerformances, staffFilter)
+            return filteredStaffPerformances.hs_total > 0
+          })
+
+          // Calculate stats based on filtered staff performances for each event
+          let totalMnp = 0
+          let totalNew = 0
+          let totalTarget = 0
+          let totalActual = 0
+          let achievedCount = 0
+          let eventWithTargetCount = 0
+
+          filteredEvents.forEach((event: any) => {
+            const eventStaffPerformances = staffPerformances.filter((sp: any) => sp.event_id === event.id)
+            const filteredStaffPerformances = aggregateFilteredPerformances(eventStaffPerformances, staffFilter)
+
+            const eventMnp = filteredStaffPerformances.au_mnp + filteredStaffPerformances.uq_mnp
+            const eventNew = filteredStaffPerformances.au_new + filteredStaffPerformances.uq_new
+            const eventTotal = eventMnp + eventNew
+
+            totalMnp += eventMnp
+            totalNew += eventNew
+
+            if (event.target_hs_total > 0) {
+              eventWithTargetCount++
+              totalTarget += event.target_hs_total
+              totalActual += eventTotal
+
+              if (eventTotal >= event.target_hs_total) {
+                achievedCount++
+              }
+            }
+          })
+
           const totalHs = totalMnp + totalNew
           const mnpRatio = totalHs > 0 ? Math.round((totalMnp / totalHs) * 100) : 0
 
           setMonthlyStats({
-            totalEvents: eventsWithTargets.length,
-            achievedEvents: achievedEvents.length,
-            achievementRate: eventsWithTargets.length > 0 ? Math.round((achievedEvents.length / eventsWithTargets.length) * 100) : 0,
+            totalEvents: eventWithTargetCount,
+            achievedEvents: achievedCount,
+            achievementRate: eventWithTargetCount > 0 ? Math.round((achievedCount / eventWithTargetCount) * 100) : 0,
             totalTarget,
             totalActual,
             totalMnp,
@@ -134,7 +183,7 @@ export function MonthlyAchievementStatus({ year, month, onCompare }: MonthlyAchi
     }
 
     fetchMonthlyStats()
-  }, [selectedDate.getMonth(), selectedDate.getFullYear()])
+  }, [selectedDate.getMonth(), selectedDate.getFullYear(), staffFilter])
 
   return (
     <div className="glass rounded-lg border p-6" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
@@ -189,6 +238,57 @@ export function MonthlyAchievementStatus({ year, month, onCompare }: MonthlyAchi
               比較
             </button>
           )}
+        </div>
+      </div>
+
+      {/* スタッフ区分フィルター */}
+      <div className="flex items-center gap-2 mb-4 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+        <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+        <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
+        <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+          {getFilterDisplayName(staffFilter)}
+        </span>
+        <div className="flex items-center gap-1.5 ml-2">
+          <button
+            onClick={() => setStaffFilter(DEFAULT_STAFF_FILTER)}
+            className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+              staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore
+                ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+            }`}
+          >
+            全体
+          </button>
+          <button
+            onClick={() => setStaffFilter(INTERNAL_ONLY_FILTER)}
+            className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+              staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore
+                ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+            }`}
+          >
+            自社のみ
+          </button>
+          <button
+            onClick={() => setStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
+            className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+              staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore
+                ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+            }`}
+          >
+            他社除外
+          </button>
+          <button
+            onClick={() => setStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
+            className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+              staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore
+                ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+            }`}
+          >
+            店舗除外
+          </button>
         </div>
       </div>
 

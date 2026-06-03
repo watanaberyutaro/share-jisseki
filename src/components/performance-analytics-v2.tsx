@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { TrendingUp, Users, Calendar, Award, Filter, Search, MapPin, Building2, ChevronDown, Download, GitCompare, Trophy, Medal } from 'lucide-react'
@@ -10,11 +10,20 @@ import { LoadingAnimation } from '@/components/loading-animation'
 import { MonthlyAchievementStatus } from '@/components/monthly-achievement-status'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import {
+  StaffFilterConfig,
+  DEFAULT_STAFF_FILTER,
+  INTERNAL_ONLY_FILTER,
+  getFilterDisplayName,
+  aggregateFilteredPerformances
+} from '@/lib/staff-filter'
 
 interface EventSummary {
   id: string
   venue: string
   agency_name: string
+  agency_tier?: string
+  event_type?: string
   year: number
   month: number
   week_number: number
@@ -104,11 +113,15 @@ export function PerformanceAnalyticsV2({
   const [weekFilter, setWeekFilter] = useState<number | 'all'>('all')
   const [venueFilter, setVenueFilter] = useState<string>('all')
   const [agencyFilter, setAgencyFilter] = useState<string>('all')
+  const [agencyTierFilter, setAgencyTierFilter] = useState<'all' | '一次' | '二次'>('all')
+  const [eventTypeFilter, setEventTypeFilter] = useState<'all' | '外販' | '店頭'>('all')
+  const [staffFilter, setStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // ランキング用の状態
   const [eventRanking, setEventRanking] = useState<any[]>([])
   const [rankingYear, setRankingYear] = useState<number | 'all'>('all')
   const [rankingMonth, setRankingMonth] = useState<number | 'all'>('all')
+  const [rankingStaffFilter, setRankingStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // 一括分析条件用の期間選択
   const [bulkStartDate, setBulkStartDate] = useState<string>('')
@@ -125,26 +138,31 @@ export function PerformanceAnalyticsV2({
   const [chartStartDate, setChartStartDate] = useState<string>('')
   const [chartEndDate, setChartEndDate] = useState<string>('')
   const [isVenueSelectOpen, setIsVenueSelectOpen] = useState(false)
+  const [venueMonthlyStaffFilter, setVenueMonthlyStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // 月次イベント達成率推移グラフ用の状態
   const [achievementStartDate, setAchievementStartDate] = useState<string>('')
   const [achievementEndDate, setAchievementEndDate] = useState<string>('')
   const [isAchievementDateManuallySet, setIsAchievementDateManuallySet] = useState(false)
+  const [achievementStaffFilter, setAchievementStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // 週次実績グラフ用の状態
   const [weeklyStartDate, setWeeklyStartDate] = useState<string>('')
   const [weeklyEndDate, setWeeklyEndDate] = useState<string>('')
   const [isWeeklyDateManuallySet, setIsWeeklyDateManuallySet] = useState(false)
+  const [weeklyStaffFilter, setWeeklyStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // 実績レベル分析用の状態
   const [levelStartDate, setLevelStartDate] = useState<string>('')
   const [levelEndDate, setLevelEndDate] = useState<string>('')
   const [isLevelDateManuallySet, setIsLevelDateManuallySet] = useState(false)
+  const [levelStaffFilter, setLevelStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // 目標達成状況用の状態
   const [achievementStatusStartDate, setAchievementStatusStartDate] = useState<string>('')
   const [achievementStatusEndDate, setAchievementStatusEndDate] = useState<string>('')
   const [isAchievementStatusDateManuallySet, setIsAchievementStatusDateManuallySet] = useState(false)
+  const [achievementStatusStaffFilter, setAchievementStatusStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // 代理店別実績用の状態
   const [agencyStartDate, setAgencyStartDate] = useState<string>('')
@@ -152,6 +170,7 @@ export function PerformanceAnalyticsV2({
   const [isAgencyDateManuallySet, setIsAgencyDateManuallySet] = useState(false)
   const [selectedAgencies, setSelectedAgencies] = useState<string[]>([])
   const [isAgencySelectOpen, setIsAgencySelectOpen] = useState(false)
+  const [agencyStaffFilter, setAgencyStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // 会場別実績用の状態
   const [venueStartDate, setVenueStartDate] = useState<string>('')
@@ -159,6 +178,7 @@ export function PerformanceAnalyticsV2({
   const [isVenueDateManuallySet, setIsVenueDateManuallySet] = useState(false)
   const [selectedVenuesVenue, setSelectedVenuesVenue] = useState<string[]>([])
   const [isVenueVenueSelectOpen, setIsVenueVenueSelectOpen] = useState(false)
+  const [venueStaffFilter, setVenueStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // スタッフ別週次獲得件数用の状態
   const [staffWeeklyYear, setStaffWeeklyYear] = useState<string>('')
@@ -171,6 +191,10 @@ export function PerformanceAnalyticsV2({
   const [eventMonth, setEventMonth] = useState<string>('')
   const [selectedEventAgencies, setSelectedEventAgencies] = useState<string[]>([])
   const [isEventAgencySelectOpen, setIsEventAgencySelectOpen] = useState(false)
+  const [eventWeeklyStaffFilter, setEventWeeklyStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
+
+  // 月次達成状況用の状態
+  const [monthlyStatusStaffFilter, setMonthlyStatusStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // PDF生成用のref
   const contentRef = useRef<HTMLDivElement>(null)
@@ -216,6 +240,51 @@ export function PerformanceAnalyticsV2({
     }
   }
 
+  // スタッフフィルター適用のヘルパー関数
+  const applyStaffFilterToEvents = useCallback((eventsToFilter: any[], filter: StaffFilterConfig) => {
+    // デフォルトフィルター（全て含む）の場合は元のイベントデータをそのまま返す
+    if (filter.includeInternal && filter.includeExternal && filter.includeStore) {
+      return eventsToFilter
+    }
+
+    // スタッフデータがない場合も元のイベントデータを返す
+    if (staffPerformances.length === 0) {
+      return eventsToFilter
+    }
+
+    // イベントごとにスタッフフィルターを適用して再計算
+    return eventsToFilter.map((event: any) => {
+      // このイベントのスタッフパフォーマンスを取得
+      const eventStaffPerformances = staffPerformances.filter((sp: any) => sp.event_id === event.id)
+
+      if (eventStaffPerformances.length === 0) {
+        // スタッフデータがない場合は元のイベントを返す
+        return event
+      }
+
+      // フィルター適用して集計
+      const aggregated = aggregateFilteredPerformances(eventStaffPerformances, filter)
+
+      // イベントデータのコピーを作成し、実績値を再計算した値で置き換え
+      return {
+        ...event,
+        actual_au_mnp: aggregated.au_mnp,
+        actual_uq_mnp: aggregated.uq_mnp,
+        actual_au_new: aggregated.au_new,
+        actual_uq_new: aggregated.uq_new,
+        actual_hs_total: aggregated.hs_total,
+        credit_card: aggregated.credit_card,
+        gold_card: aggregated.gold_card,
+        ji_bank_account: aggregated.ji_bank_account,
+        warranty: aggregated.warranty,
+        ott: aggregated.ott,
+        electricity: aggregated.electricity,
+        gas: aggregated.gas,
+        network_count: aggregated.network_count
+      }
+    })
+  }, [staffPerformances])
+
   // ランキング計算
   useEffect(() => {
     if (events.length === 0) return
@@ -226,7 +295,10 @@ export function PerformanceAnalyticsV2({
       return matchesYear && matchesMonth
     })
 
-    const allEventRanking = filteredEvents
+    // スタッフ区分フィルターを適用
+    const staffFilteredEvents = applyStaffFilterToEvents(filteredEvents, rankingStaffFilter)
+
+    const allEventRanking = staffFilteredEvents
       .map((event: any) => ({
         id: event.id,
         eventName: `${event.venue} (${event.start_date?.split('-')[0]}/${event.start_date?.split('-')[1]})` || '名称未設定',
@@ -257,7 +329,7 @@ export function PerformanceAnalyticsV2({
     }
 
     setEventRanking(eventRankingData)
-  }, [events, rankingYear, rankingMonth])
+  }, [events, rankingYear, rankingMonth, rankingStaffFilter, applyStaffFilterToEvents])
 
   // 分析実行関数
   const handleAnalyze = () => {
@@ -479,12 +551,483 @@ export function PerformanceAnalyticsV2({
       (monthFilter === 'all' || event.month === monthFilter) &&
       (weekFilter === 'all' || event.week_number === weekFilter) &&
       (venueFilter === 'all' || event.venue === venueFilter) &&
-      (agencyFilter === 'all' || event.agency_name === agencyFilter)
+      (agencyFilter === 'all' || event.agency_name === agencyFilter) &&
+      (agencyTierFilter === 'all' || event.agency_tier === agencyTierFilter) &&
+      (eventTypeFilter === 'all' || event.event_type === eventTypeFilter)
     )
   })
 
+  // スタッフフィルター適用後のイベントデータ（useMemoで最適化）
+  const staffFilteredEvents = useMemo(() => {
+    // デフォルトフィルター（全て含む）の場合は元のイベントデータをそのまま返す
+    if (staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore) {
+      return filteredEvents
+    }
+
+    // スタッフデータがない場合も元のイベントデータを返す
+    if (staffPerformances.length === 0) {
+      return filteredEvents
+    }
+
+    // イベントごとにスタッフフィルターを適用して再計算
+    return filteredEvents.map((event: any) => {
+      // このイベントのスタッフパフォーマンスを取得
+      const eventStaffPerformances = staffPerformances.filter((sp: any) => sp.event_id === event.id)
+
+      if (eventStaffPerformances.length === 0) {
+        // スタッフデータがない場合は元のイベントを返す
+        return event
+      }
+
+      // フィルター適用して集計
+      const aggregated = aggregateFilteredPerformances(eventStaffPerformances, staffFilter)
+
+      // イベントデータのコピーを作成し、実績値を再計算した値で置き換え
+      return {
+        ...event,
+        actual_au_mnp: aggregated.au_mnp,
+        actual_uq_mnp: aggregated.uq_mnp,
+        actual_au_new: aggregated.au_new,
+        actual_uq_new: aggregated.uq_new,
+        actual_hs_total: aggregated.hs_total,
+        credit_card: aggregated.credit_card,
+        gold_card: aggregated.gold_card,
+        ji_bank_account: aggregated.ji_bank_account,
+        warranty: aggregated.warranty,
+        ott: aggregated.ott,
+        electricity: aggregated.electricity,
+        gas: aggregated.gas,
+        network_count: aggregated.network_count
+      }
+    })
+  }, [filteredEvents, staffPerformances, staffFilter])
+
+  // 月次イベント達成率推移の独立したデータ計算
+  const monthlyAchievementTrendData = useMemo(() => {
+    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, achievementStaffFilter)
+
+    if (panelFilteredEvents.length === 0) return []
+
+    const monthlyAchievementData = panelFilteredEvents.reduce((acc, event) => {
+      const key = `${event.year}/${String(event.month).padStart(2, '0')}`
+      if (!acc[key]) {
+        acc[key] = {
+          period: key,
+          totalEvents: 0,
+          achievedEvents: 0,
+          achievementRate: 0
+        }
+      }
+      if (event.target_hs_total > 0) {
+        acc[key].totalEvents += 1
+        if (event.actual_hs_total >= event.target_hs_total) {
+          acc[key].achievedEvents += 1
+        }
+      }
+      return acc
+    }, {} as Record<string, any>)
+
+    let trend = Object.values(monthlyAchievementData).map((item: any) => ({
+      ...item,
+      achievementRate: item.totalEvents > 0 ? Math.round((item.achievedEvents / item.totalEvents) * 100) : 0
+    })).sort((a: any, b: any) => a.period.localeCompare(b.period))
+
+    // 期間フィルターを適用
+    if (achievementStartDate && achievementEndDate) {
+      trend = trend.filter(item =>
+        item.period >= achievementStartDate.replace('-', '/') && item.period <= achievementEndDate.replace('-', '/')
+      )
+    } else if (achievementStartDate) {
+      trend = trend.filter(item => item.period >= achievementStartDate.replace('-', '/'))
+    } else if (achievementEndDate) {
+      trend = trend.filter(item => item.period <= achievementEndDate.replace('-', '/'))
+    }
+
+    return trend
+  }, [filteredEvents, achievementStaffFilter, achievementStartDate, achievementEndDate, applyStaffFilterToEvents])
+
+  // 週次実績の独立したデータ計算
+  const weeklyStatsData = useMemo(() => {
+    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, weeklyStaffFilter)
+
+    if (panelFilteredEvents.length === 0) return []
+
+    const weeklyData = panelFilteredEvents.reduce((acc, event) => {
+      const weekLabel = `第${event.week_number}週`
+      const sortKey = `${event.year}-${String(event.month).padStart(2, '0')}-${String(event.week_number).padStart(2, '0')}`
+      const yearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+
+      if (!acc[sortKey]) {
+        acc[sortKey] = {
+          period: weekLabel,
+          sortKey,
+          yearMonth,
+          au_mnp: 0,
+          uq_mnp: 0,
+          au_new: 0,
+          uq_new: 0,
+          totalSales: 0,
+          count: 0
+        }
+      }
+      acc[sortKey].au_mnp += event.actual_au_mnp || 0
+      acc[sortKey].uq_mnp += event.actual_uq_mnp || 0
+      acc[sortKey].au_new += event.actual_au_new || 0
+      acc[sortKey].uq_new += event.actual_uq_new || 0
+      acc[sortKey].totalSales += event.actual_hs_total || 0
+      acc[sortKey].count += 1
+      return acc
+    }, {} as Record<string, any>)
+
+    let weeklyStats = Object.values(weeklyData)
+      .map((item: any) => ({
+        ...item,
+        mnp: item.au_mnp + item.uq_mnp,
+        hs: item.au_new + item.uq_new
+      }))
+      .sort((a: any, b: any) => a.sortKey.localeCompare(b.sortKey))
+
+    // 期間フィルターを適用
+    if (weeklyStartDate && weeklyEndDate) {
+      weeklyStats = weeklyStats.filter(item =>
+        item.yearMonth >= weeklyStartDate && item.yearMonth <= weeklyEndDate
+      )
+    } else if (weeklyStartDate) {
+      weeklyStats = weeklyStats.filter(item => item.yearMonth >= weeklyStartDate)
+    } else if (weeklyEndDate) {
+      weeklyStats = weeklyStats.filter(item => item.yearMonth <= weeklyEndDate)
+    }
+
+    return weeklyStats
+  }, [filteredEvents, weeklyStaffFilter, weeklyStartDate, weeklyEndDate, applyStaffFilterToEvents])
+
+  // 実績レベル分析の独立したデータ計算
+  const performanceLevelsData = useMemo(() => {
+    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, levelStaffFilter)
+
+    if (panelFilteredEvents.length === 0) return []
+
+    // 期間フィルター適用
+    let levelFilteredEvents = panelFilteredEvents
+    if (levelStartDate && levelEndDate) {
+      levelFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth >= levelStartDate && eventYearMonth <= levelEndDate
+      })
+    } else if (levelStartDate) {
+      levelFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth >= levelStartDate
+      })
+    } else if (levelEndDate) {
+      levelFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth <= levelEndDate
+      })
+    }
+
+    const levelData: Record<string, any> = {}
+    levelFilteredEvents.forEach((event: any) => {
+      const hs = event.actual_hs_total || 0
+      const range = hs < 50 ? '0-49' : hs < 100 ? '50-99' : hs < 150 ? '100-149' : hs < 200 ? '150-199' : '200+'
+      if (!levelData[range]) {
+        levelData[range] = { range, count: 0 }
+      }
+      levelData[range].count += 1
+    })
+
+    const order = ['0-49', '50-99', '100-149', '150-199', '200+']
+    return order.map(range => levelData[range] || { range, count: 0 })
+  }, [filteredEvents, levelStaffFilter, levelStartDate, levelEndDate, applyStaffFilterToEvents])
+
+  // 目標達成状況の独立したデータ計算
+  const achievementStatusData = useMemo(() => {
+    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, achievementStatusStaffFilter)
+
+    if (panelFilteredEvents.length === 0) {
+      return { achieved: 0, notAchieved: 0, noTarget: 0 }
+    }
+
+    // 期間フィルター適用
+    let statusFilteredEvents = panelFilteredEvents
+    if (achievementStatusStartDate && achievementStatusEndDate) {
+      statusFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth >= achievementStatusStartDate && eventYearMonth <= achievementStatusEndDate
+      })
+    } else if (achievementStatusStartDate) {
+      statusFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth >= achievementStatusStartDate
+      })
+    } else if (achievementStatusEndDate) {
+      statusFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth <= achievementStatusEndDate
+      })
+    }
+
+    return statusFilteredEvents.reduce((acc, event) => {
+      if (event.target_hs_total > 0) {
+        if (event.actual_hs_total >= event.target_hs_total) {
+          acc.achieved += 1
+        } else {
+          acc.notAchieved += 1
+        }
+      } else {
+        acc.noTarget += 1
+      }
+      return acc
+    }, { achieved: 0, notAchieved: 0, noTarget: 0 })
+  }, [filteredEvents, achievementStatusStaffFilter, achievementStatusStartDate, achievementStatusEndDate, applyStaffFilterToEvents])
+
+  // 代理店別実績の独立したデータ計算
+  const agencyStatsData = useMemo(() => {
+    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, agencyStaffFilter)
+
+    if (panelFilteredEvents.length === 0) return []
+
+    // 期間フィルター適用
+    let agencyFilteredEvents = panelFilteredEvents
+    if (agencyStartDate && agencyEndDate) {
+      agencyFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth >= agencyStartDate && eventYearMonth <= agencyEndDate
+      })
+    } else if (agencyStartDate) {
+      agencyFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth >= agencyStartDate
+      })
+    } else if (agencyEndDate) {
+      agencyFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth <= agencyEndDate
+      })
+    }
+
+    const agencyData: Record<string, any> = {}
+    agencyFilteredEvents.forEach((event: any) => {
+      const agency = event.agency_name || '未設定'
+      if (!agencyData[agency]) {
+        agencyData[agency] = { agency, totalSales: 0, count: 0 }
+      }
+      agencyData[agency].totalSales += event.actual_hs_total || 0
+      agencyData[agency].count += 1
+    })
+
+    return Object.values(agencyData)
+      .sort((a: any, b: any) => b.totalSales - a.totalSales)
+      .slice(0, 10)
+  }, [filteredEvents, agencyStaffFilter, agencyStartDate, agencyEndDate, applyStaffFilterToEvents])
+
+  // 会場別実績の独立したデータ計算
+  const venueStatsData = useMemo(() => {
+    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, venueStaffFilter)
+
+    if (panelFilteredEvents.length === 0) return []
+
+    // 期間フィルター適用
+    let venueFilteredEvents = panelFilteredEvents
+    if (venueStartDate && venueEndDate) {
+      venueFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth >= venueStartDate && eventYearMonth <= venueEndDate
+      })
+    } else if (venueStartDate) {
+      venueFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth >= venueStartDate
+      })
+    } else if (venueEndDate) {
+      venueFilteredEvents = panelFilteredEvents.filter((event: any) => {
+        const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
+        return eventYearMonth <= venueEndDate
+      })
+    }
+
+    const venueData: Record<string, any> = {}
+    venueFilteredEvents.forEach((event: any) => {
+      const venue = event.venue || '未設定'
+      if (!venueData[venue]) {
+        venueData[venue] = { venue, totalSales: 0, count: 0 }
+      }
+      venueData[venue].totalSales += event.actual_hs_total || 0
+      venueData[venue].count += 1
+    })
+
+    return Object.values(venueData)
+      .sort((a: any, b: any) => b.totalSales - a.totalSales)
+      .slice(0, 10)
+  }, [filteredEvents, venueStaffFilter, venueStartDate, venueEndDate, applyStaffFilterToEvents])
+
+  // イベント別実績用のデータ計算（スタッフフィルター適用）
+  const eventWeeklyStatsData = useMemo(() => {
+    if (!eventYear || !eventMonth) {
+      return []
+    }
+
+    const targetYear = parseInt(eventYear)
+    const targetMonth = parseInt(eventMonth)
+
+    // 年月でフィルタリング
+    let eventFilteredEvents = events.filter((event: any) => {
+      const eventYearNum = typeof event.year === 'string' ? parseInt(event.year) : event.year
+      const eventMonthNum = typeof event.month === 'string' ? parseInt(event.month) : event.month
+      return eventYearNum === targetYear && eventMonthNum === targetMonth
+    })
+
+    // 代理店でフィルタリング
+    if (selectedEventAgencies.length > 0) {
+      eventFilteredEvents = eventFilteredEvents.filter((event: any) =>
+        selectedEventAgencies.includes(event.agency_name)
+      )
+    }
+
+    // スタッフフィルターを適用
+    const staffFilteredEvents = applyStaffFilterToEvents(eventFilteredEvents, eventWeeklyStaffFilter)
+
+    // 週ごとにグループ化
+    const weeklyData: Record<number, any> = {}
+    staffFilteredEvents.forEach((event: any) => {
+      const weekNum = event.week_number || 1
+      if (!weeklyData[weekNum]) {
+        weeklyData[weekNum] = {
+          week: `第${weekNum}週`,
+          weekNumber: weekNum,
+          venues: {}
+        }
+      }
+
+      const venue = event.venue
+      if (!weeklyData[weekNum].venues[venue]) {
+        weeklyData[weekNum].venues[venue] = {
+          venue,
+          mnp: 0,
+          hs: 0
+        }
+      }
+
+      weeklyData[weekNum].venues[venue].mnp += (event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0)
+      weeklyData[weekNum].venues[venue].hs += (event.actual_au_new || 0) + (event.actual_uq_new || 0)
+    })
+
+    // 配列に変換して整形
+    return Object.values(weeklyData)
+      .map((weekData: any) => {
+        const venuesArray = Object.values(weekData.venues)
+        const totalMnp = venuesArray.reduce((sum: number, v: any) => sum + v.mnp, 0)
+        const totalHs = venuesArray.reduce((sum: number, v: any) => sum + v.hs, 0)
+
+        return {
+          week: weekData.week,
+          weekNumber: weekData.weekNumber,
+          total: totalMnp + totalHs,
+          totalMnp,
+          totalHs,
+          venues: venuesArray
+        }
+      })
+      .sort((a: any, b: any) => a.weekNumber - b.weekNumber)
+  }, [events, eventYear, eventMonth, selectedEventAgencies, eventWeeklyStaffFilter, applyStaffFilterToEvents])
+
+  // 会場別月次実績推移用のデータ計算（スタッフフィルター適用）
+  const venueMonthlyTrendData = useMemo(() => {
+    // スタッフフィルターを適用
+    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, venueMonthlyStaffFilter)
+
+    if (panelFilteredEvents.length === 0) return []
+
+    // 会場別月次推移データ（MNP + HS の合計）
+    const venueMonthlyData: Record<string, Record<string, {total: number, mnp: number, hs: number}>> = {}
+    panelFilteredEvents.forEach(event => {
+      const month = `${event.year}-${String(event.month).padStart(2, '0')}`
+      if (!venueMonthlyData[event.venue]) {
+        venueMonthlyData[event.venue] = {}
+      }
+      if (!venueMonthlyData[event.venue][month]) {
+        venueMonthlyData[event.venue][month] = {total: 0, mnp: 0, hs: 0}
+      }
+      const mnpTotal = event.actual_au_mnp + event.actual_uq_mnp
+      const newTotal = event.actual_au_new + event.actual_uq_new
+      venueMonthlyData[event.venue][month].mnp += mnpTotal
+      venueMonthlyData[event.venue][month].hs += newTotal
+      venueMonthlyData[event.venue][month].total += mnpTotal + newTotal
+    })
+
+    // データを折れ線グラフ用に整形
+    let allMonths = [...new Set(panelFilteredEvents.map(e => `${e.year}-${String(e.month).padStart(2, '0')}`))].sort()
+
+    // 期間フィルターを適用
+    if (chartStartDate && chartEndDate) {
+      allMonths = allMonths.filter(month => month >= chartStartDate && month <= chartEndDate)
+    } else if (chartStartDate) {
+      allMonths = allMonths.filter(month => month >= chartStartDate)
+    } else if (chartEndDate) {
+      allMonths = allMonths.filter(month => month <= chartEndDate)
+    }
+
+    const venueMonthlyTrend = allMonths.map(month => {
+      const dataPoint: any = { month }
+      Object.keys(venueMonthlyData).forEach(venue => {
+        const data = venueMonthlyData[venue][month] || {total: 0, mnp: 0, hs: 0}
+        dataPoint[venue] = data.total
+        dataPoint[`${venue}_mnp`] = data.mnp
+        dataPoint[`${venue}_hs`] = data.hs
+      })
+      return dataPoint
+    })
+
+    return venueMonthlyTrend
+  }, [filteredEvents, venueMonthlyStaffFilter, chartStartDate, chartEndDate, applyStaffFilterToEvents])
+
+  // 月次達成状況用のデータ計算関数（比較モーダル用）
+  const getMonthlyStatusData = useCallback((startDateParam: string) => {
+    if (!startDateParam) {
+      return null
+    }
+
+    const currentMonth = new Date(startDateParam + '-01').getMonth() + 1
+    const currentYear = new Date(startDateParam + '-01').getFullYear()
+
+    // 該当月のイベントを取得
+    const currentMonthEvents = filteredEvents.filter((event: any) =>
+      event.month === currentMonth && event.year === currentYear
+    )
+
+    // スタッフフィルターを適用
+    const staffFilteredMonthEvents = applyStaffFilterToEvents(currentMonthEvents, monthlyStatusStaffFilter)
+
+    const eventsWithTargets = staffFilteredMonthEvents.filter((event: any) => event.target_hs_total > 0)
+    const achievedEvents = eventsWithTargets.filter((event: any) => event.actual_hs_total >= event.target_hs_total)
+    const achievementRate = eventsWithTargets.length > 0 ? (achievedEvents.length / eventsWithTargets.length) * 100 : 0
+
+    const totalTarget = staffFilteredMonthEvents.reduce((sum: number, event: any) => sum + (event.target_hs_total || 0), 0)
+    const totalActual = staffFilteredMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_hs_total || 0), 0)
+    const totalMnp = staffFilteredMonthEvents.reduce((sum: number, event: any) => sum + ((event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0)), 0)
+    const totalNew = staffFilteredMonthEvents.reduce((sum: number, event: any) => sum + ((event.actual_au_new || 0) + (event.actual_uq_new || 0)), 0)
+    const mnpRatio = totalActual > 0 ? (totalMnp / totalActual) * 100 : 0
+
+    return {
+      currentYear,
+      currentMonth,
+      currentMonthEvents: staffFilteredMonthEvents,
+      eventsWithTargets,
+      achievedEvents,
+      achievementRate,
+      totalTarget,
+      totalActual,
+      totalMnp,
+      totalNew,
+      mnpRatio
+    }
+  }, [filteredEvents, monthlyStatusStaffFilter, applyStaffFilterToEvents])
+
   const getAnalysisData = () => {
-    if (filteredEvents.length === 0) {
+    // スタッフフィルター適用後のイベントを使用
+    const eventsToAnalyze = staffFilteredEvents
+
+    if (eventsToAnalyze.length === 0) {
       return {
         monthlyTrend: [],
         monthlyAchievementTrend: [],
@@ -500,7 +1043,7 @@ export function PerformanceAnalyticsV2({
     }
 
     // 月次トレンド
-    const monthlyData = filteredEvents.reduce((acc, event) => {
+    const monthlyData = eventsToAnalyze.reduce((acc, event) => {
       const key = `${event.year}-${String(event.month).padStart(2, '0')}`
       if (!acc[key]) {
         acc[key] = { period: key, totalSales: 0, count: 0 }
@@ -516,7 +1059,7 @@ export function PerformanceAnalyticsV2({
     })).sort((a: any, b: any) => a.period.localeCompare(b.period))
 
     // 月次イベント達成率推移
-    const monthlyAchievementData = filteredEvents.reduce((acc, event) => {
+    const monthlyAchievementData = eventsToAnalyze.reduce((acc, event) => {
       const key = `${event.year}/${String(event.month).padStart(2, '0')}`
       if (!acc[key]) {
         acc[key] = {
@@ -552,7 +1095,7 @@ export function PerformanceAnalyticsV2({
     }
 
     // 週次統計（MNPと新規の内訳付き）
-    const weeklyData = filteredEvents.reduce((acc, event) => {
+    const weeklyData = eventsToAnalyze.reduce((acc, event) => {
       const weekLabel = `第${event.week_number}週`
       const sortKey = `${event.year}-${String(event.month).padStart(2, '0')}-${String(event.week_number).padStart(2, '0')}`
       const yearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
@@ -596,19 +1139,19 @@ export function PerformanceAnalyticsV2({
     }
 
     // 実績レベル分析用のイベントフィルタリング
-    let levelAnalysisEvents = filteredEvents
+    let levelAnalysisEvents = eventsToAnalyze
     if (levelStartDate && levelEndDate) {
-      levelAnalysisEvents = filteredEvents.filter(event => {
+      levelAnalysisEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth >= levelStartDate && eventYearMonth <= levelEndDate
       })
     } else if (levelStartDate) {
-      levelAnalysisEvents = filteredEvents.filter(event => {
+      levelAnalysisEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth >= levelStartDate
       })
     } else if (levelEndDate) {
-      levelAnalysisEvents = filteredEvents.filter(event => {
+      levelAnalysisEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth <= levelEndDate
       })
@@ -633,19 +1176,19 @@ export function PerformanceAnalyticsV2({
     })
 
     // 目標達成状況用のイベントフィルタリング
-    let achievementStatusEvents = filteredEvents
+    let achievementStatusEvents = eventsToAnalyze
     if (achievementStatusStartDate && achievementStatusEndDate) {
-      achievementStatusEvents = filteredEvents.filter(event => {
+      achievementStatusEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth >= achievementStatusStartDate && eventYearMonth <= achievementStatusEndDate
       })
     } else if (achievementStatusStartDate) {
-      achievementStatusEvents = filteredEvents.filter(event => {
+      achievementStatusEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth >= achievementStatusStartDate
       })
     } else if (achievementStatusEndDate) {
-      achievementStatusEvents = filteredEvents.filter(event => {
+      achievementStatusEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth <= achievementStatusEndDate
       })
@@ -667,19 +1210,19 @@ export function PerformanceAnalyticsV2({
     )
 
     // 会場別実績用のイベントフィルタリング
-    let venueStatsEvents = filteredEvents
+    let venueStatsEvents = eventsToAnalyze
     if (venueStartDate && venueEndDate) {
-      venueStatsEvents = filteredEvents.filter(event => {
+      venueStatsEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth >= venueStartDate && eventYearMonth <= venueEndDate
       })
     } else if (venueStartDate) {
-      venueStatsEvents = filteredEvents.filter(event => {
+      venueStatsEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth >= venueStartDate
       })
     } else if (venueEndDate) {
-      venueStatsEvents = filteredEvents.filter(event => {
+      venueStatsEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth <= venueEndDate
       })
@@ -702,19 +1245,19 @@ export function PerformanceAnalyticsV2({
     const venueStats = Object.values(venueData).sort((a: any, b: any) => b.total - a.total)
 
     // 代理店別実績用のイベントフィルタリング
-    let agencyStatsEvents = filteredEvents
+    let agencyStatsEvents = eventsToAnalyze
     if (agencyStartDate && agencyEndDate) {
-      agencyStatsEvents = filteredEvents.filter(event => {
+      agencyStatsEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth >= agencyStartDate && eventYearMonth <= agencyEndDate
       })
     } else if (agencyStartDate) {
-      agencyStatsEvents = filteredEvents.filter(event => {
+      agencyStatsEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth >= agencyStartDate
       })
     } else if (agencyEndDate) {
-      agencyStatsEvents = filteredEvents.filter(event => {
+      agencyStatsEvents = eventsToAnalyze.filter(event => {
         const eventYearMonth = `${event.year}-${String(event.month).padStart(2, '0')}`
         return eventYearMonth <= agencyEndDate
       })
@@ -738,7 +1281,7 @@ export function PerformanceAnalyticsV2({
 
     // 会場別月次推移データ（MNP + HS の合計）
     const venueMonthlyData: Record<string, Record<string, {total: number, mnp: number, hs: number}>> = {}
-    filteredEvents.forEach(event => {
+    eventsToAnalyze.forEach(event => {
       const month = `${event.year}-${String(event.month).padStart(2, '0')}`
       if (!venueMonthlyData[event.venue]) {
         venueMonthlyData[event.venue] = {}
@@ -754,7 +1297,7 @@ export function PerformanceAnalyticsV2({
     })
 
     // データを折れ線グラフ用に整形
-    let allMonths = [...new Set(filteredEvents.map(e => `${e.year}-${String(e.month).padStart(2, '0')}`))].sort()
+    let allMonths = [...new Set(eventsToAnalyze.map(e => `${e.year}-${String(e.month).padStart(2, '0')}`))].sort()
 
     // 期間フィルターを適用
     if (chartStartDate && chartEndDate) {
@@ -1901,23 +2444,26 @@ export function PerformanceAnalyticsV2({
 
     // 月次達成状況
     if (type === 'monthly') {
-      // 月次達成状況の統計を計算
-      const currentMonth = new Date(startDate + '-01').getMonth() + 1
-      const currentYear = new Date(startDate + '-01').getFullYear()
+      // getMonthlyStatusData関数を使ってデータを取得
+      const monthlyStatusData = getMonthlyStatusData(startDate)
 
-      const currentMonthEvents = filteredEvents.filter((event: any) =>
-        event.month === currentMonth && event.year === currentYear
-      )
+      if (!monthlyStatusData) {
+        return null
+      }
 
-      const eventsWithTargets = currentMonthEvents.filter((event: any) => event.target_hs_total > 0)
-      const achievedEvents = eventsWithTargets.filter((event: any) => event.actual_hs_total >= event.target_hs_total)
-      const achievementRate = eventsWithTargets.length > 0 ? (achievedEvents.length / eventsWithTargets.length) * 100 : 0
-
-      const totalTarget = currentMonthEvents.reduce((sum: number, event: any) => sum + (event.target_hs_total || 0), 0)
-      const totalActual = currentMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_hs_total || 0), 0)
-      const totalMnp = currentMonthEvents.reduce((sum: number, event: any) => sum + ((event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0)), 0)
-      const totalNew = currentMonthEvents.reduce((sum: number, event: any) => sum + ((event.actual_au_new || 0) + (event.actual_uq_new || 0)), 0)
-      const mnpRatio = totalActual > 0 ? (totalMnp / totalActual) * 100 : 0
+      const {
+        currentYear,
+        currentMonth,
+        currentMonthEvents,
+        eventsWithTargets,
+        achievedEvents,
+        achievementRate,
+        totalTarget,
+        totalActual,
+        totalMnp,
+        totalNew,
+        mnpRatio
+      } = monthlyStatusData
 
       const achievementData = [
         { name: '達成', value: achievedEvents.length, fill: COLORS[0] },
@@ -1935,6 +2481,57 @@ export function PerformanceAnalyticsV2({
             <h3 className="text-2xl font-bold flex items-center" style={{ color: '#22211A' }}>
               {currentYear}年{currentMonth}月の達成状況
             </h3>
+          </div>
+
+          {/* スタッフ区分フィルター */}
+          <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+            <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+            <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+              {getFilterDisplayName(monthlyStatusStaffFilter)}
+            </span>
+            <div className="flex items-center gap-1.5 ml-2">
+              <button
+                onClick={() => setMonthlyStatusStaffFilter(DEFAULT_STAFF_FILTER)}
+                className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                  monthlyStatusStaffFilter.includeInternal && monthlyStatusStaffFilter.includeExternal && monthlyStatusStaffFilter.includeStore
+                    ? 'bg-green-50 border-green-500 text-green-700'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                全体
+              </button>
+              <button
+                onClick={() => setMonthlyStatusStaffFilter(INTERNAL_ONLY_FILTER)}
+                className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                  monthlyStatusStaffFilter.includeInternal && !monthlyStatusStaffFilter.includeExternal && !monthlyStatusStaffFilter.includeStore
+                    ? 'bg-green-50 border-green-500 text-green-700'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                自社のみ
+              </button>
+              <button
+                onClick={() => setMonthlyStatusStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
+                className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                  monthlyStatusStaffFilter.includeInternal && !monthlyStatusStaffFilter.includeExternal && monthlyStatusStaffFilter.includeStore
+                    ? 'bg-green-50 border-green-500 text-green-700'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                他社除外
+              </button>
+              <button
+                onClick={() => setMonthlyStatusStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
+                className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                  monthlyStatusStaffFilter.includeInternal && monthlyStatusStaffFilter.includeExternal && !monthlyStatusStaffFilter.includeStore
+                    ? 'bg-green-50 border-green-500 text-green-700'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                店舗除外
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -2699,21 +3296,124 @@ export function PerformanceAnalyticsV2({
 
       {/* PDF出力対象のコンテンツ */}
       <div ref={contentRef} className="pdf-content">
+        {/* フィルターセクション */}
+        <div className="glass rounded-lg p-6 border mb-8" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+          <div className="flex items-center mb-4">
+            <Filter className="w-5 h-5 mr-2" style={{ color: '#22211A' }} />
+            <h3 className="text-lg font-bold" style={{ color: '#22211A' }}>フィルター</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {/* 商流フィルター */}
+            <div>
+              <label className="block text-xs mb-1 font-medium" style={{ color: '#22211A' }}>商流</label>
+              <select
+                value={agencyTierFilter}
+                onChange={(e) => setAgencyTierFilter(e.target.value as typeof agencyTierFilter)}
+                className="w-full px-3 py-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                style={{ border: '1px solid #22211A', color: '#22211A' }}
+              >
+                <option value="all">全商流</option>
+                <option value="一次">一次</option>
+                <option value="二次">二次</option>
+              </select>
+            </div>
+
+            {/* イベントタイプフィルター */}
+            <div>
+              <label className="block text-xs mb-1 font-medium" style={{ color: '#22211A' }}>イベントタイプ</label>
+              <select
+                value={eventTypeFilter}
+                onChange={(e) => setEventTypeFilter(e.target.value as typeof eventTypeFilter)}
+                className="w-full px-3 py-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                style={{ border: '1px solid #22211A', color: '#22211A' }}
+              >
+                <option value="all">全タイプ</option>
+                <option value="外販">外販</option>
+                <option value="店頭">店頭</option>
+              </select>
+            </div>
+
+            {/* スタッフ区分フィルター */}
+            <div className="md:col-span-3">
+              <label className="block text-xs mb-1 font-medium" style={{ color: '#22211A' }}>
+                スタッフ区分: <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+                  {getFilterDisplayName(staffFilter)}
+                </span>
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setStaffFilter(DEFAULT_STAFF_FILTER)}
+                  className={`px-3 py-2 text-xs rounded-lg transition-all border ${
+                    staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore
+                      ? 'border-[#22211A] bg-[#22211A] text-white'
+                      : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
+                  }`}
+                  style={{ color: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? 'white' : '#22211A' }}
+                >
+                  全体
+                </button>
+                <button
+                  onClick={() => setStaffFilter(INTERNAL_ONLY_FILTER)}
+                  className={`px-3 py-2 text-xs rounded-lg transition-all border ${
+                    staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore
+                      ? 'border-[#22211A] bg-[#22211A] text-white'
+                      : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
+                  }`}
+                  style={{ color: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? 'white' : '#22211A' }}
+                >
+                  自社のみ
+                </button>
+                <button
+                  onClick={() => setStaffFilter({
+                    includeInternal: true,
+                    includeExternal: false,
+                    includeStore: true
+                  })}
+                  className={`px-3 py-2 text-xs rounded-lg transition-all border ${
+                    staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore
+                      ? 'border-[#22211A] bg-[#22211A] text-white'
+                      : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
+                  }`}
+                  style={{ color: staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? 'white' : '#22211A' }}
+                >
+                  他社除外
+                </button>
+                <button
+                  onClick={() => setStaffFilter({
+                    includeInternal: true,
+                    includeExternal: true,
+                    includeStore: false
+                  })}
+                  className={`px-3 py-2 text-xs rounded-lg transition-all border ${
+                    staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore
+                      ? 'border-[#22211A] bg-[#22211A] text-white'
+                      : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
+                  }`}
+                  style={{ color: staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? 'white' : '#22211A' }}
+                >
+                  店舗除外
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* サマリー情報 */}
         <div className="glass rounded-lg p-6 border mb-8" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
           <div className="flex items-center space-x-6 p-3 rounded-xl">
             <div className="text-sm">
               <span style={{ color: '#22211A' }}>対象イベント: </span>
-              <span className="font-bold" style={{ color: '#22211A' }}>{filteredEvents.length}件</span>
+              <span className="font-bold" style={{ color: '#22211A' }}>{staffFilteredEvents.length}件</span>
             </div>
             <div className="text-sm">
               <span style={{ color: '#22211A' }}>総実績: </span>
-              <span className="font-bold" style={{ color: '#22211A' }}>{filteredEvents.reduce((sum, e) => sum + e.actual_hs_total, 0)}件</span>
+              <span className="font-bold" style={{ color: '#22211A' }}>{staffFilteredEvents.reduce((sum, e) => sum + e.actual_hs_total, 0)}件</span>
             </div>
             <div className="text-sm">
               <span style={{ color: '#22211A' }}>平均実績: </span>
               <span className="font-bold" style={{ color: '#22211A' }}>
-                {filteredEvents.length > 0 ? Math.round(filteredEvents.reduce((sum, e) => sum + e.actual_hs_total, 0) / filteredEvents.length) : 0}件
+                {staffFilteredEvents.length > 0 ? Math.round(staffFilteredEvents.reduce((sum, e) => sum + e.actual_hs_total, 0) / staffFilteredEvents.length) : 0}件
               </span>
             </div>
           </div>
@@ -2770,6 +3470,57 @@ export function PerformanceAnalyticsV2({
                 <option key={i} value={i + 1}>{i + 1}月</option>
               ))}
             </select>
+          </div>
+        </div>
+
+        {/* スタッフ区分フィルター */}
+        <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+          <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+          <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+            {getFilterDisplayName(rankingStaffFilter)}
+          </span>
+          <div className="flex items-center gap-1.5 ml-2">
+            <button
+              onClick={() => setRankingStaffFilter(DEFAULT_STAFF_FILTER)}
+              className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                rankingStaffFilter.includeInternal && rankingStaffFilter.includeExternal && rankingStaffFilter.includeStore
+                  ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                  : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+              }`}
+            >
+              全体
+            </button>
+            <button
+              onClick={() => setRankingStaffFilter(INTERNAL_ONLY_FILTER)}
+              className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                rankingStaffFilter.includeInternal && !rankingStaffFilter.includeExternal && !rankingStaffFilter.includeStore
+                  ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                  : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+              }`}
+            >
+              自社のみ
+            </button>
+            <button
+              onClick={() => setRankingStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
+              className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                rankingStaffFilter.includeInternal && !rankingStaffFilter.includeExternal && rankingStaffFilter.includeStore
+                  ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                  : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+              }`}
+            >
+              他社除外
+            </button>
+            <button
+              onClick={() => setRankingStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
+              className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                rankingStaffFilter.includeInternal && rankingStaffFilter.includeExternal && !rankingStaffFilter.includeStore
+                  ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                  : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+              }`}
+            >
+              店舗除外
+            </button>
           </div>
         </div>
 
@@ -2861,6 +3612,58 @@ export function PerformanceAnalyticsV2({
                   比較
                 </button>
               </div>
+
+              {/* スタッフ区分フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+                  {getFilterDisplayName(achievementStaffFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button
+                    onClick={() => setAchievementStaffFilter(DEFAULT_STAFF_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      achievementStaffFilter.includeInternal && achievementStaffFilter.includeExternal && achievementStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    全体
+                  </button>
+                  <button
+                    onClick={() => setAchievementStaffFilter(INTERNAL_ONLY_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      achievementStaffFilter.includeInternal && !achievementStaffFilter.includeExternal && !achievementStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    自社のみ
+                  </button>
+                  <button
+                    onClick={() => setAchievementStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      achievementStaffFilter.includeInternal && !achievementStaffFilter.includeExternal && achievementStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    他社除外
+                  </button>
+                  <button
+                    onClick={() => setAchievementStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      achievementStaffFilter.includeInternal && achievementStaffFilter.includeExternal && !achievementStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    店舗除外
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span style={{ color: '#22211A' }}>期間:</span>
@@ -2901,9 +3704,9 @@ export function PerformanceAnalyticsV2({
                 </div>
               </div>
             </div>
-            {analysisData.monthlyAchievementTrend.length > 0 ? (
+            {monthlyAchievementTrendData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={analysisData.monthlyAchievementTrend}>
+                <LineChart data={monthlyAchievementTrendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
                   <YAxis stroke="#3dae6c" fontSize={12} domain={[0, 100]} unit="%" />
@@ -2946,6 +3749,58 @@ export function PerformanceAnalyticsV2({
                   比較
                 </button>
               </div>
+
+              {/* スタッフ区分フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+                  {getFilterDisplayName(weeklyStaffFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button
+                    onClick={() => setWeeklyStaffFilter(DEFAULT_STAFF_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      weeklyStaffFilter.includeInternal && weeklyStaffFilter.includeExternal && weeklyStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    全体
+                  </button>
+                  <button
+                    onClick={() => setWeeklyStaffFilter(INTERNAL_ONLY_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      weeklyStaffFilter.includeInternal && !weeklyStaffFilter.includeExternal && !weeklyStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    自社のみ
+                  </button>
+                  <button
+                    onClick={() => setWeeklyStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      weeklyStaffFilter.includeInternal && !weeklyStaffFilter.includeExternal && weeklyStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    他社除外
+                  </button>
+                  <button
+                    onClick={() => setWeeklyStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      weeklyStaffFilter.includeInternal && weeklyStaffFilter.includeExternal && !weeklyStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    店舗除外
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span style={{ color: '#22211A' }}>期間:</span>
@@ -2986,9 +3841,9 @@ export function PerformanceAnalyticsV2({
                 </div>
               </div>
             </div>
-            {analysisData.weeklyStats.length > 0 ? (
+            {weeklyStatsData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={analysisData.weeklyStats}>
+                <BarChart data={weeklyStatsData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
                   <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
@@ -3033,6 +3888,58 @@ export function PerformanceAnalyticsV2({
                   比較
                 </button>
               </div>
+
+              {/* スタッフ区分フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+                  {getFilterDisplayName(levelStaffFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button
+                    onClick={() => setLevelStaffFilter(DEFAULT_STAFF_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      levelStaffFilter.includeInternal && levelStaffFilter.includeExternal && levelStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    全体
+                  </button>
+                  <button
+                    onClick={() => setLevelStaffFilter(INTERNAL_ONLY_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      levelStaffFilter.includeInternal && !levelStaffFilter.includeExternal && !levelStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    自社のみ
+                  </button>
+                  <button
+                    onClick={() => setLevelStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      levelStaffFilter.includeInternal && !levelStaffFilter.includeExternal && levelStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    他社除外
+                  </button>
+                  <button
+                    onClick={() => setLevelStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      levelStaffFilter.includeInternal && levelStaffFilter.includeExternal && !levelStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    店舗除外
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span style={{ color: '#22211A' }}>期間:</span>
@@ -3076,7 +3983,7 @@ export function PerformanceAnalyticsV2({
             <ResponsiveContainer width="100%" height={350}>
               <PieChart>
                 <Pie
-                  data={analysisData.performanceLevels.filter(level => level.count > 0)}
+                  data={performanceLevelsData.filter(level => level.count > 0)}
                   dataKey="count"
                   nameKey="level"
                   cx="50%"
@@ -3091,7 +3998,7 @@ export function PerformanceAnalyticsV2({
                   animationDuration={800}
                   animationEasing="ease-out"
                 >
-                  {analysisData.performanceLevels.filter(level => level.count > 0).map((entry, index) => (
+                  {performanceLevelsData.filter(level => level.count > 0).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -3117,6 +4024,58 @@ export function PerformanceAnalyticsV2({
                   比較
                 </button>
               </div>
+
+              {/* スタッフ区分フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+                  {getFilterDisplayName(achievementStatusStaffFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button
+                    onClick={() => setAchievementStatusStaffFilter(DEFAULT_STAFF_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      achievementStatusStaffFilter.includeInternal && achievementStatusStaffFilter.includeExternal && achievementStatusStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    全体
+                  </button>
+                  <button
+                    onClick={() => setAchievementStatusStaffFilter(INTERNAL_ONLY_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      achievementStatusStaffFilter.includeInternal && !achievementStatusStaffFilter.includeExternal && !achievementStatusStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    自社のみ
+                  </button>
+                  <button
+                    onClick={() => setAchievementStatusStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      achievementStatusStaffFilter.includeInternal && !achievementStatusStaffFilter.includeExternal && achievementStatusStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    他社除外
+                  </button>
+                  <button
+                    onClick={() => setAchievementStatusStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      achievementStatusStaffFilter.includeInternal && achievementStatusStaffFilter.includeExternal && !achievementStatusStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    店舗除外
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span style={{ color: '#22211A' }}>期間:</span>
@@ -3161,9 +4120,9 @@ export function PerformanceAnalyticsV2({
               <PieChart>
                 <Pie
                   data={[
-                    { name: '達成', value: analysisData.achievementStats.achieved, color: '#4abf79' },
-                    { name: '未達成', value: analysisData.achievementStats.notAchieved, color: '#7cd08e' },
-                    { name: '目標未設定', value: analysisData.achievementStats.noTarget, color: '#a6e09e' },
+                    { name: '達成', value: achievementStatusData.achieved, color: '#4abf79' },
+                    { name: '未達成', value: achievementStatusData.notAchieved, color: '#7cd08e' },
+                    { name: '目標未設定', value: achievementStatusData.noTarget, color: '#a6e09e' },
                   ].filter(item => item.value > 0)}
                   dataKey="value"
                   nameKey="name"
@@ -3180,9 +4139,9 @@ export function PerformanceAnalyticsV2({
                   animationEasing="ease-out"
                 >
                   {[
-                    { name: '達成', value: analysisData.achievementStats.achieved, color: '#4abf79' },
-                    { name: '未達成', value: analysisData.achievementStats.notAchieved, color: '#7cd08e' },
-                    { name: '目標未設定', value: analysisData.achievementStats.noTarget, color: '#a6e09e' },
+                    { name: '達成', value: achievementStatusData.achieved, color: '#4abf79' },
+                    { name: '未達成', value: achievementStatusData.notAchieved, color: '#7cd08e' },
+                    { name: '目標未設定', value: achievementStatusData.noTarget, color: '#a6e09e' },
                   ].filter(item => item.value > 0).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -3211,6 +4170,58 @@ export function PerformanceAnalyticsV2({
                       比較
                     </button>
                   </div>
+
+                  {/* スタッフ区分フィルター */}
+                  <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                    <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+                    <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+                      {getFilterDisplayName(agencyStaffFilter)}
+                    </span>
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <button
+                        onClick={() => setAgencyStaffFilter(DEFAULT_STAFF_FILTER)}
+                        className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                          agencyStaffFilter.includeInternal && agencyStaffFilter.includeExternal && agencyStaffFilter.includeStore
+                            ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                            : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                        }`}
+                      >
+                        全体
+                      </button>
+                      <button
+                        onClick={() => setAgencyStaffFilter(INTERNAL_ONLY_FILTER)}
+                        className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                          agencyStaffFilter.includeInternal && !agencyStaffFilter.includeExternal && !agencyStaffFilter.includeStore
+                            ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                            : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                        }`}
+                      >
+                        自社のみ
+                      </button>
+                      <button
+                        onClick={() => setAgencyStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
+                        className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                          agencyStaffFilter.includeInternal && !agencyStaffFilter.includeExternal && agencyStaffFilter.includeStore
+                            ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                            : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                        }`}
+                      >
+                        他社除外
+                      </button>
+                      <button
+                        onClick={() => setAgencyStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
+                        className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                          agencyStaffFilter.includeInternal && agencyStaffFilter.includeExternal && !agencyStaffFilter.includeStore
+                            ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                            : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                        }`}
+                      >
+                        店舗除外
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span style={{ color: '#22211A' }}>期間:</span>
@@ -3270,7 +4281,7 @@ export function PerformanceAnalyticsV2({
                           {/* 全選択/全解除 */}
                           <div className="border-b p-2 flex gap-2" style={{ borderColor: '#22211A' }}>
                             <button
-                              onClick={() => setSelectedAgencies(analysisData.agencyStats.map((a: any) => a.agency))}
+                              onClick={() => setSelectedAgencies(agencyStatsData.map((a: any) => a.agency))}
                               className="flex-1 px-3 py-2 text-sm rounded hover:bg-gray-50 transition-colors"
                               style={{ color: '#22211A', border: '1px solid #22211A' }}
                             >
@@ -3286,7 +4297,7 @@ export function PerformanceAnalyticsV2({
                           </div>
 
                           {/* 個別代理店選択 */}
-                          {analysisData.agencyStats.map((agencyStat: any) => (
+                          {agencyStatsData.map((agencyStat: any) => (
                             <div key={agencyStat.agency} className="p-2">
                               <label className="w-full px-3 py-2 text-sm flex items-center rounded hover:bg-gray-50 transition-colors cursor-pointer" style={{ color: '#22211A' }}>
                                 <input
@@ -3317,7 +4328,7 @@ export function PerformanceAnalyticsV2({
                   : []
 
                 // 選択された代理店のデータのみをフィルター
-                const filteredAgencyStats = analysisData.agencyStats.filter((stat: any) =>
+                const filteredAgencyStats = agencyStatsData.filter((stat: any) =>
                   displayAgencies.includes(stat.agency)
                 )
 
@@ -3368,6 +4379,58 @@ export function PerformanceAnalyticsV2({
                       比較
                     </button>
                   </div>
+
+                  {/* スタッフ区分フィルター */}
+                  <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                    <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+                    <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+                      {getFilterDisplayName(venueStaffFilter)}
+                    </span>
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <button
+                        onClick={() => setVenueStaffFilter(DEFAULT_STAFF_FILTER)}
+                        className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                          venueStaffFilter.includeInternal && venueStaffFilter.includeExternal && venueStaffFilter.includeStore
+                            ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                            : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                        }`}
+                      >
+                        全体
+                      </button>
+                      <button
+                        onClick={() => setVenueStaffFilter(INTERNAL_ONLY_FILTER)}
+                        className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                          venueStaffFilter.includeInternal && !venueStaffFilter.includeExternal && !venueStaffFilter.includeStore
+                            ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                            : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                        }`}
+                      >
+                        自社のみ
+                      </button>
+                      <button
+                        onClick={() => setVenueStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
+                        className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                          venueStaffFilter.includeInternal && !venueStaffFilter.includeExternal && venueStaffFilter.includeStore
+                            ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                            : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                        }`}
+                      >
+                        他社除外
+                      </button>
+                      <button
+                        onClick={() => setVenueStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
+                        className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                          venueStaffFilter.includeInternal && venueStaffFilter.includeExternal && !venueStaffFilter.includeStore
+                            ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                            : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                        }`}
+                      >
+                        店舗除外
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span style={{ color: '#22211A' }}>期間:</span>
@@ -3427,7 +4490,7 @@ export function PerformanceAnalyticsV2({
                           {/* 全選択/全解除 */}
                           <div className="border-b p-2 flex gap-2" style={{ borderColor: '#22211A' }}>
                             <button
-                              onClick={() => setSelectedVenuesVenue(analysisData.venueStats.map((v: any) => v.venue))}
+                              onClick={() => setSelectedVenuesVenue(venueStatsData.map((v: any) => v.venue))}
                               className="flex-1 px-3 py-2 text-sm rounded hover:bg-gray-50 transition-colors"
                               style={{ color: '#22211A', border: '1px solid #22211A' }}
                             >
@@ -3443,7 +4506,7 @@ export function PerformanceAnalyticsV2({
                           </div>
 
                           {/* 個別会場選択 */}
-                          {analysisData.venueStats.map((venueStat: any) => (
+                          {venueStatsData.map((venueStat: any) => (
                             <div key={venueStat.venue} className="p-2">
                               <label className="w-full px-3 py-2 text-sm flex items-center rounded hover:bg-gray-50 transition-colors cursor-pointer" style={{ color: '#22211A' }}>
                                 <input
@@ -3474,7 +4537,7 @@ export function PerformanceAnalyticsV2({
                   : []
 
                 // 選択された会場のデータのみをフィルター
-                const filteredVenueStats = analysisData.venueStats.filter((stat: any) =>
+                const filteredVenueStats = venueStatsData.filter((stat: any) =>
                   displayVenues.includes(stat.venue)
                 )
 
@@ -3526,6 +4589,58 @@ export function PerformanceAnalyticsV2({
                   比較
                 </button>
               </div>
+
+              {/* スタッフ区分フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+                  {getFilterDisplayName(eventWeeklyStaffFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button
+                    onClick={() => setEventWeeklyStaffFilter(DEFAULT_STAFF_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      eventWeeklyStaffFilter.includeInternal && eventWeeklyStaffFilter.includeExternal && eventWeeklyStaffFilter.includeStore
+                        ? 'bg-green-50 border-green-500 text-green-700'
+                        : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    全体
+                  </button>
+                  <button
+                    onClick={() => setEventWeeklyStaffFilter(INTERNAL_ONLY_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      eventWeeklyStaffFilter.includeInternal && !eventWeeklyStaffFilter.includeExternal && !eventWeeklyStaffFilter.includeStore
+                        ? 'bg-green-50 border-green-500 text-green-700'
+                        : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    自社のみ
+                  </button>
+                  <button
+                    onClick={() => setEventWeeklyStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      eventWeeklyStaffFilter.includeInternal && !eventWeeklyStaffFilter.includeExternal && eventWeeklyStaffFilter.includeStore
+                        ? 'bg-green-50 border-green-500 text-green-700'
+                        : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    他社除外
+                  </button>
+                  <button
+                    onClick={() => setEventWeeklyStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      eventWeeklyStaffFilter.includeInternal && eventWeeklyStaffFilter.includeExternal && !eventWeeklyStaffFilter.includeStore
+                        ? 'bg-green-50 border-green-500 text-green-700'
+                        : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    店舗除外
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 {/* 年月選択 */}
                 <div className="flex gap-4 items-center">
@@ -3621,9 +4736,9 @@ export function PerformanceAnalyticsV2({
             </div>
 
             {/* グラフ表示 */}
-            {analysisData.eventWeeklyStats && analysisData.eventWeeklyStats.length > 0 ? (
+            {eventWeeklyStatsData && eventWeeklyStatsData.length > 0 ? (
               <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={analysisData.eventWeeklyStats}>
+                <BarChart data={eventWeeklyStatsData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="0" stroke="#3dae6c" fontSize={12} />
                   <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
@@ -3854,7 +4969,7 @@ export function PerformanceAnalyticsV2({
           </div>
 
           {/* 会場別月次実績推移 */}
-          {analysisData.venueMonthlyTrend && analysisData.venueMonthlyTrend.length > 0 && (
+          {venueMonthlyTrendData && venueMonthlyTrendData.length > 0 && (
             <div className="lg:col-span-2 glass rounded-lg p-6 border" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold flex items-center" style={{ color: '#22211A' }}>
@@ -3869,6 +4984,57 @@ export function PerformanceAnalyticsV2({
                   <GitCompare className="w-4 h-4 mr-1" />
                   比較
                 </button>
+              </div>
+
+              {/* スタッフ区分フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+                  {getFilterDisplayName(venueMonthlyStaffFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button
+                    onClick={() => setVenueMonthlyStaffFilter(DEFAULT_STAFF_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      venueMonthlyStaffFilter.includeInternal && venueMonthlyStaffFilter.includeExternal && venueMonthlyStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    全体
+                  </button>
+                  <button
+                    onClick={() => setVenueMonthlyStaffFilter(INTERNAL_ONLY_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      venueMonthlyStaffFilter.includeInternal && !venueMonthlyStaffFilter.includeExternal && !venueMonthlyStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    自社のみ
+                  </button>
+                  <button
+                    onClick={() => setVenueMonthlyStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      venueMonthlyStaffFilter.includeInternal && !venueMonthlyStaffFilter.includeExternal && venueMonthlyStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    他社除外
+                  </button>
+                  <button
+                    onClick={() => setVenueMonthlyStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      venueMonthlyStaffFilter.includeInternal && venueMonthlyStaffFilter.includeExternal && !venueMonthlyStaffFilter.includeStore
+                        ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                        : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
+                    }`}
+                  >
+                    店舗除外
+                  </button>
+                </div>
               </div>
 
               {/* フィルターコントロール */}
@@ -3959,7 +5125,7 @@ export function PerformanceAnalyticsV2({
               </div>
 
               <div className="mb-2 text-sm" style={{ color: '#22211A' }}>
-                対象期間: {analysisData.venueMonthlyTrend[0]?.month || '未設定'} 〜 {analysisData.venueMonthlyTrend[analysisData.venueMonthlyTrend.length - 1]?.month || '未設定'}
+                対象期間: {venueMonthlyTrendData[0]?.month || '未設定'} 〜 {venueMonthlyTrendData[venueMonthlyTrendData.length - 1]?.month || '未設定'}
                 {(chartStartDate || chartEndDate) && (
                   <span className="ml-2 text-blue-600">
                     (フィルター: {chartStartDate || '開始なし'} 〜 {chartEndDate || '終了なし'})
@@ -3967,7 +5133,7 @@ export function PerformanceAnalyticsV2({
                 )}
               </div>
               <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={analysisData.venueMonthlyTrend}>
+                <LineChart data={venueMonthlyTrendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis
                     dataKey="month"
@@ -4009,7 +5175,7 @@ export function PerformanceAnalyticsV2({
                   />
                   {venues.filter(venue =>
                     selectedVenues.includes(venue) &&
-                    analysisData.venueMonthlyTrend.some(d => d[venue] && d[venue] > 0)
+                    venueMonthlyTrendData.some(d => d[venue] && d[venue] > 0)
                   ).map((venue, index) => (
                     <Line
                       key={venue}
@@ -4031,7 +5197,7 @@ export function PerformanceAnalyticsV2({
                 <div className="text-sm" style={{ color: '#22211A' }}>
                   <strong>表示会場数:</strong> {venues.filter(venue =>
                     selectedVenues.includes(venue) &&
-                    analysisData.venueMonthlyTrend.some(d => d[venue] && d[venue] > 0)
+                    venueMonthlyTrendData.some(d => d[venue] && d[venue] > 0)
                   ).length}会場 / 総会場数: {venues.length}会場
                   <br />
                   <strong>選択会場:</strong> {selectedVenues.length > 0 ? selectedVenues.join(', ') : 'なし'}

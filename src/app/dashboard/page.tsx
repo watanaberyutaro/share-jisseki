@@ -2,9 +2,16 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { TrendingUp, Target, StickyNote, Save, Edit3, Trophy, Award, Medal, BarChart, User } from 'lucide-react'
+import { TrendingUp, Target, StickyNote, Save, Edit3, Trophy, Award, Medal, BarChart, User, Store, Filter } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, BarChart as RechartsBarChart, Bar } from 'recharts'
 import { MagneticDots } from '@/components/MagneticDots'
+import {
+  StaffFilterConfig,
+  DEFAULT_STAFF_FILTER,
+  INTERNAL_ONLY_FILTER,
+  aggregateFilteredPerformances,
+  getFilterDisplayName
+} from '@/lib/staff-filter'
 
 export default function Dashboard() {
   const [currentTime] = useState(new Date())
@@ -207,6 +214,7 @@ export default function Dashboard() {
   const [isEditing, setIsEditing] = useState(false)
   const [savedMemo, setSavedMemo] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [staffFilter, setStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // メモ機能のローカルストレージ管理
   useEffect(() => {
@@ -289,17 +297,62 @@ export default function Dashboard() {
     )
   }, [allEvents, currentTime])
 
-  // 月次統計の計算（メモ化）
+  // スタッフフィルター適用後のイベントデータ再計算（メモ化）
+  const filteredCurrentMonthEvents = useMemo(() => {
+    // デフォルトフィルター（全て含む）の場合は元のイベントデータをそのまま返す
+    if (staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore) {
+      return currentMonthEvents
+    }
+
+    // スタッフデータがない場合も元のイベントデータを返す
+    if (staffData.length === 0) {
+      return currentMonthEvents
+    }
+
+    // イベントごとにスタッフフィルターを適用して再計算
+    return currentMonthEvents.map((event: any) => {
+      // このイベントのスタッフパフォーマンスを取得
+      const eventStaffPerformances = staffData.filter((sp: any) => sp.event_id === event.id)
+
+      if (eventStaffPerformances.length === 0) {
+        // スタッフデータがない場合は元のイベントを返す
+        return event
+      }
+
+      // フィルター適用して集計
+      const aggregated = aggregateFilteredPerformances(eventStaffPerformances, staffFilter)
+
+      // イベントデータのコピーを作成し、実績値を再計算した値で置き換え
+      return {
+        ...event,
+        actual_au_mnp: aggregated.au_mnp,
+        actual_uq_mnp: aggregated.uq_mnp,
+        actual_au_new: aggregated.au_new,
+        actual_uq_new: aggregated.uq_new,
+        actual_hs_total: aggregated.hs_total,
+        credit_card: aggregated.credit_card,
+        gold_card: aggregated.gold_card,
+        ji_bank_account: aggregated.ji_bank_account,
+        warranty: aggregated.warranty,
+        ott: aggregated.ott,
+        electricity: aggregated.electricity,
+        gas: aggregated.gas,
+        network_count: aggregated.network_count
+      }
+    })
+  }, [currentMonthEvents, staffData, staffFilter])
+
+  // 月次統計の計算（メモ化）- フィルター適用後のデータを使用
   const monthlyStats = useMemo(() => {
-    const eventsWithTargets = currentMonthEvents.filter((event: any) => event.target_hs_total > 0)
+    const eventsWithTargets = filteredCurrentMonthEvents.filter((event: any) => event.target_hs_total > 0)
     const achievedEvents = eventsWithTargets.filter((event: any) =>
       event.actual_hs_total >= event.target_hs_total
     )
 
     const totalTarget = eventsWithTargets.reduce((sum: number, event: any) => sum + event.target_hs_total, 0)
     const totalActual = eventsWithTargets.reduce((sum: number, event: any) => sum + event.actual_hs_total, 0)
-    const totalMnp = currentMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0), 0)
-    const totalNew = currentMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_au_new || 0) + (event.actual_uq_new || 0), 0)
+    const totalMnp = filteredCurrentMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_au_mnp || 0) + (event.actual_uq_mnp || 0), 0)
+    const totalNew = filteredCurrentMonthEvents.reduce((sum: number, event: any) => sum + (event.actual_au_new || 0) + (event.actual_uq_new || 0), 0)
     const totalHs = totalMnp + totalNew
     const mnpRatio = totalHs > 0 ? Math.round((totalMnp / totalHs) * 100) : 0
 
@@ -313,7 +366,53 @@ export default function Dashboard() {
       totalNew,
       mnpRatio
     }
-  }, [currentMonthEvents])
+  }, [filteredCurrentMonthEvents])
+
+  // 商流別統計の計算（メモ化）- フィルター適用後のデータを使用
+  const agencyTierStats = useMemo(() => {
+    const primaryEvents = filteredCurrentMonthEvents.filter((e: any) => e.agency_tier === '一次')
+    const secondaryEvents = filteredCurrentMonthEvents.filter((e: any) => e.agency_tier === '二次')
+
+    return {
+      primary: {
+        count: primaryEvents.length,
+        totalHS: primaryEvents.reduce((sum: number, e: any) => sum + (e.actual_hs_total || 0), 0),
+        avgHS: primaryEvents.length > 0
+          ? Math.round(primaryEvents.reduce((sum: number, e: any) => sum + (e.actual_hs_total || 0), 0) / primaryEvents.length)
+          : 0
+      },
+      secondary: {
+        count: secondaryEvents.length,
+        totalHS: secondaryEvents.reduce((sum: number, e: any) => sum + (e.actual_hs_total || 0), 0),
+        avgHS: secondaryEvents.length > 0
+          ? Math.round(secondaryEvents.reduce((sum: number, e: any) => sum + (e.actual_hs_total || 0), 0) / secondaryEvents.length)
+          : 0
+      }
+    }
+  }, [filteredCurrentMonthEvents])
+
+  // イベントタイプ別統計の計算（メモ化）- フィルター適用後のデータを使用
+  const eventTypeStats = useMemo(() => {
+    const gaihanEvents = filteredCurrentMonthEvents.filter((e: any) => e.event_type === '外販')
+    const tentoEvents = filteredCurrentMonthEvents.filter((e: any) => e.event_type === '店頭')
+
+    return {
+      gaihan: {
+        count: gaihanEvents.length,
+        totalHS: gaihanEvents.reduce((sum: number, e: any) => sum + (e.actual_hs_total || 0), 0),
+        avgHS: gaihanEvents.length > 0
+          ? Math.round(gaihanEvents.reduce((sum: number, e: any) => sum + (e.actual_hs_total || 0), 0) / gaihanEvents.length)
+          : 0
+      },
+      tento: {
+        count: tentoEvents.length,
+        totalHS: tentoEvents.reduce((sum: number, e: any) => sum + (e.actual_hs_total || 0), 0),
+        avgHS: tentoEvents.length > 0
+          ? Math.round(tentoEvents.reduce((sum: number, e: any) => sum + (e.actual_hs_total || 0), 0) / tentoEvents.length)
+          : 0
+      }
+    }
+  }, [filteredCurrentMonthEvents])
 
   // 年次データの計算（メモ化）
   const yearlyData = useMemo(() => {
@@ -484,6 +583,73 @@ export default function Dashboard() {
               <div className="flex items-center">
                 <div className="px-3 md:px-4 py-1.5 md:py-2 rounded-full" style={{ backgroundColor: 'rgba(255, 179, 0, 0.1)', color: '#FFB300' }}>
                   <span className="text-xs md:text-sm font-medium whitespace-nowrap">総イベント数: {monthlyStats.totalEvents}件</span>
+                </div>
+              </div>
+            </div>
+
+            {/* スタッフ区分フィルター */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-xl border" style={{ borderColor: '#22211A20' }}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+                  <span className="text-sm font-medium" style={{ color: '#22211A' }}>区分:</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+                    {getFilterDisplayName(staffFilter)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setStaffFilter(DEFAULT_STAFF_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore
+                        ? 'border-[#22211A] bg-[#22211A] text-white'
+                        : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
+                    }`}
+                    style={{ color: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? 'white' : '#22211A' }}
+                  >
+                    全体
+                  </button>
+                  <button
+                    onClick={() => setStaffFilter(INTERNAL_ONLY_FILTER)}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore
+                        ? 'border-[#22211A] bg-[#22211A] text-white'
+                        : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
+                    }`}
+                    style={{ color: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? 'white' : '#22211A' }}
+                  >
+                    自社のみ
+                  </button>
+                  <button
+                    onClick={() => setStaffFilter({
+                      includeInternal: true,
+                      includeExternal: false,
+                      includeStore: true
+                    })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore
+                        ? 'border-[#22211A] bg-[#22211A] text-white'
+                        : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
+                    }`}
+                    style={{ color: staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? 'white' : '#22211A' }}
+                  >
+                    他社除外
+                  </button>
+                  <button
+                    onClick={() => setStaffFilter({
+                      includeInternal: true,
+                      includeExternal: true,
+                      includeStore: false
+                    })}
+                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                      staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore
+                        ? 'border-[#22211A] bg-[#22211A] text-white'
+                        : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
+                    }`}
+                    style={{ color: staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? 'white' : '#22211A' }}
+                  >
+                    店舗除外
+                  </button>
                 </div>
               </div>
             </div>
@@ -726,6 +892,179 @@ export default function Dashboard() {
 
             <div className="mt-3 text-xs" style={{ color: '#22211A', opacity: 0.7 }}>
               メモはブラウザのローカルストレージに保存されます
+            </div>
+          </div>
+        </div>
+
+        {/* 商流別・イベントタイプ別統計 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* 商流別統計パネル */}
+          <div className="glass rounded-lg border p-6" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+            <div className="flex items-center mb-6">
+              <TrendingUp className="w-6 h-6 mr-3" style={{ color: '#22211A' }} />
+              <h2 className="text-2xl font-bold" style={{ color: '#22211A' }}>
+                商流別統計
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* 一次代理店 */}
+              <div className="bg-gray-50 rounded-xl p-4 border" style={{ borderColor: '#22211A20' }}>
+                <h3 className="text-lg font-semibold mb-3 text-center" style={{ color: '#22211A' }}>一次</h3>
+                <div className="space-y-3">
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>イベント数</div>
+                    <div className="text-2xl font-bold" style={{ color: '#22211A' }}>{agencyTierStats.primary.count}件</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>合計HS数</div>
+                    <div className="text-xl font-bold" style={{ color: COLORS[0] }}>{agencyTierStats.primary.totalHS}件</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>平均HS数</div>
+                    <div className="text-xl font-bold" style={{ color: COLORS[0] }}>{agencyTierStats.primary.avgHS}件</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 二次代理店 */}
+              <div className="bg-gray-50 rounded-xl p-4 border" style={{ borderColor: '#22211A20' }}>
+                <h3 className="text-lg font-semibold mb-3 text-center" style={{ color: '#22211A' }}>二次</h3>
+                <div className="space-y-3">
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>イベント数</div>
+                    <div className="text-2xl font-bold" style={{ color: '#22211A' }}>{agencyTierStats.secondary.count}件</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>合計HS数</div>
+                    <div className="text-xl font-bold" style={{ color: COLORS[1] }}>{agencyTierStats.secondary.totalHS}件</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>平均HS数</div>
+                    <div className="text-xl font-bold" style={{ color: COLORS[1] }}>{agencyTierStats.secondary.avgHS}件</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 商流別比較バーチャート */}
+            <div className="mt-6 bg-gray-50 rounded-xl p-4 border" style={{ borderColor: '#22211A20' }}>
+              <h3 className="text-sm font-semibold mb-3 text-center" style={{ color: '#22211A' }}>商流別HS数比較</h3>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart data={[
+                    { name: '一次', hs: agencyTierStats.primary.totalHS, avg: agencyTierStats.primary.avgHS },
+                    { name: '二次', hs: agencyTierStats.secondary.totalHS, avg: agencyTierStats.secondary.avgHS }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={COLORS[10]} />
+                    <XAxis dataKey="name" stroke="#22211A" fontSize={12} />
+                    <YAxis stroke="#22211A" fontSize={11} />
+                    <Tooltip
+                      formatter={(value, name) => [
+                        `${value}件`,
+                        name === 'hs' ? '合計HS数' : '平均HS数'
+                      ]}
+                      contentStyle={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #22211A',
+                        borderRadius: '8px',
+                        color: '#22211A'
+                      }}
+                    />
+                    <Legend
+                      formatter={(value) => value === 'hs' ? '合計HS数' : '平均HS数'}
+                      wrapperStyle={{ fontSize: '12px' }}
+                    />
+                    <Bar dataKey="hs" fill={COLORS[0]} animationBegin={0} animationDuration={800} />
+                    <Bar dataKey="avg" fill={COLORS[3]} animationBegin={0} animationDuration={800} />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* イベントタイプ別統計パネル */}
+          <div className="glass rounded-lg border p-6" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+            <div className="flex items-center mb-6">
+              <Store className="w-6 h-6 mr-3" style={{ color: '#22211A' }} />
+              <h2 className="text-2xl font-bold" style={{ color: '#22211A' }}>
+                イベントタイプ別統計
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* 外販 */}
+              <div className="bg-gray-50 rounded-xl p-4 border" style={{ borderColor: '#22211A20' }}>
+                <h3 className="text-lg font-semibold mb-3 text-center" style={{ color: '#22211A' }}>外販</h3>
+                <div className="space-y-3">
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>イベント数</div>
+                    <div className="text-2xl font-bold" style={{ color: '#22211A' }}>{eventTypeStats.gaihan.count}件</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>合計HS数</div>
+                    <div className="text-xl font-bold" style={{ color: COLORS[0] }}>{eventTypeStats.gaihan.totalHS}件</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>平均HS数</div>
+                    <div className="text-xl font-bold" style={{ color: COLORS[0] }}>{eventTypeStats.gaihan.avgHS}件</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 店頭 */}
+              <div className="bg-gray-50 rounded-xl p-4 border" style={{ borderColor: '#22211A20' }}>
+                <h3 className="text-lg font-semibold mb-3 text-center" style={{ color: '#22211A' }}>店頭</h3>
+                <div className="space-y-3">
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>イベント数</div>
+                    <div className="text-2xl font-bold" style={{ color: '#22211A' }}>{eventTypeStats.tento.count}件</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>合計HS数</div>
+                    <div className="text-xl font-bold" style={{ color: COLORS[1] }}>{eventTypeStats.tento.totalHS}件</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs mb-1" style={{ color: '#22211A', opacity: 0.7 }}>平均HS数</div>
+                    <div className="text-xl font-bold" style={{ color: COLORS[1] }}>{eventTypeStats.tento.avgHS}件</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* イベントタイプ別比較バーチャート */}
+            <div className="mt-6 bg-gray-50 rounded-xl p-4 border" style={{ borderColor: '#22211A20' }}>
+              <h3 className="text-sm font-semibold mb-3 text-center" style={{ color: '#22211A' }}>イベントタイプ別HS数比較</h3>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart data={[
+                    { name: '外販', hs: eventTypeStats.gaihan.totalHS, avg: eventTypeStats.gaihan.avgHS },
+                    { name: '店頭', hs: eventTypeStats.tento.totalHS, avg: eventTypeStats.tento.avgHS }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={COLORS[10]} />
+                    <XAxis dataKey="name" stroke="#22211A" fontSize={12} />
+                    <YAxis stroke="#22211A" fontSize={11} />
+                    <Tooltip
+                      formatter={(value, name) => [
+                        `${value}件`,
+                        name === 'hs' ? '合計HS数' : '平均HS数'
+                      ]}
+                      contentStyle={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #22211A',
+                        borderRadius: '8px',
+                        color: '#22211A'
+                      }}
+                    />
+                    <Legend
+                      formatter={(value) => value === 'hs' ? '合計HS数' : '平均HS数'}
+                      wrapperStyle={{ fontSize: '12px' }}
+                    />
+                    <Bar dataKey="hs" fill={COLORS[0]} animationBegin={0} animationDuration={800} />
+                    <Bar dataKey="avg" fill={COLORS[3]} animationBegin={0} animationDuration={800} />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>

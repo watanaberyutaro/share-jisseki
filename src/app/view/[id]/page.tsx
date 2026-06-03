@@ -233,6 +233,41 @@ export default function EventDetailPage() {
     return filterStaffPerformances(event.staff_performances, staffFilter)
   }, [event?.staff_performances, staffFilter])
 
+  // フィルター適用後の集計値を計算（メモ化）
+  const filteredSummary = useMemo(() => {
+    if (!filteredStaffPerformances.length) {
+      return {
+        au_mnp: 0,
+        uq_mnp: 0,
+        au_new: 0,
+        uq_new: 0,
+        cellup: 0,
+        hs_total: 0
+      }
+    }
+
+    return filteredStaffPerformances.reduce((acc, staff) => {
+      acc.au_mnp += staff.au_mnp || 0
+      acc.uq_mnp += staff.uq_mnp || 0
+      acc.au_new += staff.au_new || 0
+      acc.uq_new += staff.uq_new || 0
+      acc.cellup += staff.cellup || 0
+      return acc
+    }, {
+      au_mnp: 0,
+      uq_mnp: 0,
+      au_new: 0,
+      uq_new: 0,
+      cellup: 0,
+      hs_total: 0
+    })
+  }, [filteredStaffPerformances])
+
+  // HS総販を計算
+  filteredSummary.hs_total = filteredSummary.au_mnp + filteredSummary.uq_mnp +
+                             filteredSummary.au_new + filteredSummary.uq_new +
+                             (event?.include_cellup_in_hs_total ? filteredSummary.cellup : 0)
+
   // PDFエクスポートハンドラー（メモ化）
   const handleExportPDF = useCallback(async () => {
     if (!event) return
@@ -367,12 +402,82 @@ export default function EventDetailPage() {
         <div className="lg:col-span-2 space-y-8">
           {/* Performance Stats */}
           <div className="glass rounded-lg p-6 border" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
-            <h2 className="text-xl font-bold mb-6" style={{ color: '#22211A' }}>実績サマリー</h2>
-            
+            <h2 className="text-xl font-bold mb-4" style={{ color: '#22211A' }}>実績サマリー</h2>
+
+            {/* スタッフ区分フィルター */}
+            <div className="mb-6 p-4 rounded-lg border" style={{ borderColor: '#22211A20', backgroundColor: '#fafafa' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <FilterIcon className="w-4 h-4" style={{ color: '#4abf79' }} />
+                <span className="text-sm font-bold" style={{ color: '#22211A' }}>区分: {getFilterDisplayName(staffFilter)}</span>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setStaffFilter({ includeInternal: true, includeExternal: true, includeStore: true })}
+                  className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                    staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore
+                      ? 'text-white'
+                      : ''
+                  }`}
+                  style={{
+                    borderColor: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : '#22211A40',
+                    backgroundColor: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : 'transparent',
+                    color: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? '#FFFFFF' : '#22211A'
+                  }}
+                >
+                  全体
+                </button>
+                <button
+                  onClick={() => setStaffFilter({ includeInternal: true, includeExternal: false, includeStore: false })}
+                  className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                    staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore
+                      ? 'text-white'
+                      : ''
+                  }`}
+                  style={{
+                    borderColor: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : '#22211A40',
+                    backgroundColor: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : 'transparent',
+                    color: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? '#FFFFFF' : '#22211A'
+                  }}
+                >
+                  自社のみ
+                </button>
+                <button
+                  onClick={() => setStaffFilter({ includeInternal: false, includeExternal: true, includeStore: false })}
+                  className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                    !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore
+                      ? 'text-white'
+                      : ''
+                  }`}
+                  style={{
+                    borderColor: !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : '#22211A40',
+                    backgroundColor: !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : 'transparent',
+                    color: !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? '#FFFFFF' : '#22211A'
+                  }}
+                >
+                  他社のみ
+                </button>
+                <button
+                  onClick={() => setStaffFilter({ includeInternal: false, includeExternal: false, includeStore: true })}
+                  className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                    !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore
+                      ? 'text-white'
+                      : ''
+                  }`}
+                  style={{
+                    borderColor: !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : '#22211A40',
+                    backgroundColor: !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : 'transparent',
+                    color: !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? '#FFFFFF' : '#22211A'
+                  }}
+                >
+                  店舗のみ
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
               <div className="text-center p-4 bg-muted rounded-xl">
                 <div className="text-3xl font-bold mb-2" style={{ color: '#22211A' }}>
-                  {event.actual_hs_total}
+                  {filteredSummary.hs_total}
                 </div>
                 <div className="text-sm mb-2" style={{ color: '#22211A' }}>実績HS総販</div>
                 <div className="text-xs px-2 py-1 rounded inline-block mb-2" style={{ backgroundColor: event.include_cellup_in_hs_total ? '#4abf79' : '#9E9E9E', color: '#FFFFFF' }}>
@@ -386,25 +491,25 @@ export default function EventDetailPage() {
               </div>
               <div className="text-center p-4 bg-muted rounded-xl">
                 <div className="text-3xl font-bold mb-2" style={{ color: '#22211A' }}>
-                  {event.actual_au_mnp + event.actual_uq_mnp}
+                  {filteredSummary.au_mnp + filteredSummary.uq_mnp}
                 </div>
                 <div className="text-sm" style={{ color: '#22211A' }}>MNP合計</div>
               </div>
               <div className="text-center p-4 bg-muted rounded-xl">
                 <div className="text-3xl font-bold mb-2" style={{ color: '#22211A' }}>
-                  {event.actual_au_new + event.actual_uq_new}
+                  {filteredSummary.au_new + filteredSummary.uq_new}
                 </div>
                 <div className="text-sm" style={{ color: '#22211A' }}>新規合計</div>
               </div>
               <div className="text-center p-4 bg-muted rounded-xl">
                 <div className="text-3xl font-bold mb-2" style={{ color: '#22211A' }}>
-                  {event.actual_cellup || 0}
+                  {filteredSummary.cellup || 0}
                 </div>
                 <div className="text-sm" style={{ color: '#22211A' }}>セルアップ</div>
               </div>
               <div className="text-center p-4 bg-muted/50 rounded-xl">
                 <div className="text-3xl font-bold mb-2" style={{ color: '#22211A' }}>
-                  {event.target_hs_total > 0 ? Math.round((event.actual_hs_total / event.target_hs_total) * 100) : 0}%
+                  {event.target_hs_total > 0 ? Math.round((filteredSummary.hs_total / event.target_hs_total) * 100) : 0}%
                 </div>
                 <div className="text-sm" style={{ color: '#22211A' }}>達成率</div>
               </div>
@@ -414,23 +519,23 @@ export default function EventDetailPage() {
             <div className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
                 <span style={{ color: '#22211A' }}>au MNP</span>
-                <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{event.actual_au_mnp}件</span>
+                <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{filteredSummary.au_mnp}件</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
                 <span style={{ color: '#22211A' }}>UQ MNP</span>
-                <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{event.actual_uq_mnp}件</span>
+                <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{filteredSummary.uq_mnp}件</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
                 <span style={{ color: '#22211A' }}>au 新規</span>
-                <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{event.actual_au_new}件</span>
+                <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{filteredSummary.au_new}件</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
                 <span style={{ color: '#22211A' }}>UQ 新規</span>
-                <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{event.actual_uq_new}件</span>
+                <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{filteredSummary.uq_new}件</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
                 <span style={{ color: '#22211A' }}>セルアップ</span>
-                <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{event.actual_cellup || 0}件</span>
+                <span className="font-semibold text-lg" style={{ color: '#22211A' }}>{filteredSummary.cellup || 0}件</span>
               </div>
             </div>
 
@@ -440,7 +545,7 @@ export default function EventDetailPage() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm" style={{ color: '#22211A' }}>目標達成進捗</span>
                   <span className="text-sm font-medium" style={{ color: '#22211A' }}>
-                    {event.actual_hs_total} / {event.target_hs_total}
+                    {filteredSummary.hs_total} / {event.target_hs_total}
                   </span>
                 </div>
                 <div className="w-full bg-muted/30 rounded-full h-3">
@@ -448,7 +553,7 @@ export default function EventDetailPage() {
                     className="h-3 rounded-full transition-all duration-500"
                     style={{
                       backgroundColor: '#22211A',
-                      width: `${Math.min(Math.round((event.actual_hs_total / event.target_hs_total) * 100), 100)}%`
+                      width: `${Math.min(Math.round((filteredSummary.hs_total / event.target_hs_total) * 100), 100)}%`
                     }}
                   />
                 </div>
@@ -492,76 +597,6 @@ export default function EventDetailPage() {
                     }
                   >
                     日毎詳細
-                  </button>
-                </div>
-              </div>
-
-              {/* スタッフ区分フィルター */}
-              <div className="mb-4 p-4 rounded-lg border" style={{ borderColor: '#22211A20', backgroundColor: '#fafafa' }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <FilterIcon className="w-4 h-4" style={{ color: '#4abf79' }} />
-                  <span className="text-sm font-bold" style={{ color: '#22211A' }}>区分: {getFilterDisplayName(staffFilter)}</span>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => setStaffFilter({ includeInternal: true, includeExternal: true, includeStore: true })}
-                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                      staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore
-                        ? 'text-white'
-                        : ''
-                    }`}
-                    style={{
-                      borderColor: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : '#22211A40',
-                      backgroundColor: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : 'transparent',
-                      color: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? '#FFFFFF' : '#22211A'
-                    }}
-                  >
-                    全体
-                  </button>
-                  <button
-                    onClick={() => setStaffFilter({ includeInternal: true, includeExternal: false, includeStore: false })}
-                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                      staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore
-                        ? 'text-white'
-                        : ''
-                    }`}
-                    style={{
-                      borderColor: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : '#22211A40',
-                      backgroundColor: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : 'transparent',
-                      color: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? '#FFFFFF' : '#22211A'
-                    }}
-                  >
-                    自社のみ
-                  </button>
-                  <button
-                    onClick={() => setStaffFilter({ includeInternal: false, includeExternal: true, includeStore: false })}
-                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                      !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore
-                        ? 'text-white'
-                        : ''
-                    }`}
-                    style={{
-                      borderColor: !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : '#22211A40',
-                      backgroundColor: !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : 'transparent',
-                      color: !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? '#FFFFFF' : '#22211A'
-                    }}
-                  >
-                    他社のみ
-                  </button>
-                  <button
-                    onClick={() => setStaffFilter({ includeInternal: false, includeExternal: false, includeStore: true })}
-                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                      !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore
-                        ? 'text-white'
-                        : ''
-                    }`}
-                    style={{
-                      borderColor: !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : '#22211A40',
-                      backgroundColor: !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : 'transparent',
-                      color: !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? '#FFFFFF' : '#22211A'
-                    }}
-                  >
-                    店舗のみ
                   </button>
                 </div>
               </div>

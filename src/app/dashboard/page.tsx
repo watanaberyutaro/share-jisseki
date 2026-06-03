@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { TrendingUp, Target, StickyNote, Save, Edit3, Trophy, Award, Medal, BarChart, User, Store, Filter } from 'lucide-react'
+import { TrendingUp, Target, StickyNote, Save, Edit3, Trophy, Award, Medal, BarChart, User, Store, Filter, Building2, MapPin } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, BarChart as RechartsBarChart, Bar } from 'recharts'
 import { MagneticDots } from '@/components/MagneticDots'
 import {
@@ -12,6 +12,16 @@ import {
   aggregateFilteredPerformances,
   getFilterDisplayName
 } from '@/lib/staff-filter'
+import {
+  AgencyTierFilter,
+  EventTypeFilter,
+  DEFAULT_AGENCY_TIER_FILTER,
+  DEFAULT_EVENT_TYPE_FILTER,
+  applyAgencyTierFilter,
+  applyEventTypeFilter,
+  getAgencyTierFilterDisplayName,
+  getEventTypeFilterDisplayName
+} from '@/lib/event-filter'
 
 export default function Dashboard() {
   const [currentTime] = useState(new Date())
@@ -215,6 +225,8 @@ export default function Dashboard() {
   const [savedMemo, setSavedMemo] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [staffFilter, setStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
+  const [agencyTierFilter, setAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [eventTypeFilter, setEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
 
   // メモ機能のローカルストレージ管理
   useEffect(() => {
@@ -292,10 +304,18 @@ export default function Dashboard() {
   const currentMonthEvents = useMemo(() => {
     const currentMonth = currentTime.getMonth() + 1
     const currentYear = currentTime.getFullYear()
-    return allEvents.filter((event: any) =>
+    let filtered = allEvents.filter((event: any) =>
       event.month === currentMonth && event.year === currentYear
     )
-  }, [allEvents, currentTime])
+
+    // Apply agency tier filter
+    filtered = applyAgencyTierFilter(filtered, agencyTierFilter)
+
+    // Apply event type filter
+    filtered = applyEventTypeFilter(filtered, eventTypeFilter)
+
+    return filtered
+  }, [allEvents, currentTime, agencyTierFilter, eventTypeFilter])
 
   // スタッフフィルター適用後のイベントデータ再計算（メモ化）
   const filteredCurrentMonthEvents = useMemo(() => {
@@ -587,69 +607,168 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* スタッフ区分フィルター */}
-            <div className="mb-4 p-3 bg-gray-50 rounded-xl border" style={{ borderColor: '#22211A20' }}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
-                  <span className="text-sm font-medium" style={{ color: '#22211A' }}>区分:</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
-                    {getFilterDisplayName(staffFilter)}
-                  </span>
+            {/* フィルターセクション */}
+            <div className="mb-4 space-y-2">
+              {/* スタッフ区分フィルター */}
+              <div className="p-3 bg-gray-50 rounded-xl border" style={{ borderColor: '#22211A20' }}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
+                    <span className="text-sm font-medium" style={{ color: '#22211A' }}>区分:</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
+                      {getFilterDisplayName(staffFilter)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setStaffFilter(DEFAULT_STAFF_FILTER)}
+                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                        staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore
+                          ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                          : 'border-[#22211A40] hover:border-[#4abf79] hover:bg-muted/50'
+                      }`}
+                      style={{ color: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? 'white' : '#22211A' }}
+                    >
+                      全体
+                    </button>
+                    <button
+                      onClick={() => setStaffFilter(INTERNAL_ONLY_FILTER)}
+                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                        staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore
+                          ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                          : 'border-[#22211A40] hover:border-[#4abf79] hover:bg-muted/50'
+                      }`}
+                      style={{ color: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? 'white' : '#22211A' }}
+                    >
+                      自社のみ
+                    </button>
+                    <button
+                      onClick={() => setStaffFilter({
+                        includeInternal: true,
+                        includeExternal: false,
+                        includeStore: true
+                      })}
+                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                        staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore
+                          ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                          : 'border-[#22211A40] hover:border-[#4abf79] hover:bg-muted/50'
+                      }`}
+                      style={{ color: staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? 'white' : '#22211A' }}
+                    >
+                      他社除外
+                    </button>
+                    <button
+                      onClick={() => setStaffFilter({
+                        includeInternal: true,
+                        includeExternal: true,
+                        includeStore: false
+                      })}
+                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                        staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore
+                          ? 'border-[#4abf79] bg-[#4abf79] text-white'
+                          : 'border-[#22211A40] hover:border-[#4abf79] hover:bg-muted/50'
+                      }`}
+                      style={{ color: staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? 'white' : '#22211A' }}
+                    >
+                      店舗除外
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setStaffFilter(DEFAULT_STAFF_FILTER)}
-                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                      staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore
-                        ? 'border-[#22211A] bg-[#22211A] text-white'
-                        : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
-                    }`}
-                    style={{ color: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? 'white' : '#22211A' }}
-                  >
-                    全体
-                  </button>
-                  <button
-                    onClick={() => setStaffFilter(INTERNAL_ONLY_FILTER)}
-                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                      staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore
-                        ? 'border-[#22211A] bg-[#22211A] text-white'
-                        : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
-                    }`}
-                    style={{ color: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? 'white' : '#22211A' }}
-                  >
-                    自社のみ
-                  </button>
-                  <button
-                    onClick={() => setStaffFilter({
-                      includeInternal: true,
-                      includeExternal: false,
-                      includeStore: true
-                    })}
-                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                      staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore
-                        ? 'border-[#22211A] bg-[#22211A] text-white'
-                        : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
-                    }`}
-                    style={{ color: staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? 'white' : '#22211A' }}
-                  >
-                    他社除外
-                  </button>
-                  <button
-                    onClick={() => setStaffFilter({
-                      includeInternal: true,
-                      includeExternal: true,
-                      includeStore: false
-                    })}
-                    className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                      staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore
-                        ? 'border-[#22211A] bg-[#22211A] text-white'
-                        : 'border-[#22211A40] hover:border-[#22211A] hover:bg-muted/50'
-                    }`}
-                    style={{ color: staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? 'white' : '#22211A' }}
-                  >
-                    店舗除外
-                  </button>
+              </div>
+
+              {/* 商流フィルター */}
+              <div className="p-3 bg-gray-50 rounded-xl border" style={{ borderColor: '#22211A20' }}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
+                    <span className="text-sm font-medium" style={{ color: '#22211A' }}>商流:</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
+                      {getAgencyTierFilterDisplayName(agencyTierFilter)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })}
+                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                        agencyTierFilter.showAll
+                          ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
+                          : 'border-[#22211A40] hover:border-[#F1AD26] hover:bg-muted/50'
+                      }`}
+                      style={{ color: agencyTierFilter.showAll ? 'white' : '#22211A' }}
+                    >
+                      全て
+                    </button>
+                    <button
+                      onClick={() => setAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })}
+                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                        !agencyTierFilter.showAll && agencyTierFilter.showPrimary && !agencyTierFilter.showSecondary
+                          ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
+                          : 'border-[#22211A40] hover:border-[#F1AD26] hover:bg-muted/50'
+                      }`}
+                      style={{ color: !agencyTierFilter.showAll && agencyTierFilter.showPrimary && !agencyTierFilter.showSecondary ? 'white' : '#22211A' }}
+                    >
+                      一次
+                    </button>
+                    <button
+                      onClick={() => setAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })}
+                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                        !agencyTierFilter.showAll && !agencyTierFilter.showPrimary && agencyTierFilter.showSecondary
+                          ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
+                          : 'border-[#22211A40] hover:border-[#F1AD26] hover:bg-muted/50'
+                      }`}
+                      style={{ color: !agencyTierFilter.showAll && !agencyTierFilter.showPrimary && agencyTierFilter.showSecondary ? 'white' : '#22211A' }}
+                    >
+                      二次
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* イベントタイプフィルター */}
+              <div className="p-3 bg-gray-50 rounded-xl border" style={{ borderColor: '#22211A20' }}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
+                    <span className="text-sm font-medium" style={{ color: '#22211A' }}>種別:</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
+                      {getEventTypeFilterDisplayName(eventTypeFilter)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })}
+                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                        eventTypeFilter.showAll
+                          ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
+                          : 'border-[#22211A40] hover:border-[#3dae6c] hover:bg-muted/50'
+                      }`}
+                      style={{ color: eventTypeFilter.showAll ? 'white' : '#22211A' }}
+                    >
+                      全て
+                    </button>
+                    <button
+                      onClick={() => setEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })}
+                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                        !eventTypeFilter.showAll && eventTypeFilter.showGaihan && !eventTypeFilter.showTento
+                          ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
+                          : 'border-[#22211A40] hover:border-[#3dae6c] hover:bg-muted/50'
+                      }`}
+                      style={{ color: !eventTypeFilter.showAll && eventTypeFilter.showGaihan && !eventTypeFilter.showTento ? 'white' : '#22211A' }}
+                    >
+                      外販
+                    </button>
+                    <button
+                      onClick={() => setEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })}
+                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                        !eventTypeFilter.showAll && !eventTypeFilter.showGaihan && eventTypeFilter.showTento
+                          ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
+                          : 'border-[#22211A40] hover:border-[#3dae6c] hover:bg-muted/50'
+                      }`}
+                      style={{ color: !eventTypeFilter.showAll && !eventTypeFilter.showGaihan && eventTypeFilter.showTento ? 'white' : '#22211A' }}
+                    >
+                      店頭
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -17,6 +17,16 @@ import {
   getFilterDisplayName,
   aggregateFilteredPerformances
 } from '@/lib/staff-filter'
+import {
+  AgencyTierFilter,
+  EventTypeFilter,
+  DEFAULT_AGENCY_TIER_FILTER,
+  DEFAULT_EVENT_TYPE_FILTER,
+  applyAgencyTierFilter,
+  applyEventTypeFilter,
+  getAgencyTierFilterDisplayName,
+  getEventTypeFilterDisplayName
+} from '@/lib/event-filter'
 
 interface EventSummary {
   id: string
@@ -196,6 +206,30 @@ export function PerformanceAnalyticsV2({
   // 月次達成状況用の状態
   const [monthlyStatusStaffFilter, setMonthlyStatusStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
+  // 商流フィルター（各パネル用）
+  const [rankingAgencyTierFilter, setRankingAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [achievementAgencyTierFilter, setAchievementAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [weeklyAgencyTierFilter, setWeeklyAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [levelAgencyTierFilter, setLevelAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [achievementStatusAgencyTierFilter, setAchievementStatusAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [agencyAgencyTierFilter, setAgencyAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [venueAgencyTierFilter, setVenueAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [eventWeeklyAgencyTierFilter, setEventWeeklyAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [venueMonthlyAgencyTierFilter, setVenueMonthlyAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [monthlyStatusAgencyTierFilter, setMonthlyStatusAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+
+  // イベントタイプフィルター（各パネル用）
+  const [rankingEventTypeFilter, setRankingEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+  const [achievementEventTypeFilter, setAchievementEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+  const [weeklyEventTypeFilter, setWeeklyEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+  const [levelEventTypeFilter, setLevelEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+  const [achievementStatusEventTypeFilter, setAchievementStatusEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+  const [agencyEventTypeFilter, setAgencyEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+  const [venueEventTypeFilter, setVenueEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+  const [eventWeeklyEventTypeFilter, setEventWeeklyEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+  const [venueMonthlyEventTypeFilter, setVenueMonthlyEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+  const [monthlyStatusEventTypeFilter, setMonthlyStatusEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+
   // PDF生成用のref
   const contentRef = useRef<HTMLDivElement>(null)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
@@ -296,7 +330,13 @@ export function PerformanceAnalyticsV2({
     })
 
     // スタッフ区分フィルターを適用
-    const staffFilteredEvents = applyStaffFilterToEvents(filteredEvents, rankingStaffFilter)
+    let staffFilteredEvents = applyStaffFilterToEvents(filteredEvents, rankingStaffFilter)
+
+    // 商流フィルターを適用
+    staffFilteredEvents = applyAgencyTierFilter(staffFilteredEvents, rankingAgencyTierFilter)
+
+    // イベントタイプフィルターを適用
+    staffFilteredEvents = applyEventTypeFilter(staffFilteredEvents, rankingEventTypeFilter)
 
     const allEventRanking = staffFilteredEvents
       .map((event: any) => ({
@@ -329,7 +369,7 @@ export function PerformanceAnalyticsV2({
     }
 
     setEventRanking(eventRankingData)
-  }, [events, rankingYear, rankingMonth, rankingStaffFilter, applyStaffFilterToEvents])
+  }, [events, rankingYear, rankingMonth, rankingStaffFilter, rankingAgencyTierFilter, rankingEventTypeFilter, applyStaffFilterToEvents])
 
   // 分析実行関数
   const handleAnalyze = () => {
@@ -604,7 +644,13 @@ export function PerformanceAnalyticsV2({
 
   // 月次イベント達成率推移の独立したデータ計算
   const monthlyAchievementTrendData = useMemo(() => {
-    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, achievementStaffFilter)
+    let panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, achievementStaffFilter)
+
+    // 商流フィルターを適用
+    panelFilteredEvents = applyAgencyTierFilter(panelFilteredEvents, achievementAgencyTierFilter)
+
+    // イベントタイプフィルターを適用
+    panelFilteredEvents = applyEventTypeFilter(panelFilteredEvents, achievementEventTypeFilter)
 
     if (panelFilteredEvents.length === 0) return []
 
@@ -644,11 +690,17 @@ export function PerformanceAnalyticsV2({
     }
 
     return trend
-  }, [filteredEvents, achievementStaffFilter, achievementStartDate, achievementEndDate, applyStaffFilterToEvents])
+  }, [filteredEvents, achievementStaffFilter, achievementAgencyTierFilter, achievementEventTypeFilter, achievementStartDate, achievementEndDate, applyStaffFilterToEvents])
 
   // 週次実績の独立したデータ計算
   const weeklyStatsData = useMemo(() => {
-    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, weeklyStaffFilter)
+    let panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, weeklyStaffFilter)
+
+    // 商流フィルターを適用
+    panelFilteredEvents = applyAgencyTierFilter(panelFilteredEvents, weeklyAgencyTierFilter)
+
+    // イベントタイプフィルターを適用
+    panelFilteredEvents = applyEventTypeFilter(panelFilteredEvents, weeklyEventTypeFilter)
 
     if (panelFilteredEvents.length === 0) return []
 
@@ -699,11 +751,17 @@ export function PerformanceAnalyticsV2({
     }
 
     return weeklyStats
-  }, [filteredEvents, weeklyStaffFilter, weeklyStartDate, weeklyEndDate, applyStaffFilterToEvents])
+  }, [filteredEvents, weeklyStaffFilter, weeklyAgencyTierFilter, weeklyEventTypeFilter, weeklyStartDate, weeklyEndDate, applyStaffFilterToEvents])
 
   // 実績レベル分析の独立したデータ計算
   const performanceLevelsData = useMemo(() => {
-    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, levelStaffFilter)
+    let panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, levelStaffFilter)
+
+    // 商流フィルターを適用
+    panelFilteredEvents = applyAgencyTierFilter(panelFilteredEvents, levelAgencyTierFilter)
+
+    // イベントタイプフィルターを適用
+    panelFilteredEvents = applyEventTypeFilter(panelFilteredEvents, levelEventTypeFilter)
 
     if (panelFilteredEvents.length === 0) return []
 
@@ -738,11 +796,17 @@ export function PerformanceAnalyticsV2({
 
     const order = ['0-49', '50-99', '100-149', '150-199', '200+']
     return order.map(range => levelData[range] || { range, count: 0 })
-  }, [filteredEvents, levelStaffFilter, levelStartDate, levelEndDate, applyStaffFilterToEvents])
+  }, [filteredEvents, levelStaffFilter, levelAgencyTierFilter, levelEventTypeFilter, levelStartDate, levelEndDate, applyStaffFilterToEvents])
 
   // 目標達成状況の独立したデータ計算
   const achievementStatusData = useMemo(() => {
-    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, achievementStatusStaffFilter)
+    let panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, achievementStatusStaffFilter)
+
+    // 商流フィルターを適用
+    panelFilteredEvents = applyAgencyTierFilter(panelFilteredEvents, achievementStatusAgencyTierFilter)
+
+    // イベントタイプフィルターを適用
+    panelFilteredEvents = applyEventTypeFilter(panelFilteredEvents, achievementStatusEventTypeFilter)
 
     if (panelFilteredEvents.length === 0) {
       return { achieved: 0, notAchieved: 0, noTarget: 0 }
@@ -779,11 +843,17 @@ export function PerformanceAnalyticsV2({
       }
       return acc
     }, { achieved: 0, notAchieved: 0, noTarget: 0 })
-  }, [filteredEvents, achievementStatusStaffFilter, achievementStatusStartDate, achievementStatusEndDate, applyStaffFilterToEvents])
+  }, [filteredEvents, achievementStatusStaffFilter, achievementStatusAgencyTierFilter, achievementStatusEventTypeFilter, achievementStatusStartDate, achievementStatusEndDate, applyStaffFilterToEvents])
 
   // 代理店別実績の独立したデータ計算
   const agencyStatsData = useMemo(() => {
-    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, agencyStaffFilter)
+    let panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, agencyStaffFilter)
+
+    // 商流フィルターを適用
+    panelFilteredEvents = applyAgencyTierFilter(panelFilteredEvents, agencyAgencyTierFilter)
+
+    // イベントタイプフィルターを適用
+    panelFilteredEvents = applyEventTypeFilter(panelFilteredEvents, agencyEventTypeFilter)
 
     if (panelFilteredEvents.length === 0) return []
 
@@ -819,11 +889,17 @@ export function PerformanceAnalyticsV2({
     return Object.values(agencyData)
       .sort((a: any, b: any) => b.totalSales - a.totalSales)
       .slice(0, 10)
-  }, [filteredEvents, agencyStaffFilter, agencyStartDate, agencyEndDate, applyStaffFilterToEvents])
+  }, [filteredEvents, agencyStaffFilter, agencyAgencyTierFilter, agencyEventTypeFilter, agencyStartDate, agencyEndDate, applyStaffFilterToEvents])
 
   // 会場別実績の独立したデータ計算
   const venueStatsData = useMemo(() => {
-    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, venueStaffFilter)
+    let panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, venueStaffFilter)
+
+    // 商流フィルターを適用
+    panelFilteredEvents = applyAgencyTierFilter(panelFilteredEvents, venueAgencyTierFilter)
+
+    // イベントタイプフィルターを適用
+    panelFilteredEvents = applyEventTypeFilter(panelFilteredEvents, venueEventTypeFilter)
 
     if (panelFilteredEvents.length === 0) return []
 
@@ -859,7 +935,7 @@ export function PerformanceAnalyticsV2({
     return Object.values(venueData)
       .sort((a: any, b: any) => b.totalSales - a.totalSales)
       .slice(0, 10)
-  }, [filteredEvents, venueStaffFilter, venueStartDate, venueEndDate, applyStaffFilterToEvents])
+  }, [filteredEvents, venueStaffFilter, venueAgencyTierFilter, venueEventTypeFilter, venueStartDate, venueEndDate, applyStaffFilterToEvents])
 
   // イベント別実績用のデータ計算（スタッフフィルター適用）
   const eventWeeklyStatsData = useMemo(() => {
@@ -885,7 +961,13 @@ export function PerformanceAnalyticsV2({
     }
 
     // スタッフフィルターを適用
-    const staffFilteredEvents = applyStaffFilterToEvents(eventFilteredEvents, eventWeeklyStaffFilter)
+    let staffFilteredEvents = applyStaffFilterToEvents(eventFilteredEvents, eventWeeklyStaffFilter)
+
+    // 商流フィルターを適用
+    staffFilteredEvents = applyAgencyTierFilter(staffFilteredEvents, eventWeeklyAgencyTierFilter)
+
+    // イベントタイプフィルターを適用
+    staffFilteredEvents = applyEventTypeFilter(staffFilteredEvents, eventWeeklyEventTypeFilter)
 
     // 週ごとにグループ化
     const weeklyData: Record<number, any> = {}
@@ -929,12 +1011,18 @@ export function PerformanceAnalyticsV2({
         }
       })
       .sort((a: any, b: any) => a.weekNumber - b.weekNumber)
-  }, [events, eventYear, eventMonth, selectedEventAgencies, eventWeeklyStaffFilter, applyStaffFilterToEvents])
+  }, [events, eventYear, eventMonth, selectedEventAgencies, eventWeeklyStaffFilter, eventWeeklyAgencyTierFilter, eventWeeklyEventTypeFilter, applyStaffFilterToEvents])
 
   // 会場別月次実績推移用のデータ計算（スタッフフィルター適用）
   const venueMonthlyTrendData = useMemo(() => {
     // スタッフフィルターを適用
-    const panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, venueMonthlyStaffFilter)
+    let panelFilteredEvents = applyStaffFilterToEvents(filteredEvents, venueMonthlyStaffFilter)
+
+    // 商流フィルターを適用
+    panelFilteredEvents = applyAgencyTierFilter(panelFilteredEvents, venueMonthlyAgencyTierFilter)
+
+    // イベントタイプフィルターを適用
+    panelFilteredEvents = applyEventTypeFilter(panelFilteredEvents, venueMonthlyEventTypeFilter)
 
     if (panelFilteredEvents.length === 0) return []
 
@@ -979,7 +1067,7 @@ export function PerformanceAnalyticsV2({
     })
 
     return venueMonthlyTrend
-  }, [filteredEvents, venueMonthlyStaffFilter, chartStartDate, chartEndDate, applyStaffFilterToEvents])
+  }, [filteredEvents, venueMonthlyStaffFilter, venueMonthlyAgencyTierFilter, venueMonthlyEventTypeFilter, chartStartDate, chartEndDate, applyStaffFilterToEvents])
 
   // 月次達成状況用のデータ計算関数（比較モーダル用）
   const getMonthlyStatusData = useCallback((startDateParam: string) => {
@@ -3524,6 +3612,88 @@ export function PerformanceAnalyticsV2({
           </div>
         </div>
 
+        {/* 商流フィルター */}
+        <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+          <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
+          <span className="text-xs font-medium" style={{ color: '#22211A' }}>商流:</span>
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
+            {getAgencyTierFilterDisplayName(rankingAgencyTierFilter)}
+          </span>
+          <div className="flex items-center gap-1.5 ml-2">
+            <button
+              onClick={() => setRankingAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })}
+              className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                rankingAgencyTierFilter.showAll
+                  ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
+                  : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'
+              }`}
+            >
+              全て
+            </button>
+            <button
+              onClick={() => setRankingAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })}
+              className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                !rankingAgencyTierFilter.showAll && rankingAgencyTierFilter.showPrimary && !rankingAgencyTierFilter.showSecondary
+                  ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
+                  : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'
+              }`}
+            >
+              一次
+            </button>
+            <button
+              onClick={() => setRankingAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })}
+              className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                !rankingAgencyTierFilter.showAll && !rankingAgencyTierFilter.showPrimary && rankingAgencyTierFilter.showSecondary
+                  ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
+                  : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'
+              }`}
+            >
+              二次
+            </button>
+          </div>
+        </div>
+
+        {/* イベントタイプフィルター */}
+        <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+          <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
+          <span className="text-xs font-medium" style={{ color: '#22211A' }}>種別:</span>
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
+            {getEventTypeFilterDisplayName(rankingEventTypeFilter)}
+          </span>
+          <div className="flex items-center gap-1.5 ml-2">
+            <button
+              onClick={() => setRankingEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })}
+              className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                rankingEventTypeFilter.showAll
+                  ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
+                  : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'
+              }`}
+            >
+              全て
+            </button>
+            <button
+              onClick={() => setRankingEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })}
+              className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                !rankingEventTypeFilter.showAll && rankingEventTypeFilter.showGaihan && !rankingEventTypeFilter.showTento
+                  ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
+                  : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'
+              }`}
+            >
+              外販
+            </button>
+            <button
+              onClick={() => setRankingEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })}
+              className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+                !rankingEventTypeFilter.showAll && !rankingEventTypeFilter.showGaihan && rankingEventTypeFilter.showTento
+                  ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
+                  : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'
+              }`}
+            >
+              店頭
+            </button>
+          </div>
+        </div>
+
         {eventRanking.length > 0 ? (
           <div className="space-y-2">
             {eventRanking.map((event, index) => {
@@ -3664,6 +3834,34 @@ export function PerformanceAnalyticsV2({
                 </div>
               </div>
 
+              {/* 商流フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>商流:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
+                  {getAgencyTierFilterDisplayName(achievementAgencyTierFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setAchievementAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${achievementAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>全て</button>
+                  <button onClick={() => setAchievementAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!achievementAgencyTierFilter.showAll && achievementAgencyTierFilter.showPrimary && !achievementAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>一次</button>
+                  <button onClick={() => setAchievementAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!achievementAgencyTierFilter.showAll && !achievementAgencyTierFilter.showPrimary && achievementAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>二次</button>
+                </div>
+              </div>
+
+              {/* イベントタイプフィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>種別:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
+                  {getEventTypeFilterDisplayName(achievementEventTypeFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setAchievementEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${achievementEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>全て</button>
+                  <button onClick={() => setAchievementEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!achievementEventTypeFilter.showAll && achievementEventTypeFilter.showGaihan && !achievementEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>外販</button>
+                  <button onClick={() => setAchievementEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!achievementEventTypeFilter.showAll && !achievementEventTypeFilter.showGaihan && achievementEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>店頭</button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span style={{ color: '#22211A' }}>期間:</span>
@@ -3798,6 +3996,34 @@ export function PerformanceAnalyticsV2({
                   >
                     店舗除外
                   </button>
+                </div>
+              </div>
+
+              {/* 商流フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>商流:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
+                  {getAgencyTierFilterDisplayName(weeklyAgencyTierFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setWeeklyAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${weeklyAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>全て</button>
+                  <button onClick={() => setWeeklyAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!weeklyAgencyTierFilter.showAll && weeklyAgencyTierFilter.showPrimary && !weeklyAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>一次</button>
+                  <button onClick={() => setWeeklyAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!weeklyAgencyTierFilter.showAll && !weeklyAgencyTierFilter.showPrimary && weeklyAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>二次</button>
+                </div>
+              </div>
+
+              {/* イベントタイプフィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>種別:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
+                  {getEventTypeFilterDisplayName(weeklyEventTypeFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setWeeklyEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${weeklyEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>全て</button>
+                  <button onClick={() => setWeeklyEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!weeklyEventTypeFilter.showAll && weeklyEventTypeFilter.showGaihan && !weeklyEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>外販</button>
+                  <button onClick={() => setWeeklyEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!weeklyEventTypeFilter.showAll && !weeklyEventTypeFilter.showGaihan && weeklyEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>店頭</button>
                 </div>
               </div>
 
@@ -3940,6 +4166,34 @@ export function PerformanceAnalyticsV2({
                 </div>
               </div>
 
+              {/* 商流フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>商流:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
+                  {getAgencyTierFilterDisplayName(levelAgencyTierFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setLevelAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${levelAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>全て</button>
+                  <button onClick={() => setLevelAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!levelAgencyTierFilter.showAll && levelAgencyTierFilter.showPrimary && !levelAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>一次</button>
+                  <button onClick={() => setLevelAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!levelAgencyTierFilter.showAll && !levelAgencyTierFilter.showPrimary && levelAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>二次</button>
+                </div>
+              </div>
+
+              {/* イベントタイプフィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>種別:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
+                  {getEventTypeFilterDisplayName(levelEventTypeFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setLevelEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${levelEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>全て</button>
+                  <button onClick={() => setLevelEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!levelEventTypeFilter.showAll && levelEventTypeFilter.showGaihan && !levelEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>外販</button>
+                  <button onClick={() => setLevelEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!levelEventTypeFilter.showAll && !levelEventTypeFilter.showGaihan && levelEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>店頭</button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span style={{ color: '#22211A' }}>期間:</span>
@@ -4073,6 +4327,34 @@ export function PerformanceAnalyticsV2({
                   >
                     店舗除外
                   </button>
+                </div>
+              </div>
+
+              {/* 商流フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>商流:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
+                  {getAgencyTierFilterDisplayName(achievementStatusAgencyTierFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setAchievementStatusAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${achievementStatusAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>全て</button>
+                  <button onClick={() => setAchievementStatusAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!achievementStatusAgencyTierFilter.showAll && achievementStatusAgencyTierFilter.showPrimary && !achievementStatusAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>一次</button>
+                  <button onClick={() => setAchievementStatusAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!achievementStatusAgencyTierFilter.showAll && !achievementStatusAgencyTierFilter.showPrimary && achievementStatusAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>二次</button>
+                </div>
+              </div>
+
+              {/* イベントタイプフィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>種別:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
+                  {getEventTypeFilterDisplayName(achievementStatusEventTypeFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setAchievementStatusEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${achievementStatusEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>全て</button>
+                  <button onClick={() => setAchievementStatusEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!achievementStatusEventTypeFilter.showAll && achievementStatusEventTypeFilter.showGaihan && !achievementStatusEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>外販</button>
+                  <button onClick={() => setAchievementStatusEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!achievementStatusEventTypeFilter.showAll && !achievementStatusEventTypeFilter.showGaihan && achievementStatusEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>店頭</button>
                 </div>
               </div>
 
@@ -4219,6 +4501,34 @@ export function PerformanceAnalyticsV2({
                       >
                         店舗除外
                       </button>
+                    </div>
+                  </div>
+
+                  {/* 商流フィルター */}
+                  <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                    <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
+                    <span className="text-xs font-medium" style={{ color: '#22211A' }}>商流:</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
+                      {getAgencyTierFilterDisplayName(agencyAgencyTierFilter)}
+                    </span>
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <button onClick={() => setAgencyAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${agencyAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>全て</button>
+                      <button onClick={() => setAgencyAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!agencyAgencyTierFilter.showAll && agencyAgencyTierFilter.showPrimary && !agencyAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>一次</button>
+                      <button onClick={() => setAgencyAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!agencyAgencyTierFilter.showAll && !agencyAgencyTierFilter.showPrimary && agencyAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>二次</button>
+                    </div>
+                  </div>
+
+                  {/* イベントタイプフィルター */}
+                  <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                    <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
+                    <span className="text-xs font-medium" style={{ color: '#22211A' }}>種別:</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
+                      {getEventTypeFilterDisplayName(agencyEventTypeFilter)}
+                    </span>
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <button onClick={() => setAgencyEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${agencyEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>全て</button>
+                      <button onClick={() => setAgencyEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!agencyEventTypeFilter.showAll && agencyEventTypeFilter.showGaihan && !agencyEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>外販</button>
+                      <button onClick={() => setAgencyEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!agencyEventTypeFilter.showAll && !agencyEventTypeFilter.showGaihan && agencyEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>店頭</button>
                     </div>
                   </div>
 
@@ -4431,6 +4741,34 @@ export function PerformanceAnalyticsV2({
                     </div>
                   </div>
 
+                  {/* 商流フィルター */}
+                  <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                    <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
+                    <span className="text-xs font-medium" style={{ color: '#22211A' }}>商流:</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
+                      {getAgencyTierFilterDisplayName(venueAgencyTierFilter)}
+                    </span>
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <button onClick={() => setVenueAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${venueAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>全て</button>
+                      <button onClick={() => setVenueAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!venueAgencyTierFilter.showAll && venueAgencyTierFilter.showPrimary && !venueAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>一次</button>
+                      <button onClick={() => setVenueAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!venueAgencyTierFilter.showAll && !venueAgencyTierFilter.showPrimary && venueAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>二次</button>
+                    </div>
+                  </div>
+
+                  {/* イベントタイプフィルター */}
+                  <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                    <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
+                    <span className="text-xs font-medium" style={{ color: '#22211A' }}>種別:</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
+                      {getEventTypeFilterDisplayName(venueEventTypeFilter)}
+                    </span>
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <button onClick={() => setVenueEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${venueEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>全て</button>
+                      <button onClick={() => setVenueEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!venueEventTypeFilter.showAll && venueEventTypeFilter.showGaihan && !venueEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>外販</button>
+                      <button onClick={() => setVenueEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!venueEventTypeFilter.showAll && !venueEventTypeFilter.showGaihan && venueEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>店頭</button>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span style={{ color: '#22211A' }}>期間:</span>
@@ -4638,6 +4976,34 @@ export function PerformanceAnalyticsV2({
                   >
                     店舗除外
                   </button>
+                </div>
+              </div>
+
+              {/* 商流フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>商流:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
+                  {getAgencyTierFilterDisplayName(eventWeeklyAgencyTierFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setEventWeeklyAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${eventWeeklyAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>全て</button>
+                  <button onClick={() => setEventWeeklyAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!eventWeeklyAgencyTierFilter.showAll && eventWeeklyAgencyTierFilter.showPrimary && !eventWeeklyAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>一次</button>
+                  <button onClick={() => setEventWeeklyAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!eventWeeklyAgencyTierFilter.showAll && !eventWeeklyAgencyTierFilter.showPrimary && eventWeeklyAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>二次</button>
+                </div>
+              </div>
+
+              {/* イベントタイプフィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>種別:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
+                  {getEventTypeFilterDisplayName(eventWeeklyEventTypeFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setEventWeeklyEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${eventWeeklyEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>全て</button>
+                  <button onClick={() => setEventWeeklyEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!eventWeeklyEventTypeFilter.showAll && eventWeeklyEventTypeFilter.showGaihan && !eventWeeklyEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>外販</button>
+                  <button onClick={() => setEventWeeklyEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!eventWeeklyEventTypeFilter.showAll && !eventWeeklyEventTypeFilter.showGaihan && eventWeeklyEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>店頭</button>
                 </div>
               </div>
 
@@ -5034,6 +5400,34 @@ export function PerformanceAnalyticsV2({
                   >
                     店舗除外
                   </button>
+                </div>
+              </div>
+
+              {/* 商流フィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>商流:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
+                  {getAgencyTierFilterDisplayName(venueMonthlyAgencyTierFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setVenueMonthlyAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${venueMonthlyAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>全て</button>
+                  <button onClick={() => setVenueMonthlyAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!venueMonthlyAgencyTierFilter.showAll && venueMonthlyAgencyTierFilter.showPrimary && !venueMonthlyAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>一次</button>
+                  <button onClick={() => setVenueMonthlyAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!venueMonthlyAgencyTierFilter.showAll && !venueMonthlyAgencyTierFilter.showPrimary && venueMonthlyAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'}`}>二次</button>
+                </div>
+              </div>
+
+              {/* イベントタイプフィルター */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+                <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
+                <span className="text-xs font-medium" style={{ color: '#22211A' }}>種別:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
+                  {getEventTypeFilterDisplayName(venueMonthlyEventTypeFilter)}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <button onClick={() => setVenueMonthlyEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${venueMonthlyEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>全て</button>
+                  <button onClick={() => setVenueMonthlyEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!venueMonthlyEventTypeFilter.showAll && venueMonthlyEventTypeFilter.showGaihan && !venueMonthlyEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>外販</button>
+                  <button onClick={() => setVenueMonthlyEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-2 py-1 text-xs rounded-lg transition-all border ${!venueMonthlyEventTypeFilter.showAll && !venueMonthlyEventTypeFilter.showGaihan && venueMonthlyEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'}`}>店頭</button>
                 </div>
               </div>
 

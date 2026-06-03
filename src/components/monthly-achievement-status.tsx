@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Target, ChevronLeft, ChevronRight, Calendar, Search, GitCompare, Filter } from 'lucide-react'
+import { Target, ChevronLeft, ChevronRight, Calendar, Search, GitCompare, Filter, Building2, MapPin } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import {
   StaffFilterConfig,
@@ -10,6 +10,16 @@ import {
   getFilterDisplayName,
   aggregateFilteredPerformances
 } from '@/lib/staff-filter'
+import {
+  AgencyTierFilter,
+  EventTypeFilter,
+  DEFAULT_AGENCY_TIER_FILTER,
+  DEFAULT_EVENT_TYPE_FILTER,
+  applyAgencyTierFilter,
+  applyEventTypeFilter,
+  getAgencyTierFilterDisplayName,
+  getEventTypeFilterDisplayName
+} from '@/lib/event-filter'
 
 interface MonthlyAchievementStatusProps {
   year?: number | 'all'
@@ -32,6 +42,8 @@ export function MonthlyAchievementStatus({ year, month, onCompare }: MonthlyAchi
   const [tempMonth, setTempMonth] = useState(selectedDate.getMonth() + 1)
   const [isControlledByProps, setIsControlledByProps] = useState(false)
   const [staffFilter, setStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
+  const [agencyTierFilter, setAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [eventTypeFilter, setEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
   const [monthlyStats, setMonthlyStats] = useState({
     totalEvents: 0,
     achievedEvents: 0,
@@ -118,9 +130,15 @@ export function MonthlyAchievementStatus({ year, month, onCompare }: MonthlyAchi
           const currentMonth = selectedDate.getMonth() + 1
           const currentYear = selectedDate.getFullYear()
 
-          const currentMonthEvents = events.filter((event: any) =>
+          let currentMonthEvents = events.filter((event: any) =>
             event.month === currentMonth && event.year === currentYear
           )
+
+          // Apply agency tier filter
+          currentMonthEvents = applyAgencyTierFilter(currentMonthEvents, agencyTierFilter)
+
+          // Apply event type filter
+          currentMonthEvents = applyEventTypeFilter(currentMonthEvents, eventTypeFilter)
 
           // Apply staff filter to current month events
           const filteredEvents = currentMonthEvents.filter((event: any) => {
@@ -183,7 +201,7 @@ export function MonthlyAchievementStatus({ year, month, onCompare }: MonthlyAchi
     }
 
     fetchMonthlyStats()
-  }, [selectedDate.getMonth(), selectedDate.getFullYear(), staffFilter])
+  }, [selectedDate.getMonth(), selectedDate.getFullYear(), staffFilter, agencyTierFilter, eventTypeFilter])
 
   return (
     <div className="glass rounded-lg border p-6" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
@@ -242,7 +260,7 @@ export function MonthlyAchievementStatus({ year, month, onCompare }: MonthlyAchi
       </div>
 
       {/* スタッフ区分フィルター */}
-      <div className="flex items-center gap-2 mb-4 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+      <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
         <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
         <span className="text-xs font-medium" style={{ color: '#22211A' }}>区分:</span>
         <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
@@ -288,6 +306,88 @@ export function MonthlyAchievementStatus({ year, month, onCompare }: MonthlyAchi
             }`}
           >
             店舗除外
+          </button>
+        </div>
+      </div>
+
+      {/* 商流フィルター */}
+      <div className="flex items-center gap-2 mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+        <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
+        <span className="text-xs font-medium" style={{ color: '#22211A' }}>商流:</span>
+        <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
+          {getAgencyTierFilterDisplayName(agencyTierFilter)}
+        </span>
+        <div className="flex items-center gap-1.5 ml-2">
+          <button
+            onClick={() => setAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })}
+            className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+              agencyTierFilter.showAll
+                ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
+                : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'
+            }`}
+          >
+            全て
+          </button>
+          <button
+            onClick={() => setAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })}
+            className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+              !agencyTierFilter.showAll && agencyTierFilter.showPrimary && !agencyTierFilter.showSecondary
+                ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
+                : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'
+            }`}
+          >
+            一次
+          </button>
+          <button
+            onClick={() => setAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })}
+            className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+              !agencyTierFilter.showAll && !agencyTierFilter.showPrimary && agencyTierFilter.showSecondary
+                ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
+                : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'
+            }`}
+          >
+            二次
+          </button>
+        </div>
+      </div>
+
+      {/* イベントタイプフィルター */}
+      <div className="flex items-center gap-2 mb-4 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
+        <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
+        <span className="text-xs font-medium" style={{ color: '#22211A' }}>種別:</span>
+        <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
+          {getEventTypeFilterDisplayName(eventTypeFilter)}
+        </span>
+        <div className="flex items-center gap-1.5 ml-2">
+          <button
+            onClick={() => setEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })}
+            className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+              eventTypeFilter.showAll
+                ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
+                : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'
+            }`}
+          >
+            全て
+          </button>
+          <button
+            onClick={() => setEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })}
+            className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+              !eventTypeFilter.showAll && eventTypeFilter.showGaihan && !eventTypeFilter.showTento
+                ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
+                : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'
+            }`}
+          >
+            外販
+          </button>
+          <button
+            onClick={() => setEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })}
+            className={`px-2 py-1 text-xs rounded-lg transition-all border ${
+              !eventTypeFilter.showAll && !eventTypeFilter.showGaihan && eventTypeFilter.showTento
+                ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
+                : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'
+            }`}
+          >
+            店頭
           </button>
         </div>
       </div>

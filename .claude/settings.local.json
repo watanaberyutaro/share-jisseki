@@ -21,7 +21,11 @@
       "Bash(sudo chown -R 501:20 \"/Users/harukaosu/.npm\")",
       "Bash(npm cache clean --force)",
       "Bash(xargs kill -9)",
-      "Bash(read -sp \"新しいGitHubトークンを入力してください: \" TOKEN)"
+      "Bash(read -sp \"新しいGitHubトークンを入力してください: \" TOKEN)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(git merge:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

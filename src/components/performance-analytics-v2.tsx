@@ -258,10 +258,15 @@ export function PerformanceAnalyticsV2({
   const [compareRightEventYear, setCompareRightEventYear] = useState<string>('')
   const [compareRightEventMonth, setCompareRightEventMonth] = useState<string>('')
 
-  // 比較モーダル用のフィルター
-  const [compareStaffFilter, setCompareStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
-  const [compareAgencyTierFilter, setCompareAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
-  const [compareEventTypeFilter, setCompareEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+  // 比較モーダル用のフィルター（左側）
+  const [compareLeftStaffFilter, setCompareLeftStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
+  const [compareLeftAgencyTierFilter, setCompareLeftAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [compareLeftEventTypeFilter, setCompareLeftEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
+
+  // 比較モーダル用のフィルター（右側）
+  const [compareRightStaffFilter, setCompareRightStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
+  const [compareRightAgencyTierFilter, setCompareRightAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
+  const [compareRightEventTypeFilter, setCompareRightEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
 
   useEffect(() => {
     fetchEvents()
@@ -1701,7 +1706,13 @@ export function PerformanceAnalyticsV2({
   }
 
   // 比較用のデータをフィルタリング
-  const getCompareFilteredEvents = (startDate: string, endDate: string) => {
+  const getCompareFilteredEvents = (
+    startDate: string,
+    endDate: string,
+    staffFilter: StaffFilterConfig,
+    agencyTierFilter: AgencyTierFilter,
+    eventTypeFilter: EventTypeFilter
+  ) => {
     if (!startDate || !endDate) return []
 
     const [startYear, startMonth] = startDate.split('-').map(Number)
@@ -1721,19 +1732,31 @@ export function PerformanceAnalyticsV2({
     })
 
     // 商流フィルターを適用
-    filtered = applyAgencyTierFilter(filtered, compareAgencyTierFilter)
+    filtered = applyAgencyTierFilter(filtered, agencyTierFilter)
 
     // イベントタイプフィルターを適用
-    filtered = applyEventTypeFilter(filtered, compareEventTypeFilter)
+    filtered = applyEventTypeFilter(filtered, eventTypeFilter)
 
     // スタッフフィルターを適用
-    filtered = applyStaffFilterToEvents(filtered, compareStaffFilter)
+    filtered = applyStaffFilterToEvents(filtered, staffFilter)
 
     return filtered
   }
 
   // イベント別実績の比較用コンポーネント
-  const CompareEventWeeklyPanel = ({ year, month }: { year: string, month: string }) => {
+  const CompareEventWeeklyPanel = ({
+    year,
+    month,
+    staffFilter,
+    agencyTierFilter,
+    eventTypeFilter
+  }: {
+    year: string
+    month: string
+    staffFilter: StaffFilterConfig
+    agencyTierFilter: AgencyTierFilter
+    eventTypeFilter: EventTypeFilter
+  }) => {
     const panelKey = `panel-${year}-${month}`
 
     if (!year || !month) {
@@ -1755,13 +1778,13 @@ export function PerformanceAnalyticsV2({
     })
 
     // 商流フィルターを適用
-    eventFilteredEvents = applyAgencyTierFilter(eventFilteredEvents, compareAgencyTierFilter)
+    eventFilteredEvents = applyAgencyTierFilter(eventFilteredEvents, agencyTierFilter)
 
     // イベントタイプフィルターを適用
-    eventFilteredEvents = applyEventTypeFilter(eventFilteredEvents, compareEventTypeFilter)
+    eventFilteredEvents = applyEventTypeFilter(eventFilteredEvents, eventTypeFilter)
 
     // スタッフフィルターを適用
-    eventFilteredEvents = applyStaffFilterToEvents(eventFilteredEvents, compareStaffFilter)
+    eventFilteredEvents = applyStaffFilterToEvents(eventFilteredEvents, staffFilter)
 
     if (eventFilteredEvents.length === 0) {
       return (
@@ -1871,7 +1894,25 @@ export function PerformanceAnalyticsV2({
   }
 
   // 各パネルの比較用コンポーネント - 元のパネルと同じデザインで表示
-  const ComparePanelWrapper = ({ startDate, endDate, type, selectedStaff, selectedVenues: propSelectedVenues }: { startDate: string, endDate: string, type: string, selectedStaff?: string[], selectedVenues?: string[] }) => {
+  const ComparePanelWrapper = ({
+    startDate,
+    endDate,
+    type,
+    selectedStaff,
+    selectedVenues: propSelectedVenues,
+    staffFilter,
+    agencyTierFilter,
+    eventTypeFilter
+  }: {
+    startDate: string
+    endDate: string
+    type: string
+    selectedStaff?: string[]
+    selectedVenues?: string[]
+    staffFilter: StaffFilterConfig
+    agencyTierFilter: AgencyTierFilter
+    eventTypeFilter: EventTypeFilter
+  }) => {
     if (!startDate || !endDate) {
       return (
         <div className="text-center py-20" style={{ color: '#22211A', opacity: 0.6 }}>
@@ -1880,7 +1921,7 @@ export function PerformanceAnalyticsV2({
       )
     }
 
-    const filteredEvents = getCompareFilteredEvents(startDate, endDate)
+    const filteredEvents = getCompareFilteredEvents(startDate, endDate, staffFilter, agencyTierFilter, eventTypeFilter)
 
     if (filteredEvents.length === 0) {
       return (
@@ -3245,150 +3286,6 @@ export function PerformanceAnalyticsV2({
                 </div>
               )}
 
-              {/* フィルター設定 */}
-              <div className="mb-6 border rounded-lg p-4" style={{ borderColor: '#22211A' }}>
-                <h4 className="font-bold mb-3" style={{ color: '#22211A' }}>フィルター設定</h4>
-
-                {/* スタッフ区分フィルター */}
-                <div className="mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Filter className="w-4 h-4" style={{ color: '#22211A' }} />
-                    <span className="text-sm font-medium" style={{ color: '#22211A' }}>スタッフ区分:</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(74, 191, 121, 0.1)', color: '#4abf79' }}>
-                      {getFilterDisplayName(compareStaffFilter)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => setCompareStaffFilter(DEFAULT_STAFF_FILTER)}
-                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                        compareStaffFilter.includeInternal && compareStaffFilter.includeExternal && compareStaffFilter.includeStore
-                          ? 'border-[#4abf79] bg-[#4abf79] text-white'
-                          : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
-                      }`}
-                    >
-                      全体
-                    </button>
-                    <button
-                      onClick={() => setCompareStaffFilter(INTERNAL_ONLY_FILTER)}
-                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                        compareStaffFilter.includeInternal && !compareStaffFilter.includeExternal && !compareStaffFilter.includeStore
-                          ? 'border-[#4abf79] bg-[#4abf79] text-white'
-                          : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
-                      }`}
-                    >
-                      自社のみ
-                    </button>
-                    <button
-                      onClick={() => setCompareStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })}
-                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                        compareStaffFilter.includeInternal && !compareStaffFilter.includeExternal && compareStaffFilter.includeStore
-                          ? 'border-[#4abf79] bg-[#4abf79] text-white'
-                          : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
-                      }`}
-                    >
-                      他社除外
-                    </button>
-                    <button
-                      onClick={() => setCompareStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })}
-                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                        compareStaffFilter.includeInternal && compareStaffFilter.includeExternal && !compareStaffFilter.includeStore
-                          ? 'border-[#4abf79] bg-[#4abf79] text-white'
-                          : 'border-[#22211A40] text-[#22211A] hover:border-[#4abf79]'
-                      }`}
-                    >
-                      店舗除外
-                    </button>
-                  </div>
-                </div>
-
-                {/* 商流フィルター */}
-                <div className="mb-3 pb-3 border-b" style={{ borderColor: '#22211A20' }}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Building2 className="w-4 h-4" style={{ color: '#22211A' }} />
-                    <span className="text-sm font-medium" style={{ color: '#22211A' }}>商流:</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(241, 173, 38, 0.1)', color: '#F1AD26' }}>
-                      {getAgencyTierFilterDisplayName(compareAgencyTierFilter)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => setCompareAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })}
-                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                        compareAgencyTierFilter.showAll
-                          ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
-                          : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'
-                      }`}
-                    >
-                      全て
-                    </button>
-                    <button
-                      onClick={() => setCompareAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })}
-                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                        !compareAgencyTierFilter.showAll && compareAgencyTierFilter.showPrimary && !compareAgencyTierFilter.showSecondary
-                          ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
-                          : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'
-                      }`}
-                    >
-                      一次
-                    </button>
-                    <button
-                      onClick={() => setCompareAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })}
-                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                        !compareAgencyTierFilter.showAll && !compareAgencyTierFilter.showPrimary && compareAgencyTierFilter.showSecondary
-                          ? 'border-[#F1AD26] bg-[#F1AD26] text-white'
-                          : 'border-[#22211A40] text-[#22211A] hover:border-[#F1AD26]'
-                      }`}
-                    >
-                      二次
-                    </button>
-                  </div>
-                </div>
-
-                {/* イベントタイプフィルター */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <MapPin className="w-4 h-4" style={{ color: '#22211A' }} />
-                    <span className="text-sm font-medium" style={{ color: '#22211A' }}>種別:</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(61, 174, 108, 0.1)', color: '#3dae6c' }}>
-                      {getEventTypeFilterDisplayName(compareEventTypeFilter)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => setCompareEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })}
-                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                        compareEventTypeFilter.showAll
-                          ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
-                          : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'
-                      }`}
-                    >
-                      全て
-                    </button>
-                    <button
-                      onClick={() => setCompareEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })}
-                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                        !compareEventTypeFilter.showAll && compareEventTypeFilter.showGaihan && !compareEventTypeFilter.showTento
-                          ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
-                          : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'
-                      }`}
-                    >
-                      外販
-                    </button>
-                    <button
-                      onClick={() => setCompareEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })}
-                      className={`px-2 py-1 text-xs rounded-lg transition-all border ${
-                        !compareEventTypeFilter.showAll && !compareEventTypeFilter.showGaihan && compareEventTypeFilter.showTento
-                          ? 'border-[#3dae6c] bg-[#3dae6c] text-white'
-                          : 'border-[#22211A40] text-[#22211A] hover:border-[#3dae6c]'
-                      }`}
-                    >
-                      店頭
-                    </button>
-                  </div>
-                </div>
-              </div>
-
               {/* イベント別実績の比較（年・月選択） */}
               {compareType === 'eventWeekly' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -3425,10 +3322,47 @@ export function PerformanceAnalyticsV2({
                         </select>
                       </div>
                     </div>
+
+                    {/* フィルター */}
+                    <div className="mb-3 border rounded-lg p-2" style={{ borderColor: '#22211A20', backgroundColor: '#fafafa' }}>
+                      <div className="text-xs font-bold mb-2" style={{ color: '#22211A' }}>フィルター</div>
+                      {/* スタッフ区分 */}
+                      <div className="mb-2">
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>区分: {getFilterDisplayName(compareLeftStaffFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareLeftStaffFilter(DEFAULT_STAFF_FILTER)} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftStaffFilter.includeInternal && compareLeftStaffFilter.includeExternal && compareLeftStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>全体</button>
+                          <button onClick={() => setCompareLeftStaffFilter(INTERNAL_ONLY_FILTER)} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftStaffFilter.includeInternal && !compareLeftStaffFilter.includeExternal && !compareLeftStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>自社のみ</button>
+                          <button onClick={() => setCompareLeftStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftStaffFilter.includeInternal && !compareLeftStaffFilter.includeExternal && compareLeftStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>他社除外</button>
+                          <button onClick={() => setCompareLeftStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftStaffFilter.includeInternal && compareLeftStaffFilter.includeExternal && !compareLeftStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>店舗除外</button>
+                        </div>
+                      </div>
+                      {/* 商流 */}
+                      <div className="mb-2">
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>商流: {getAgencyTierFilterDisplayName(compareLeftAgencyTierFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareLeftAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>全て</button>
+                          <button onClick={() => setCompareLeftAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareLeftAgencyTierFilter.showAll && compareLeftAgencyTierFilter.showPrimary && !compareLeftAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>一次</button>
+                          <button onClick={() => setCompareLeftAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareLeftAgencyTierFilter.showAll && !compareLeftAgencyTierFilter.showPrimary && compareLeftAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>二次</button>
+                        </div>
+                      </div>
+                      {/* イベントタイプ */}
+                      <div>
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>種別: {getEventTypeFilterDisplayName(compareLeftEventTypeFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareLeftEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>全て</button>
+                          <button onClick={() => setCompareLeftEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareLeftEventTypeFilter.showAll && compareLeftEventTypeFilter.showGaihan && !compareLeftEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>外販</button>
+                          <button onClick={() => setCompareLeftEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareLeftEventTypeFilter.showAll && !compareLeftEventTypeFilter.showGaihan && compareLeftEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>店頭</button>
+                        </div>
+                      </div>
+                    </div>
+
                     <div key={`left-${compareLeftEventYear}-${compareLeftEventMonth}`}>
                       <CompareEventWeeklyPanel
                         year={compareLeftEventYear}
                         month={compareLeftEventMonth}
+                        staffFilter={compareLeftStaffFilter}
+                        agencyTierFilter={compareLeftAgencyTierFilter}
+                        eventTypeFilter={compareLeftEventTypeFilter}
                       />
                     </div>
                   </div>
@@ -3466,10 +3400,47 @@ export function PerformanceAnalyticsV2({
                         </select>
                       </div>
                     </div>
+
+                    {/* フィルター */}
+                    <div className="mb-3 border rounded-lg p-2" style={{ borderColor: '#22211A20', backgroundColor: '#fafafa' }}>
+                      <div className="text-xs font-bold mb-2" style={{ color: '#22211A' }}>フィルター</div>
+                      {/* スタッフ区分 */}
+                      <div className="mb-2">
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>区分: {getFilterDisplayName(compareRightStaffFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareRightStaffFilter(DEFAULT_STAFF_FILTER)} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightStaffFilter.includeInternal && compareRightStaffFilter.includeExternal && compareRightStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>全体</button>
+                          <button onClick={() => setCompareRightStaffFilter(INTERNAL_ONLY_FILTER)} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightStaffFilter.includeInternal && !compareRightStaffFilter.includeExternal && !compareRightStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>自社のみ</button>
+                          <button onClick={() => setCompareRightStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightStaffFilter.includeInternal && !compareRightStaffFilter.includeExternal && compareRightStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>他社除外</button>
+                          <button onClick={() => setCompareRightStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightStaffFilter.includeInternal && compareRightStaffFilter.includeExternal && !compareRightStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>店舗除外</button>
+                        </div>
+                      </div>
+                      {/* 商流 */}
+                      <div className="mb-2">
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>商流: {getAgencyTierFilterDisplayName(compareRightAgencyTierFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareRightAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>全て</button>
+                          <button onClick={() => setCompareRightAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareRightAgencyTierFilter.showAll && compareRightAgencyTierFilter.showPrimary && !compareRightAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>一次</button>
+                          <button onClick={() => setCompareRightAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareRightAgencyTierFilter.showAll && !compareRightAgencyTierFilter.showPrimary && compareRightAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>二次</button>
+                        </div>
+                      </div>
+                      {/* イベントタイプ */}
+                      <div>
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>種別: {getEventTypeFilterDisplayName(compareRightEventTypeFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareRightEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>全て</button>
+                          <button onClick={() => setCompareRightEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareRightEventTypeFilter.showAll && compareRightEventTypeFilter.showGaihan && !compareRightEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>外販</button>
+                          <button onClick={() => setCompareRightEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareRightEventTypeFilter.showAll && !compareRightEventTypeFilter.showGaihan && compareRightEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>店頭</button>
+                        </div>
+                      </div>
+                    </div>
+
                     <div key={`right-${compareRightEventYear}-${compareRightEventMonth}`}>
                       <CompareEventWeeklyPanel
                         year={compareRightEventYear}
                         month={compareRightEventMonth}
+                        staffFilter={compareRightStaffFilter}
+                        agencyTierFilter={compareRightAgencyTierFilter}
+                        eventTypeFilter={compareRightEventTypeFilter}
                       />
                     </div>
                   </div>
@@ -3502,12 +3473,49 @@ export function PerformanceAnalyticsV2({
                         />
                       </div>
                     </div>
+
+                    {/* フィルター */}
+                    <div className="mb-3 border rounded-lg p-2" style={{ borderColor: '#22211A20', backgroundColor: '#fafafa' }}>
+                      <div className="text-xs font-bold mb-2" style={{ color: '#22211A' }}>フィルター</div>
+                      {/* スタッフ区分 */}
+                      <div className="mb-2">
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>区分: {getFilterDisplayName(compareLeftStaffFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareLeftStaffFilter(DEFAULT_STAFF_FILTER)} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftStaffFilter.includeInternal && compareLeftStaffFilter.includeExternal && compareLeftStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>全体</button>
+                          <button onClick={() => setCompareLeftStaffFilter(INTERNAL_ONLY_FILTER)} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftStaffFilter.includeInternal && !compareLeftStaffFilter.includeExternal && !compareLeftStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>自社のみ</button>
+                          <button onClick={() => setCompareLeftStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftStaffFilter.includeInternal && !compareLeftStaffFilter.includeExternal && compareLeftStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>他社除外</button>
+                          <button onClick={() => setCompareLeftStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftStaffFilter.includeInternal && compareLeftStaffFilter.includeExternal && !compareLeftStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>店舗除外</button>
+                        </div>
+                      </div>
+                      {/* 商流 */}
+                      <div className="mb-2">
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>商流: {getAgencyTierFilterDisplayName(compareLeftAgencyTierFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareLeftAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>全て</button>
+                          <button onClick={() => setCompareLeftAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareLeftAgencyTierFilter.showAll && compareLeftAgencyTierFilter.showPrimary && !compareLeftAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>一次</button>
+                          <button onClick={() => setCompareLeftAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareLeftAgencyTierFilter.showAll && !compareLeftAgencyTierFilter.showPrimary && compareLeftAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>二次</button>
+                        </div>
+                      </div>
+                      {/* イベントタイプ */}
+                      <div>
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>種別: {getEventTypeFilterDisplayName(compareLeftEventTypeFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareLeftEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareLeftEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>全て</button>
+                          <button onClick={() => setCompareLeftEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareLeftEventTypeFilter.showAll && compareLeftEventTypeFilter.showGaihan && !compareLeftEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>外販</button>
+                          <button onClick={() => setCompareLeftEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareLeftEventTypeFilter.showAll && !compareLeftEventTypeFilter.showGaihan && compareLeftEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>店頭</button>
+                        </div>
+                      </div>
+                    </div>
+
                     <ComparePanelWrapper
                       startDate={compareLeftStart}
                       endDate={compareLeftEnd}
                       type={compareType}
                       selectedStaff={compareSelectedStaff}
                       selectedVenues={compareSelectedVenues}
+                      staffFilter={compareLeftStaffFilter}
+                      agencyTierFilter={compareLeftAgencyTierFilter}
+                      eventTypeFilter={compareLeftEventTypeFilter}
                     />
                   </div>
 
@@ -3536,12 +3544,49 @@ export function PerformanceAnalyticsV2({
                         />
                       </div>
                     </div>
+
+                    {/* フィルター */}
+                    <div className="mb-3 border rounded-lg p-2" style={{ borderColor: '#22211A20', backgroundColor: '#fafafa' }}>
+                      <div className="text-xs font-bold mb-2" style={{ color: '#22211A' }}>フィルター</div>
+                      {/* スタッフ区分 */}
+                      <div className="mb-2">
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>区分: {getFilterDisplayName(compareRightStaffFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareRightStaffFilter(DEFAULT_STAFF_FILTER)} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightStaffFilter.includeInternal && compareRightStaffFilter.includeExternal && compareRightStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>全体</button>
+                          <button onClick={() => setCompareRightStaffFilter(INTERNAL_ONLY_FILTER)} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightStaffFilter.includeInternal && !compareRightStaffFilter.includeExternal && !compareRightStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>自社のみ</button>
+                          <button onClick={() => setCompareRightStaffFilter({ includeInternal: true, includeExternal: false, includeStore: true })} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightStaffFilter.includeInternal && !compareRightStaffFilter.includeExternal && compareRightStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>他社除外</button>
+                          <button onClick={() => setCompareRightStaffFilter({ includeInternal: true, includeExternal: true, includeStore: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightStaffFilter.includeInternal && compareRightStaffFilter.includeExternal && !compareRightStaffFilter.includeStore ? 'border-[#4abf79] bg-[#4abf79] text-white' : 'border-[#22211A40]'}`}>店舗除外</button>
+                        </div>
+                      </div>
+                      {/* 商流 */}
+                      <div className="mb-2">
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>商流: {getAgencyTierFilterDisplayName(compareRightAgencyTierFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareRightAgencyTierFilter({ showAll: true, showPrimary: false, showSecondary: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightAgencyTierFilter.showAll ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>全て</button>
+                          <button onClick={() => setCompareRightAgencyTierFilter({ showAll: false, showPrimary: true, showSecondary: false })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareRightAgencyTierFilter.showAll && compareRightAgencyTierFilter.showPrimary && !compareRightAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>一次</button>
+                          <button onClick={() => setCompareRightAgencyTierFilter({ showAll: false, showPrimary: false, showSecondary: true })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareRightAgencyTierFilter.showAll && !compareRightAgencyTierFilter.showPrimary && compareRightAgencyTierFilter.showSecondary ? 'border-[#F1AD26] bg-[#F1AD26] text-white' : 'border-[#22211A40]'}`}>二次</button>
+                        </div>
+                      </div>
+                      {/* イベントタイプ */}
+                      <div>
+                        <div className="text-xs mb-1" style={{ color: '#22211A' }}>種別: {getEventTypeFilterDisplayName(compareRightEventTypeFilter)}</div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setCompareRightEventTypeFilter({ showAll: true, showGaihan: false, showTento: false })} className={`px-1.5 py-0.5 text-xs rounded border ${compareRightEventTypeFilter.showAll ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>全て</button>
+                          <button onClick={() => setCompareRightEventTypeFilter({ showAll: false, showGaihan: true, showTento: false })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareRightEventTypeFilter.showAll && compareRightEventTypeFilter.showGaihan && !compareRightEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>外販</button>
+                          <button onClick={() => setCompareRightEventTypeFilter({ showAll: false, showGaihan: false, showTento: true })} className={`px-1.5 py-0.5 text-xs rounded border ${!compareRightEventTypeFilter.showAll && !compareRightEventTypeFilter.showGaihan && compareRightEventTypeFilter.showTento ? 'border-[#3dae6c] bg-[#3dae6c] text-white' : 'border-[#22211A40]'}`}>店頭</button>
+                        </div>
+                      </div>
+                    </div>
+
                     <ComparePanelWrapper
                       startDate={compareRightStart}
                       endDate={compareRightEnd}
                       type={compareType}
                       selectedStaff={compareSelectedStaff}
                       selectedVenues={compareSelectedVenues}
+                      staffFilter={compareRightStaffFilter}
+                      agencyTierFilter={compareRightAgencyTierFilter}
+                      eventTypeFilter={compareRightEventTypeFilter}
                     />
                   </div>
                 </div>

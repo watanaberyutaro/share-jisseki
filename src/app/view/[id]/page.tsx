@@ -3,13 +3,19 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Calendar, MapPin, Building2, Users, Camera, Download, ExternalLink, ChevronDown, ChevronRight, Edit, FileDown } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Building2, Users, Camera, Download, ExternalLink, ChevronDown, ChevronRight, Edit, FileDown, Filter as FilterIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { LoadingAnimation } from '@/components/loading-animation'
 import { MagneticDots } from '@/components/MagneticDots'
 import { generatePDFPreview, EventDataForPDF, PDFPreviewData } from '@/lib/pdf-export'
 import { PDFPreviewModal } from '@/components/pdf-preview-modal'
+import {
+  StaffFilterConfig,
+  DEFAULT_STAFF_FILTER,
+  filterStaffPerformances,
+  getFilterDisplayName
+} from '@/lib/staff-filter'
 
 interface EventDetail {
   id: string
@@ -106,6 +112,7 @@ export default function EventDetailPage() {
   const [expandedDailyDays, setExpandedDailyDays] = useState<Set<string>>(new Set())
   const [pdfPreview, setPdfPreview] = useState<PDFPreviewData | null>(null)
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
+  const [staffFilter, setStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
 
   // URLパラメータから戻り先のフィルター条件を取得（メモ化）
   const getBackUrl = useMemo(() => {
@@ -219,6 +226,12 @@ export default function EventDetailPage() {
       return newExpanded
     })
   }, [])
+
+  // スタッフパフォーマンスをフィルタリング（メモ化）
+  const filteredStaffPerformances = useMemo(() => {
+    if (!event?.staff_performances) return []
+    return filterStaffPerformances(event.staff_performances, staffFilter)
+  }, [event?.staff_performances, staffFilter])
 
   // PDFエクスポートハンドラー（メモ化）
   const handleExportPDF = useCallback(async () => {
@@ -483,9 +496,79 @@ export default function EventDetailPage() {
                 </div>
               </div>
 
+              {/* スタッフ区分フィルター */}
+              <div className="mb-4 p-4 rounded-lg border" style={{ borderColor: '#22211A20', backgroundColor: '#fafafa' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <FilterIcon className="w-4 h-4" style={{ color: '#4abf79' }} />
+                  <span className="text-sm font-bold" style={{ color: '#22211A' }}>区分: {getFilterDisplayName(staffFilter)}</span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setStaffFilter({ includeInternal: true, includeExternal: true, includeStore: true })}
+                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                      staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore
+                        ? 'text-white'
+                        : ''
+                    }`}
+                    style={{
+                      borderColor: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : '#22211A40',
+                      backgroundColor: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : 'transparent',
+                      color: staffFilter.includeInternal && staffFilter.includeExternal && staffFilter.includeStore ? '#FFFFFF' : '#22211A'
+                    }}
+                  >
+                    全体
+                  </button>
+                  <button
+                    onClick={() => setStaffFilter({ includeInternal: true, includeExternal: false, includeStore: false })}
+                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                      staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore
+                        ? 'text-white'
+                        : ''
+                    }`}
+                    style={{
+                      borderColor: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : '#22211A40',
+                      backgroundColor: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : 'transparent',
+                      color: staffFilter.includeInternal && !staffFilter.includeExternal && !staffFilter.includeStore ? '#FFFFFF' : '#22211A'
+                    }}
+                  >
+                    自社のみ
+                  </button>
+                  <button
+                    onClick={() => setStaffFilter({ includeInternal: false, includeExternal: true, includeStore: false })}
+                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                      !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore
+                        ? 'text-white'
+                        : ''
+                    }`}
+                    style={{
+                      borderColor: !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : '#22211A40',
+                      backgroundColor: !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? '#4abf79' : 'transparent',
+                      color: !staffFilter.includeInternal && staffFilter.includeExternal && !staffFilter.includeStore ? '#FFFFFF' : '#22211A'
+                    }}
+                  >
+                    他社のみ
+                  </button>
+                  <button
+                    onClick={() => setStaffFilter({ includeInternal: false, includeExternal: false, includeStore: true })}
+                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                      !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore
+                        ? 'text-white'
+                        : ''
+                    }`}
+                    style={{
+                      borderColor: !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : '#22211A40',
+                      backgroundColor: !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? '#4abf79' : 'transparent',
+                      color: !staffFilter.includeInternal && !staffFilter.includeExternal && staffFilter.includeStore ? '#FFFFFF' : '#22211A'
+                    }}
+                  >
+                    店舗のみ
+                  </button>
+                </div>
+              </div>
+
               {staffViewMode === 'summary' ? (
                 <div className="space-y-4">
-                  {event.staff_performances.map((staff, index) => (
+                  {filteredStaffPerformances.map((staff, index) => (
                     <div key={index} className="bg-background/50 rounded-lg border" style={{ borderColor: '#22211A' }}>
                       <button
                         onClick={() => toggleStaffExpansion(index)}
@@ -576,8 +659,8 @@ export default function EventDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {event.staff_performances && event.staff_performances.length > 0 ? (
-                    event.staff_performances.map((staff, staffIndex) => {
+                  {filteredStaffPerformances && filteredStaffPerformances.length > 0 ? (
+                    filteredStaffPerformances.map((staff, staffIndex) => {
                       // 日付でソートされた日別データ
                       const sortedDailyPerformances = staff.daily_performances
                         ? [...staff.daily_performances].sort((a, b) => a.day_number - b.day_number)

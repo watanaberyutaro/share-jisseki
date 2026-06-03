@@ -1128,11 +1128,11 @@ export function PerformanceAnalyticsV2({
 
     // 週次実績の期間フィルタリング
     if (weeklyStartDate && weeklyEndDate) {
-      weeklyStats = weeklyStats.filter(item => item.yearMonth >= weeklyStartDate && item.yearMonth <= weeklyEndDate)
+      weeklyStats = weeklyStats.filter((item: any) => item.yearMonth >= weeklyStartDate && item.yearMonth <= weeklyEndDate)
     } else if (weeklyStartDate) {
-      weeklyStats = weeklyStats.filter(item => item.yearMonth >= weeklyStartDate)
+      weeklyStats = weeklyStats.filter((item: any) => item.yearMonth >= weeklyStartDate)
     } else if (weeklyEndDate) {
-      weeklyStats = weeklyStats.filter(item => item.yearMonth <= weeklyEndDate)
+      weeklyStats = weeklyStats.filter((item: any) => item.yearMonth <= weeklyEndDate)
     } else {
       // フィルタなしの場合は最新8週分のみ表示
       weeklyStats = weeklyStats.slice(-8)

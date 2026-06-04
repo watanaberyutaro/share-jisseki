@@ -68,6 +68,22 @@ export async function GET(
       console.error('Staff performance fetch error:', dailyError)
     }
 
+    // MNP ID契約を取得（2026-06-02以降のイベントのみ）
+    let mnpIdContracts: any[] = []
+    if (event && event.start_date && new Date(event.start_date) >= new Date('2026-06-02')) {
+      const { data: contractsData, error: contractsError } = await supabase
+        .from('mnp_id_contracts')
+        .select('*')
+        .in('staff_performance_id', staffDailyPerformances.map((sp: any) => sp.id))
+
+      if (!contractsError && contractsData) {
+        mnpIdContracts = contractsData
+        console.log('MNP ID contracts loaded:', contractsData.length, 'records')
+      } else if (contractsError) {
+        console.error('MNP ID contracts fetch error:', contractsError)
+      }
+    }
+
     // 写真を取得（デバッグモード）
     console.log(`Fetching photos for event_id: ${eventId}`)
     
@@ -211,8 +227,15 @@ export async function GET(
         }
 
         const staff = staffGrouped[staffName]
-        // 日別データを追加
-        staff.daily_performances.push(daily)
+
+        // この日のMNP ID契約データを取得
+        const dailyContracts = mnpIdContracts.filter((c: any) => c.staff_performance_id === daily.id)
+
+        // 日別データを追加（MNP ID契約を含む）
+        staff.daily_performances.push({
+          ...daily,
+          mnp_id_contracts: dailyContracts
+        })
 
         // 集計値を計算
         staff.au_mnp += (Number(daily.au_mnp_sp1) || 0) + (Number(daily.au_mnp_sp2) || 0) + (Number(daily.au_mnp_sim) || 0)

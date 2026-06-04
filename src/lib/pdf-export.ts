@@ -47,6 +47,17 @@ export interface StaffPerformanceForPDF {
   daily_performances?: DailyPerformanceForPDF[]
 }
 
+export interface MnpIdContractForPDF {
+  carrier: 'au' | 'uq'
+  plan_type: string
+  device_type: string
+  special_device: boolean
+  count: number
+  excluded_count: number
+  id_score_per_contract: number
+  total_id_score: number
+}
+
 export interface DailyPerformanceForPDF {
   day_number: number
   event_date: string
@@ -72,6 +83,7 @@ export interface DailyPerformanceForPDF {
   ott: number
   electricity: number
   gas: number
+  mnp_id_contracts?: MnpIdContractForPDF[]
 }
 
 export interface PhotoForPDF {
@@ -285,12 +297,12 @@ function generateMainSection(event: EventDataForPDF, includeDetails: boolean): s
           実績サマリー
         </h2>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 5px;">
-          <div style="background-color: #F5F5F5; padding: 5px; border-radius: 3px; text-align: center;">
+          <div style="background-color: #F5F5F5; padding: 5px 5px 7px 5px; border-radius: 3px; text-align: center;">
             <div style="font-size: 15px; font-weight: bold; margin-bottom: 2px; color: #22211A;">
               ${event.actual_hs_total}
             </div>
             <div style="font-size: 8px; color: #22211A; margin-bottom: 2px;">実績HS総販</div>
-            <div style="font-size: 7px; background-color: ${event.include_cellup_in_hs_total ? '#4abf79' : '#9E9E9E'}; color: #FFFFFF; padding: 2px 6px; border-radius: 3px; display: inline-block; line-height: 1.2;">
+            <div style="font-size: 6px; background-color: ${event.include_cellup_in_hs_total ? '#4abf79' : '#9E9E9E'}; color: #FFFFFF; padding: 2px 4px; border-radius: 2px; display: inline-block; line-height: 1; white-space: nowrap; margin-top: -1px;">
               ${event.include_cellup_in_hs_total ? 'セルアップ含む' : 'セルアップ含まない'}
             </div>
             ${event.target_hs_total > 0 ? `
@@ -357,6 +369,55 @@ function generateMainSection(event: EventDataForPDF, includeDetails: boolean): s
         </table>
       </div>
   `
+
+  // MNP ID点数サマリーを含める場合（2026-06-02以降のイベント）
+  const isIdCalculationEnabled = new Date(event.start_date) >= new Date('2026-06-02')
+  if (isIdCalculationEnabled && event.staff_performances && event.staff_performances.length > 0) {
+    // 全スタッフの全日のMNP ID契約を集計
+    let totalIdScore = 0
+    let totalCount = 0
+
+    event.staff_performances.forEach(staff => {
+      staff.daily_performances?.forEach(daily => {
+        daily.mnp_id_contracts?.forEach(contract => {
+          totalIdScore += contract.total_id_score
+          totalCount += (contract.count - contract.excluded_count)
+        })
+      })
+    })
+
+    if (totalIdScore > 0) {
+      const dailyAvgIdScore = eventDays > 0 ? totalIdScore / eventDays : 0
+
+      html += `
+        <div style="margin-bottom: 12px;">
+          <h2 style="font-size: 11px; font-weight: bold; margin: 0 0 6px 0; color: #22211A; border-bottom: 1px solid #FFB300; padding-bottom: 3px;">
+            MNP新規ID点数サマリー
+          </h2>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
+            <div style="background-color: rgba(220, 237, 200, 0.5); padding: 5px; border-radius: 3px; text-align: center;">
+              <div style="font-size: 8px; color: #22211A; margin-bottom: 2px;">合計ID点数</div>
+              <div style="font-size: 15px; font-weight: bold; color: #4abf79;">
+                ${totalIdScore.toFixed(1)}点
+              </div>
+            </div>
+            <div style="background-color: rgba(220, 237, 200, 0.5); padding: 5px; border-radius: 3px; text-align: center;">
+              <div style="font-size: 8px; color: #22211A; margin-bottom: 2px;">日平均ID点数</div>
+              <div style="font-size: 15px; font-weight: bold; color: #FFB300;">
+                ${dailyAvgIdScore.toFixed(1)}点
+              </div>
+            </div>
+            <div style="background-color: rgba(220, 237, 200, 0.5); padding: 5px; border-radius: 3px; text-align: center;">
+              <div style="font-size: 8px; color: #22211A; margin-bottom: 2px;">合計件数</div>
+              <div style="font-size: 15px; font-weight: bold; color: #22211A;">
+                ${totalCount}件
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+    }
+  }
 
   // 写真を含める場合
   if (includeDetails && event.photos && event.photos.length > 0) {
@@ -551,7 +612,35 @@ function generateStaffSection(staff: StaffPerformanceForPDF, showTitle: boolean)
             <div style="background-color: #F1F8E9; padding: 3px; border-radius: 2px; text-align: center;">OTT: ${daily.ott || 0}</div>
             <div style="background-color: #F1F8E9; padding: 3px; border-radius: 2px; text-align: center;">電気: ${daily.electricity || 0}</div>
             <div style="background-color: #F1F8E9; padding: 3px; border-radius: 2px; text-align: center;">ガス: ${daily.gas || 0}</div>
+          </div>`
+
+      // MNP ID契約がある場合
+      if (daily.mnp_id_contracts && daily.mnp_id_contracts.length > 0) {
+        const dailyIdScore = daily.mnp_id_contracts.reduce((sum, c) => sum + c.total_id_score, 0)
+        html += `
+          <div style="margin-top: 4px; background-color: rgba(220, 237, 200, 0.3); border: 1px solid #4abf79; border-radius: 3px; padding: 4px;">
+            <div style="font-size: 8px; font-weight: bold; margin-bottom: 3px; color: #22211A;">
+              MNP新規ID点数: ${dailyIdScore.toFixed(1)}点
+            </div>
+            <div style="font-size: 7px; line-height: 1.4; color: #22211A;">
+        `
+
+        daily.mnp_id_contracts.forEach((contract, idx) => {
+          const effectiveCount = contract.count - contract.excluded_count
+          html += `
+              <div style="margin-bottom: 2px;">
+                • ${contract.carrier.toUpperCase()} ${effectiveCount}件 × ${contract.id_score_per_contract.toFixed(1)}点 = ${contract.total_id_score.toFixed(1)}点
+              </div>
+          `
+        })
+
+        html += `
+            </div>
           </div>
+        `
+      }
+
+      html += `
         </div>
       `
     })
@@ -699,12 +788,12 @@ function generatePDFContent(event: EventDataForPDF, includeDetails: boolean): st
           実績サマリー
         </h2>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 4px;">
-          <div style="background-color: #F5F5F5; padding: 4px; border-radius: 3px; text-align: center;">
+          <div style="background-color: #F5F5F5; padding: 4px 4px 6px 4px; border-radius: 3px; text-align: center;">
             <div style="font-size: 13px; font-weight: bold; margin-bottom: 1px; color: #22211A;">
               ${event.actual_hs_total}
             </div>
             <div style="font-size: 7px; color: #22211A; margin-bottom: 1px;">実績HS総販</div>
-            <div style="font-size: 6px; background-color: ${event.include_cellup_in_hs_total ? '#4abf79' : '#9E9E9E'}; color: #FFFFFF; padding: 1px 3px; border-radius: 2px; display: inline-block;">
+            <div style="font-size: 5.5px; background-color: ${event.include_cellup_in_hs_total ? '#4abf79' : '#9E9E9E'}; color: #FFFFFF; padding: 1px 2px; border-radius: 2px; display: inline-block; line-height: 1; white-space: nowrap; margin-top: -1px;">
               ${event.include_cellup_in_hs_total ? 'セルアップ含む' : 'セルアップ含まない'}
             </div>
             ${event.target_hs_total > 0 ? `
@@ -771,6 +860,55 @@ function generatePDFContent(event: EventDataForPDF, includeDetails: boolean): st
         </table>
       </div>
   `
+
+  // MNP ID点数サマリーを含める場合（2026-06-02以降のイベント）
+  const isIdCalculationEnabledCompat = new Date(event.start_date) >= new Date('2026-06-02')
+  if (isIdCalculationEnabledCompat && event.staff_performances && event.staff_performances.length > 0) {
+    // 全スタッフの全日のMNP ID契約を集計
+    let totalIdScoreCompat = 0
+    let totalCountCompat = 0
+
+    event.staff_performances.forEach(staff => {
+      staff.daily_performances?.forEach(daily => {
+        daily.mnp_id_contracts?.forEach(contract => {
+          totalIdScoreCompat += contract.total_id_score
+          totalCountCompat += (contract.count - contract.excluded_count)
+        })
+      })
+    })
+
+    if (totalIdScoreCompat > 0) {
+      const dailyAvgIdScoreCompat = eventDays > 0 ? totalIdScoreCompat / eventDays : 0
+
+      html += `
+        <div style="margin-bottom: 10px; page-break-inside: avoid; break-inside: avoid;">
+          <h2 style="font-size: 10px; font-weight: bold; margin: 0 0 5px 0; color: #22211A; border-bottom: 1px solid #FFB300; padding-bottom: 2px;">
+            MNP新規ID点数サマリー
+          </h2>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+            <div style="background-color: rgba(220, 237, 200, 0.5); padding: 4px; border-radius: 3px; text-align: center;">
+              <div style="font-size: 7px; color: #22211A; margin-bottom: 1px;">合計ID点数</div>
+              <div style="font-size: 13px; font-weight: bold; color: #4abf79;">
+                ${totalIdScoreCompat.toFixed(1)}点
+              </div>
+            </div>
+            <div style="background-color: rgba(220, 237, 200, 0.5); padding: 4px; border-radius: 3px; text-align: center;">
+              <div style="font-size: 7px; color: #22211A; margin-bottom: 1px;">日平均ID点数</div>
+              <div style="font-size: 13px; font-weight: bold; color: #FFB300;">
+                ${dailyAvgIdScoreCompat.toFixed(1)}点
+              </div>
+            </div>
+            <div style="background-color: rgba(220, 237, 200, 0.5); padding: 4px; border-radius: 3px; text-align: center;">
+              <div style="font-size: 7px; color: #22211A; margin-bottom: 1px;">合計件数</div>
+              <div style="font-size: 13px; font-weight: bold; color: #22211A;">
+                ${totalCountCompat}件
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+    }
+  }
 
   // 写真を含める場合
   if (includeDetails && event.photos && event.photos.length > 0) {
@@ -963,7 +1101,35 @@ function generatePDFContent(event: EventDataForPDF, includeDetails: boolean): st
                 <div style="background-color: #F1F8E9; padding: 2px; border-radius: 2px; text-align: center;">OTT: ${daily.ott || 0}</div>
                 <div style="background-color: #F1F8E9; padding: 2px; border-radius: 2px; text-align: center;">電気: ${daily.electricity || 0}</div>
                 <div style="background-color: #F1F8E9; padding: 2px; border-radius: 2px; text-align: center;">ガス: ${daily.gas || 0}</div>
+              </div>`
+
+          // MNP ID契約がある場合
+          if (daily.mnp_id_contracts && daily.mnp_id_contracts.length > 0) {
+            const dailyIdScoreCompat = daily.mnp_id_contracts.reduce((sum, c) => sum + c.total_id_score, 0)
+            html += `
+              <div style="margin-top: 3px; background-color: rgba(220, 237, 200, 0.3); border: 1px solid #4abf79; border-radius: 3px; padding: 3px; page-break-inside: avoid; break-inside: avoid;">
+                <div style="font-size: 7px; font-weight: bold; margin-bottom: 2px; color: #22211A;">
+                  MNP新規ID点数: ${dailyIdScoreCompat.toFixed(1)}点
+                </div>
+                <div style="font-size: 6px; line-height: 1.4; color: #22211A;">
+            `
+
+            daily.mnp_id_contracts.forEach((contract, idx) => {
+              const effectiveCountCompat = contract.count - contract.excluded_count
+              html += `
+                  <div style="margin-bottom: 1px;">
+                    • ${contract.carrier.toUpperCase()} ${effectiveCountCompat}件 × ${contract.id_score_per_contract.toFixed(1)}点 = ${contract.total_id_score.toFixed(1)}点
+                  </div>
+              `
+            })
+
+            html += `
+                </div>
               </div>
+            `
+          }
+
+          html += `
             </div>
           `
         })

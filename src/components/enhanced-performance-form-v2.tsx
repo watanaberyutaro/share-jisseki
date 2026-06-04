@@ -13,6 +13,41 @@ import {
 } from 'lucide-react'
 import { getSharedList, addToSharedList, updateSharedListItem, deleteFromSharedList, migrateLocalStorageToSupabase } from '@/lib/supabase/shared-lists'
 import { getDraft, saveDraft as saveDraftToSupabase, deleteDraft as deleteDraftFromSupabase, migrateDraftToSupabase } from '@/lib/supabase/drafts'
+import {
+  PLAN_TYPES,
+  DEVICE_TYPES,
+  CARRIERS,
+  PLAN_TYPE_LABELS,
+  DEVICE_TYPE_LABELS,
+  isIdCalculationEnabled,
+  calculateMnpIdScore,
+  type PlanType,
+  type DeviceType,
+  type Carrier
+} from '@/lib/mnp-id-calculator'
+import { MnpIdContractsSection } from './mnp-id-contracts-section'
+
+// MNP ID契約のスキーマ
+const mnpIdContractSchema = z.object({
+  carrier: z.enum(['au', 'uq'] as const),
+  planType: z.enum([
+    'MANEKATSU_2',
+    'VALUE_LINK',
+    'KOMIKOMI',
+    'U12_U18_SENIOR_MINI',
+    'TOKUTOKU'
+  ] as const),
+  deviceType: z.enum(['DEVICE', 'SIM_ONLY'] as const),
+  specialDevice: z.boolean().default(false),
+  count: z.preprocess(
+    (val) => val === '' || val === undefined || val === null ? 0 : Number(val),
+    z.number().min(0).default(0)
+  ),
+  excludedCount: z.preprocess(
+    (val) => val === '' || val === undefined || val === null ? 0 : Number(val),
+    z.number().min(0).default(0)
+  ),
+})
 
 // 日別実績のスキーマ（未入力時に0とする処理を追加）
 const dailyPerformanceSchema = z.object({
@@ -108,6 +143,8 @@ const dailyPerformanceSchema = z.object({
     (val) => val === '' || val === undefined || val === null ? 0 : Number(val),
     z.number().min(0).default(0)
   ),
+  // MNP ID契約明細（2026-06-02以降のイベントのみ）
+  mnpIdContracts: z.array(mnpIdContractSchema).optional().default([]),
 })
 
 // スタッフ実績のスキーマ（日別実績を含む）
@@ -199,6 +236,7 @@ const createEmptyDailyPerformance = () => ({
   electricity: 0,
   gas: 0,
   networkCount: 0,
+  mnpIdContracts: [],
 })
 
 interface EnhancedPerformanceFormV2Props {
@@ -302,6 +340,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
               electricity: daily.electricity || 0,
               gas: daily.gas || 0,
               networkCount: daily.network_count || 0,
+              mnpIdContracts: daily.mnp_id_contracts || [],
             }))
           : [{
               // フォールバック: 集計データから1日分として作成（古いデータ用）
@@ -328,6 +367,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
               electricity: staff.electricity || 0,
               gas: staff.gas || 0,
               networkCount: 0,
+              mnpIdContracts: [],
             }]
 
         return {
@@ -396,6 +436,11 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     }
   }
 
+  const form = useForm<PerformanceFormData>({
+    resolver: zodResolver(performanceFormSchema),
+    defaultValues: getDefaultValues(),
+  })
+
   const {
     register,
     control,
@@ -404,11 +449,8 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     reset,
     watch,
     setValue,
-  } = useForm<PerformanceFormData>({
-    resolver: zodResolver(performanceFormSchema),
-    defaultValues: getDefaultValues(),
-  })
-  
+  } = form
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'staffPerformances',
@@ -2059,6 +2101,18 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
                             </div>
                           </div>
                         </div>
+
+                        {/* MNP ID契約明細（2026-06-02以降のイベントのみ） */}
+                        {isIdCalculationEnabled(watch('startDate')) && (
+                          <div className="mt-6">
+                            <MnpIdContractsSection
+                              form={form}
+                              staffIndex={staffIndex}
+                              dayIndex={dayIndex}
+                              eventDate={watch('startDate')}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

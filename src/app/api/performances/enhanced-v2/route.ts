@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { uploadEventPhotos } from '@/lib/supabase/storage'
+import { mnpIdContractToDb, isIdCalculationEnabled } from '@/lib/mnp-id-calculator'
 
 export const dynamic = 'force-dynamic'
 
@@ -228,7 +229,52 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('Staff daily performances created successfully:', staffPerformances)
-    
+
+    // MNP ID契約を保存（2026-06-02以降のイベントのみ）
+    if (isIdCalculationEnabled(data.startDate)) {
+      const mnpIdContractsData: any[] = []
+
+      data.staffPerformances.forEach((staff: any, staffIndex: number) => {
+        staff.dailyPerformances.forEach((day: any, dayIndex: number) => {
+          // この日のスタッフ実績IDを取得
+          const staffPerformance = staffPerformances?.find(
+            (sp: any) =>
+              sp.staff_name === staff.staffName &&
+              sp.day_number === dayIndex + 1
+          )
+
+          if (staffPerformance && day.mnpIdContracts && day.mnpIdContracts.length > 0) {
+            // MNP ID契約を追加
+            day.mnpIdContracts.forEach((contract: any) => {
+              const dbContract = mnpIdContractToDb(contract)
+              mnpIdContractsData.push({
+                staff_performance_id: staffPerformance.id,
+                ...dbContract
+              })
+            })
+          }
+        })
+      })
+
+      if (mnpIdContractsData.length > 0) {
+        const { data: mnpContracts, error: mnpError } = await supabase
+          .from('mnp_id_contracts')
+          .insert(mnpIdContractsData)
+          .select()
+
+        if (mnpError) {
+          console.error('MNP ID contracts creation error:', {
+            error: mnpError,
+            attemptedDataCount: mnpIdContractsData.length,
+            sampleData: mnpIdContractsData.slice(0, 2)
+          })
+          // MNP ID契約のエラーは警告として扱い、実績データは保存する
+        } else {
+          console.log('MNP ID contracts created successfully:', mnpContracts?.length || 0)
+        }
+      }
+    }
+
     // 写真がある場合はアップロード
     let uploadedPhotos = []
     if (photos.length > 0) {

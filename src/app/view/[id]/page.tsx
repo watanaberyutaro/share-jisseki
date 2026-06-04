@@ -16,6 +16,7 @@ import {
   filterStaffPerformances,
   getFilterDisplayName
 } from '@/lib/staff-filter'
+import { IdScoreSummary } from '@/components/id-score-summary'
 
 interface EventDetail {
   id: string
@@ -928,6 +929,13 @@ export default function EventDetailPage() {
               )}
             </div>
           </div>
+
+          {/* MNP ID Score Summary (2026-06-02 onwards) */}
+          <IdScoreSummary
+            staffPerformances={event.staff_performances || []}
+            eventStartDate={event.start_date}
+            eventEndDate={event.end_date}
+          />
         </div>
 
         {/* Right Column - Photos */}

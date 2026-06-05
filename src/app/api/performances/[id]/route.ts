@@ -51,6 +51,13 @@ export async function PUT(
     console.log('Staff performances count:', data.staffPerformances?.length)
     console.log('Photos to delete:', photosToDelete)
 
+    // 数値変換ヘルパー関数
+    const toNumber = (value: any): number => {
+      if (value === null || value === undefined || value === '') return 0
+      const num = Number(value)
+      return isNaN(num) ? 0 : num
+    }
+
     // イベントが存在するか確認
     const { data: existingEvent, error: eventError } = await supabase
       .from('events')
@@ -75,9 +82,9 @@ export async function PUT(
         event_type: data.eventType || null,
         start_date: data.startDate,
         end_date: data.endDate,
-        year: data.year,
-        month: data.month,
-        week_number: data.weekNumber,
+        year: toNumber(data.year),
+        month: toNumber(data.month),
+        week_number: toNumber(data.weekNumber),
         include_cellup_in_hs_total: data.includeCellupInHsTotal || false,
       })
       .eq('id', eventId)
@@ -144,13 +151,6 @@ export async function PUT(
     }
 
     console.log('Existing data deleted successfully')
-
-    // 数値変換ヘルパー関数
-    const toNumber = (value: any): number => {
-      if (value === null || value === undefined || value === '') return 0
-      const num = Number(value)
-      return isNaN(num) ? 0 : num
-    }
 
     // スタッフの日別実績を保存
     const allStaffPerformances: any[] = []

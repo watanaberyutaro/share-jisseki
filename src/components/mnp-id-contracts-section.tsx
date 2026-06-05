@@ -42,12 +42,12 @@ export function MnpIdContractsSection({
   ) || []
 
   // 新しいHS新規ID契約を追加
-  const addContract = (carrier: Carrier) => {
+  const addContract = (carrier: Carrier, orderType: OrderType) => {
     append({
       carrier,
       planType: 'MANEKATSU_2',
       deviceType: 'DEVICE',
-      orderType: 'MNP',
+      orderType,
       specialDevice: false,
       count: 0,
       excludedCount: 0,
@@ -98,10 +98,10 @@ export function MnpIdContractsSection({
         <h5 className="text-sm font-semibold" style={{ color: '#22211A' }}>
           HS新規ID点数計算（2026年6月2日以降）
         </h5>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => addContract('au')}
+            onClick={() => addContract('au', 'MNP')}
             className="px-3 py-1.5 text-xs rounded-md transition-colors"
             style={{
               backgroundColor: '#4abf79',
@@ -109,11 +109,24 @@ export function MnpIdContractsSection({
             }}
           >
             <Plus className="w-3 h-3 inline mr-1" />
-            au MNP追加
+            au MNP
           </button>
           <button
             type="button"
-            onClick={() => addContract('uq')}
+            onClick={() => addContract('au', 'REGULAR')}
+            className="px-3 py-1.5 text-xs rounded-md transition-colors"
+            style={{
+              backgroundColor: '#4abf79',
+              color: 'white',
+              opacity: 0.8
+            }}
+          >
+            <Plus className="w-3 h-3 inline mr-1" />
+            au 通常新規
+          </button>
+          <button
+            type="button"
+            onClick={() => addContract('uq', 'MNP')}
             className="px-3 py-1.5 text-xs rounded-md transition-colors"
             style={{
               backgroundColor: '#FFB300',
@@ -121,7 +134,20 @@ export function MnpIdContractsSection({
             }}
           >
             <Plus className="w-3 h-3 inline mr-1" />
-            UQ MNP追加
+            UQ MNP
+          </button>
+          <button
+            type="button"
+            onClick={() => addContract('uq', 'REGULAR')}
+            className="px-3 py-1.5 text-xs rounded-md transition-colors"
+            style={{
+              backgroundColor: '#FFB300',
+              color: 'white',
+              opacity: 0.8
+            }}
+          >
+            <Plus className="w-3 h-3 inline mr-1" />
+            UQ 通常新規
           </button>
         </div>
       </div>
@@ -147,10 +173,10 @@ export function MnpIdContractsSection({
         </div>
       )}
 
-      {/* MNP ID契約一覧 */}
+      {/* HS新規ID契約一覧 */}
       {fields.length === 0 && (
         <div className="text-center py-6 text-sm opacity-60">
-          MNP ID契約を追加してください
+          上のボタンから契約を追加してください（au/UQ × MNP/通常新規）
         </div>
       )}
 

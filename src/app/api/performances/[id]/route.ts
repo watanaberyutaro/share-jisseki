@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { mnpIdContractToDb, isIdCalculationEnabled } from '@/lib/mnp-id-calculator'
+import { uploadEventPhotos, deleteEventPhoto } from '@/lib/supabase/storage'
 
 // Route Segmentのキャッシュを完全に無効化
 export const dynamic = 'force-dynamic'
@@ -92,7 +94,7 @@ export async function PUT(
       uqHsSp1: 0, uqHsSp2: 0, uqHsSim: 0,
       cellUpSp1: 0, cellUpSp2: 0, cellUpSim: 0,
       creditCard: 0, goldCard: 0, jiBankAccount: 0,
-      warranty: 0, ott: 0, electricity: 0, gas: 0
+      warranty: 0, ott: 0, electricity: 0, gas: 0, networkCount: 0
     }
 
     // 既存のstaff_performancesを削除
@@ -113,6 +115,7 @@ export async function PUT(
     }
 
     // スタッフの日別実績を保存
+    const allStaffPerformances: any[] = []
     if (data.staffPerformances && data.staffPerformances.length > 0) {
       for (const staff of data.staffPerformances) {
         // 日別データをループして保存
@@ -141,6 +144,7 @@ export async function PUT(
             totalPerformance.ott += toNumber(day.ott)
             totalPerformance.electricity += toNumber(day.electricity)
             totalPerformance.gas += toNumber(day.gas)
+            totalPerformance.networkCount += toNumber(day.networkCount)
           })
 
           // staff_performancesテーブルに日別データを挿入
@@ -173,12 +177,15 @@ export async function PUT(
             network_count: toNumber(day.networkCount),
           }))
 
-          const { error: staffPerformanceError } = await supabase
+          const { data: insertedStaffPerformances, error: staffPerformanceError } = await supabase
             .from('staff_performances')
             .insert(staffDailyData)
+            .select()
 
           if (staffPerformanceError) {
             console.error('Error inserting staff daily performances:', staffPerformanceError)
+          } else if (insertedStaffPerformances) {
+            allStaffPerformances.push(...insertedStaffPerformances)
           }
         }
       }
@@ -214,6 +221,7 @@ export async function PUT(
       ott: totalPerformance.ott,
       electricity: totalPerformance.electricity,
       gas: totalPerformance.gas,
+      network_count: totalPerformance.networkCount,
       operation_details: data.operationDetails || '',
       preparation_details: data.preparationDetails || '',
       promotion_method: data.promotionMethod || '',
@@ -236,82 +244,97 @@ export async function PUT(
 
     console.log('Performance data successfully inserted:', insertedPerformance)
 
+    // MNP ID契約を保存（2026-06-02以降のイベントのみ）
+    if (isIdCalculationEnabled(data.startDate)) {
+      const mnpIdContractsData: any[] = []
+
+      data.staffPerformances.forEach((staff: any) => {
+        staff.dailyPerformances.forEach((day: any, dayIndex: number) => {
+          // この日のスタッフ実績IDを取得
+          const staffPerformance = allStaffPerformances.find(
+            (sp: any) =>
+              sp.staff_name === staff.staffName &&
+              sp.day_number === dayIndex + 1
+          )
+
+          if (staffPerformance && day.mnpIdContracts && day.mnpIdContracts.length > 0) {
+            // MNP ID契約を追加
+            day.mnpIdContracts.forEach((contract: any) => {
+              const dbContract = mnpIdContractToDb(contract)
+              mnpIdContractsData.push({
+                staff_performance_id: staffPerformance.id,
+                ...dbContract
+              })
+            })
+          }
+        })
+      })
+
+      if (mnpIdContractsData.length > 0) {
+        const { data: mnpContracts, error: mnpError } = await supabase
+          .from('mnp_id_contracts')
+          .insert(mnpIdContractsData)
+          .select()
+
+        if (mnpError) {
+          console.error('MNP ID contracts creation error:', mnpError)
+          // MNP ID契約のエラーは警告として扱い、実績データは保存する
+        } else {
+          console.log('MNP ID contracts created successfully:', mnpContracts?.length || 0)
+        }
+      }
+    }
+
     // 削除する写真がある場合は削除
     if (photosToDelete.length > 0) {
       for (const photoId of photosToDelete) {
-        // データベースから写真の情報を取得
-        const { data: photoData, error: photoFetchError } = await supabase
-          .from('event_photos')
-          .select('file_path')
-          .eq('id', photoId)
-          .single()
-
-        if (!photoFetchError && photoData) {
-          // Storageから写真を削除
-          const { error: storageDeleteError } = await supabase.storage
-            .from('event-photos')
-            .remove([photoData.file_path])
-
-          if (storageDeleteError) {
-            console.error('Error deleting photo from storage:', storageDeleteError)
-          }
-
-          // データベースから写真レコードを削除
-          const { error: dbDeleteError } = await supabase
+        try {
+          // データベースから写真の情報を取得
+          const { data: photoData, error: photoFetchError } = await supabase
             .from('event_photos')
-            .delete()
+            .select('file_path')
             .eq('id', photoId)
+            .single()
 
-          if (dbDeleteError) {
-            console.error('Error deleting photo record:', dbDeleteError)
+          if (!photoFetchError && photoData) {
+            // Storageから写真を削除
+            await deleteEventPhoto(photoData.file_path)
+
+            // データベースから写真レコードを削除
+            const { error: dbDeleteError } = await supabase
+              .from('event_photos')
+              .delete()
+              .eq('id', photoId)
+
+            if (dbDeleteError) {
+              console.error('Error deleting photo record:', dbDeleteError)
+            }
           }
+        } catch (error) {
+          console.error(`Error deleting photo ${photoId}:`, error)
         }
       }
     }
 
     // 新しい写真がある場合はアップロード
+    let uploadedPhotos = []
     if (photos.length > 0) {
-      for (let i = 0; i < photos.length; i++) {
-        const file = photos[i]
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${eventId}/${Date.now()}_${i}.${fileExt}`
-
-        // Storageにファイルをアップロード（キャッシュを短時間に設定）
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('event-photos')
-          .upload(fileName, file, {
-            cacheControl: '0',  // キャッシュを無効化
-            upsert: false,
-            contentType: file.type
-          })
-
-        if (uploadError) {
-          console.error('Error uploading photo:', uploadError)
-          continue
-        }
-
-        // データベースに写真情報を保存（統一されたスキーマを使用）
-        const { error: photoError } = await supabase
-          .from('event_photos')
-          .insert({
-            event_id: eventId,
-            filename: fileName,
-            original_name: file.name,
-            file_path: fileName,
-            file_size: file.size,
-            mime_type: file.type,
-            upload_order: i
-          })
-
-        if (photoError) {
-          console.error('Error saving photo record:', photoError)
-        }
+      try {
+        console.log(`Uploading ${photos.length} photos for event ${eventId}`)
+        const photoUploadResult = await uploadEventPhotos(eventId, photos)
+        uploadedPhotos = photoUploadResult.photos
+        console.log('Photos uploaded successfully:', uploadedPhotos.length)
+      } catch (photoError) {
+        console.error('Photo upload failed:', photoError)
+        // 写真アップロードのエラーは警告として扱い、実績データは保存する
       }
     }
 
     return NextResponse.json({
+      success: true,
       eventId,
-      message: 'Performance updated successfully',
+      uploadedPhotos,
+      message: `実績が正常に更新されました${uploadedPhotos.length > 0 ? `（写真${uploadedPhotos.length}枚を含む）` : ''}`
     })
 
   } catch (error) {

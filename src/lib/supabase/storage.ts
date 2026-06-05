@@ -180,6 +180,27 @@ export async function uploadEventPhotos(eventId: string, photos: File[]) {
 // 写真データベース操作は別の場所で処理するため、この関数は削除
 // API routeから直接データベースにアクセスします
 
+export async function deleteEventPhoto(filePath: string) {
+  const supabase = createStorageClient()
+
+  try {
+    // Storageから写真を削除
+    const { error: storageError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .remove([filePath])
+
+    if (storageError) {
+      console.error('Error deleting photo from storage:', storageError)
+      throw new Error(`写真の削除に失敗しました: ${storageError.message}`)
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to delete photo:', error)
+    throw error
+  }
+}
+
 export async function getPhotoUrl(filePath: string) {
   // サーバー環境でのみストレージクライアントを使用
   let supabase
@@ -191,10 +212,10 @@ export async function getPhotoUrl(filePath: string) {
     const { createClient } = await import('./client')
     supabase = createClient()
   }
-  
+
   const { data } = supabase.storage
     .from(BUCKET_NAME)
     .getPublicUrl(filePath)
-  
+
   return data.publicUrl
 }

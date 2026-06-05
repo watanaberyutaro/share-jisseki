@@ -1207,11 +1207,30 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
 
       // 写真以外のデータをJSON文字列として追加
       const { eventPhotos, ...jsonData } = data
+
+      // MNP ID契約の空データをフィルタリング（バリデーションエラーを防ぐ）
+      const cleanedStaffPerformances = jsonData.staffPerformances.map(staff => ({
+        ...staff,
+        dailyPerformances: staff.dailyPerformances.map(day => ({
+          ...day,
+          mnpIdContracts: day.mnpIdContracts?.filter(contract =>
+            // planTypeとdeviceTypeが両方存在する契約のみを含める
+            contract.planType && contract.deviceType
+          ) || []
+        }))
+      }))
+
       // includeCellupInHsTotalを確実に含める
       const dataToSend = {
         ...jsonData,
+        staffPerformances: cleanedStaffPerformances,
         includeCellupInHsTotal: data.includeCellupInHsTotal || false
       }
+
+      console.log('Cleaned MNP ID contracts - filtering empty entries')
+      console.log('Original staff performances:', jsonData.staffPerformances.length)
+      console.log('Cleaned staff performances:', cleanedStaffPerformances.length)
+
       formData.append('data', JSON.stringify(dataToSend))
 
       // 写真ファイルを個別に追加

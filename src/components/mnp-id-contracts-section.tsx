@@ -234,6 +234,14 @@ export function MnpIdContractsSection({
                 </button>
               </div>
 
+              {/* orderTypeをhidden inputとして保持 */}
+              <input
+                type="hidden"
+                {...form.register(
+                  `staffPerformances.${staffIndex}.dailyPerformances.${dayIndex}.mnpIdContracts.${index}.orderType`
+                )}
+              />
+
               {/* 入力フィールド */}
               <div className="grid grid-cols-2 gap-3">
                 {/* プラン区分 */}
@@ -269,26 +277,6 @@ export function MnpIdContractsSection({
                     style={{ borderColor: '#22211A' }}
                   >
                     {Object.entries(DEVICE_TYPE_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* オーダー種別 */}
-                <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: '#22211A' }}>
-                    オーダー種別
-                  </label>
-                  <select
-                    {...form.register(
-                      `staffPerformances.${staffIndex}.dailyPerformances.${dayIndex}.mnpIdContracts.${index}.orderType`
-                    )}
-                    className="w-full px-3 py-2 text-sm rounded-md border"
-                    style={{ borderColor: '#22211A' }}
-                  >
-                    {Object.entries(ORDER_TYPE_LABELS).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>

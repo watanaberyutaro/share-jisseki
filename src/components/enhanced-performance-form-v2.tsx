@@ -27,17 +27,17 @@ import {
 } from '@/lib/mnp-id-calculator'
 import { MnpIdContractsSection } from './mnp-id-contracts-section'
 
-// MNP ID契約のスキーマ
+// MNP ID契約のスキーマ（部分的にオプショナル）
 const mnpIdContractSchema = z.object({
-  carrier: z.enum(['au', 'uq'] as const),
+  carrier: z.enum(['au', 'uq'] as const).optional(),
   planType: z.enum([
     'MANEKATSU_2',
     'VALUE_LINK',
     'KOMIKOMI',
     'U12_U18_SENIOR_MINI',
     'TOKUTOKU'
-  ] as const),
-  deviceType: z.enum(['DEVICE', 'SIM_ONLY'] as const),
+  ] as const).optional(),
+  deviceType: z.enum(['DEVICE', 'SIM_ONLY'] as const).optional(),
   specialDevice: z.boolean().default(false),
   count: z.preprocess(
     (val) => val === '' || val === undefined || val === null ? 0 : Number(val),
@@ -144,7 +144,13 @@ const dailyPerformanceSchema = z.object({
     z.number().min(0).default(0)
   ),
   // MNP ID契約明細（2026-06-02以降のイベントのみ）
-  mnpIdContracts: z.array(mnpIdContractSchema).optional().default([]),
+  // バリデーション時に空の契約を自動的にフィルタリング
+  mnpIdContracts: z.array(mnpIdContractSchema).optional().default([]).transform((contracts) =>
+    contracts.filter(contract =>
+      // planTypeとdeviceTypeが両方存在する契約のみを含める
+      contract.planType && contract.deviceType
+    )
+  ),
 })
 
 // スタッフ実績のスキーマ（日別実績を含む）

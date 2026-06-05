@@ -25,7 +25,11 @@
       "Bash(git checkout:*)",
       "Bash(git pull:*)",
       "Bash(git merge:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx supabase db pull:*)",
+      "Bash(npx supabase link:*)",
+      "Bash(mkdir:*)",
+      "Bash(npx supabase:*)"
     ],
     "deny": [],
     "ask": []

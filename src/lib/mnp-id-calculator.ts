@@ -1,8 +1,10 @@
 /**
- * MNP新規ID点数計算機能
+ * HS新規ID点数計算機能
  *
  * 適用開始日: 2026年6月2日以降の実績のみ
- * 対象: MNP新規のみ（通常新規、法人SP、その他プランは対象外）
+ * 対象: HS新規（au新規・UQ新規）全体
+ *   - MNP新規（係数×3）
+ *   - 通常新規（係数×1）
  */
 
 // プラン区分の定義
@@ -32,6 +34,14 @@ export const CARRIERS = {
 
 export type Carrier = typeof CARRIERS[keyof typeof CARRIERS]
 
+// オーダー種別の定義
+export const ORDER_TYPES = {
+  MNP: 'MNP',           // MNP新規
+  REGULAR: 'REGULAR',   // 通常新規
+} as const
+
+export type OrderType = typeof ORDER_TYPES[keyof typeof ORDER_TYPES]
+
 // プラン基準点の定義
 export const PLAN_BASE_POINTS: Record<PlanType, number> = {
   MANEKATSU_2: 3,
@@ -47,8 +57,11 @@ export const DEVICE_COEFFICIENTS: Record<DeviceType, number> = {
   SIM_ONLY: 1,
 }
 
-// MNP係数（固定値）
-export const MNP_COEFFICIENT = 3
+// オーダー種別係数の定義
+export const ORDER_TYPE_COEFFICIENTS: Record<OrderType, number> = {
+  MNP: 3,      // MNP新規
+  REGULAR: 1,  // 通常新規
+}
 
 // 特定機種加点
 export const SPECIAL_DEVICE_BONUS = 2
@@ -74,12 +87,19 @@ export const CARRIER_LABELS: Record<Carrier, string> = {
   uq: 'UQ',
 }
 
-// MNP ID契約の型定義
+// オーダー種別のラベル（UI表示用）
+export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
+  MNP: 'MNP新規',
+  REGULAR: '通常新規',
+}
+
+// HS新規ID契約の型定義
 export interface MnpIdContract {
   id?: string
   carrier: Carrier
   planType: PlanType
   deviceType: DeviceType
+  orderType: OrderType  // MNP新規 or 通常新規
   specialDevice: boolean
   count: number
   excludedCount: number
@@ -98,31 +118,34 @@ export interface IdScoreCalculationResult {
  * 1件あたりのID点数を計算
  *
  * 計算式:
- * id_score_per_contract = 1 + (plan_base_point × device_coefficient × 3) + special_device_bonus
+ * id_score_per_contract = 1 + (plan_base_point × device_coefficient × order_type_coefficient) + special_device_bonus
  *
  * @param planType - プラン区分
  * @param deviceType - 端末区分
+ * @param orderType - オーダー種別（MNP / 通常新規）
  * @param specialDevice - 特定機種フラグ
  * @returns 1件あたりのID点数
  */
 export function calculateIdScorePerContract(
   planType: PlanType,
   deviceType: DeviceType,
+  orderType: OrderType,
   specialDevice: boolean
 ): number {
   const planBasePoint = PLAN_BASE_POINTS[planType]
   const deviceCoefficient = DEVICE_COEFFICIENTS[deviceType]
+  const orderTypeCoefficient = ORDER_TYPE_COEFFICIENTS[orderType]
   const specialDeviceBonus = specialDevice ? SPECIAL_DEVICE_BONUS : 0
 
-  const score = 1 + (planBasePoint * deviceCoefficient * MNP_COEFFICIENT) + specialDeviceBonus
+  const score = 1 + (planBasePoint * deviceCoefficient * orderTypeCoefficient) + specialDeviceBonus
 
   return score
 }
 
 /**
- * MNP ID契約の合計ID点数を計算
+ * HS新規ID契約の合計ID点数を計算
  *
- * @param contract - MNP ID契約情報
+ * @param contract - HS新規ID契約情報
  * @returns 計算結果（有効件数、1件あたりID点数、合計ID点数）
  */
 export function calculateMnpIdScore(contract: MnpIdContract): IdScoreCalculationResult {
@@ -130,6 +153,7 @@ export function calculateMnpIdScore(contract: MnpIdContract): IdScoreCalculation
   const idScorePerContract = calculateIdScorePerContract(
     contract.planType,
     contract.deviceType,
+    contract.orderType,
     contract.specialDevice
   )
   const totalIdScore = idScorePerContract * effectiveCount
@@ -233,9 +257,9 @@ export function calculateIdScoreSummary(contracts: MnpIdContract[]) {
 }
 
 /**
- * MNP ID契約データをデータベース形式に変換
+ * HS新規ID契約データをデータベース形式に変換
  *
- * @param contract - MNP ID契約情報
+ * @param contract - HS新規ID契約情報
  * @returns データベース形式のオブジェクト
  */
 export function mnpIdContractToDb(contract: MnpIdContract) {
@@ -245,6 +269,7 @@ export function mnpIdContractToDb(contract: MnpIdContract) {
     carrier: contract.carrier,
     plan_type: contract.planType,
     device_type: contract.deviceType,
+    order_type: contract.orderType,
     special_device: contract.specialDevice,
     count: contract.count,
     excluded_count: contract.excludedCount,
@@ -254,10 +279,10 @@ export function mnpIdContractToDb(contract: MnpIdContract) {
 }
 
 /**
- * データベース形式からMNP ID契約データに変換
+ * データベース形式からHS新規ID契約データに変換
  *
- * @param dbContract - データベース形式のMNP ID契約データ
- * @returns MNP ID契約情報
+ * @param dbContract - データベース形式のHS新規ID契約データ
+ * @returns HS新規ID契約情報
  */
 export function mnpIdContractFromDb(dbContract: any): MnpIdContract {
   return {
@@ -265,6 +290,7 @@ export function mnpIdContractFromDb(dbContract: any): MnpIdContract {
     carrier: dbContract.carrier,
     planType: dbContract.plan_type,
     deviceType: dbContract.device_type,
+    orderType: dbContract.order_type || 'MNP', // 既存データはMNP新規として扱う
     specialDevice: dbContract.special_device,
     count: dbContract.count,
     excludedCount: dbContract.excluded_count,

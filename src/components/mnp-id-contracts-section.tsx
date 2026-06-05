@@ -7,13 +7,16 @@ import {
   PLAN_TYPES,
   DEVICE_TYPES,
   CARRIERS,
+  ORDER_TYPES,
   PLAN_TYPE_LABELS,
   DEVICE_TYPE_LABELS,
   CARRIER_LABELS,
+  ORDER_TYPE_LABELS,
   calculateMnpIdScore,
   type PlanType,
   type DeviceType,
-  type Carrier
+  type Carrier,
+  type OrderType
 } from '@/lib/mnp-id-calculator'
 
 interface MnpIdContractsSectionProps {
@@ -38,12 +41,13 @@ export function MnpIdContractsSection({
     `staffPerformances.${staffIndex}.dailyPerformances.${dayIndex}.mnpIdContracts`
   ) || []
 
-  // 新しいMNP ID契約を追加
+  // 新しいHS新規ID契約を追加
   const addContract = (carrier: Carrier) => {
     append({
       carrier,
       planType: 'MANEKATSU_2',
       deviceType: 'DEVICE',
+      orderType: 'MNP',
       specialDevice: false,
       count: 0,
       excludedCount: 0,
@@ -57,6 +61,7 @@ export function MnpIdContractsSection({
         carrier: contract.carrier,
         planType: contract.planType,
         deviceType: contract.deviceType,
+        orderType: contract.orderType || 'MNP',
         specialDevice: contract.specialDevice,
         count: contract.count || 0,
         excludedCount: contract.excludedCount || 0,
@@ -74,6 +79,7 @@ export function MnpIdContractsSection({
           carrier: contract.carrier,
           planType: contract.planType,
           deviceType: contract.deviceType,
+          orderType: contract.orderType || 'MNP',
           specialDevice: contract.specialDevice,
           count: contract.count || 0,
           excludedCount: contract.excludedCount || 0,
@@ -90,7 +96,7 @@ export function MnpIdContractsSection({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h5 className="text-sm font-semibold" style={{ color: '#22211A' }}>
-          MNP新規ID点数計算（2026年6月2日以降）
+          HS新規ID点数計算（2026年6月2日以降）
         </h5>
         <div className="flex gap-2">
           <button
@@ -157,6 +163,7 @@ export function MnpIdContractsSection({
             carrier: contract.carrier,
             planType: contract.planType,
             deviceType: contract.deviceType,
+            orderType: contract.orderType || 'MNP',
             specialDevice: contract.specialDevice,
             count: contract.count || 0,
             excludedCount: contract.excludedCount || 0,
@@ -184,7 +191,7 @@ export function MnpIdContractsSection({
                       color: 'white'
                     }}
                   >
-                    {CARRIER_LABELS[contract.carrier as Carrier]} MNP
+                    {CARRIER_LABELS[contract.carrier as Carrier]} {ORDER_TYPE_LABELS[contract.orderType as OrderType] || 'MNP新規'}
                   </span>
                   <Calculator className="w-4 h-4" style={{ color: '#22211A' }} />
                   <span className="text-sm font-semibold" style={{ color: '#22211A' }}>
@@ -236,6 +243,26 @@ export function MnpIdContractsSection({
                     style={{ borderColor: '#22211A' }}
                   >
                     {Object.entries(DEVICE_TYPE_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* オーダー種別 */}
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: '#22211A' }}>
+                    オーダー種別
+                  </label>
+                  <select
+                    {...form.register(
+                      `staffPerformances.${staffIndex}.dailyPerformances.${dayIndex}.mnpIdContracts.${index}.orderType`
+                    )}
+                    className="w-full px-3 py-2 text-sm rounded-md border"
+                    style={{ borderColor: '#22211A' }}
+                  >
+                    {Object.entries(ORDER_TYPE_LABELS).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>

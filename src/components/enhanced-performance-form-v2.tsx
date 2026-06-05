@@ -27,7 +27,7 @@ import {
 } from '@/lib/mnp-id-calculator'
 import { MnpIdContractsSection } from './mnp-id-contracts-section'
 
-// MNP ID契約のスキーマ（部分的にオプショナル）
+// HS新規ID契約のスキーマ（部分的にオプショナル）
 const mnpIdContractSchema = z.object({
   carrier: z.enum(['au', 'uq'] as const).optional(),
   planType: z.enum([
@@ -38,6 +38,7 @@ const mnpIdContractSchema = z.object({
     'TOKUTOKU'
   ] as const).optional(),
   deviceType: z.enum(['DEVICE', 'SIM_ONLY'] as const).optional(),
+  orderType: z.enum(['MNP', 'REGULAR'] as const).optional().default('MNP'),
   specialDevice: z.boolean().default(false),
   count: z.preprocess(
     (val) => val === '' || val === undefined || val === null ? 0 : Number(val),

@@ -455,8 +455,28 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   useEffect(() => {
     if (Object.keys(errors).length > 0) {
       console.error('=== Form Validation Errors ===')
-      console.error('Errors:', errors)
       console.error('Error fields:', Object.keys(errors))
+      console.error('Full errors object:', JSON.stringify(errors, null, 2))
+
+      // 各フィールドのエラーメッセージを表示
+      Object.keys(errors).forEach(fieldName => {
+        const fieldError = errors[fieldName as keyof typeof errors]
+        console.error(`Field "${fieldName}":`, fieldError)
+
+        // 配列フィールド（staffPerformances）の場合
+        if (Array.isArray(fieldError)) {
+          fieldError.forEach((staffError: any, index: number) => {
+            if (staffError) {
+              console.error(`  Staff ${index}:`, staffError)
+
+              // 日別実績のエラー
+              if (staffError.dailyPerformances) {
+                console.error(`    Daily performances errors:`, staffError.dailyPerformances)
+              }
+            }
+          })
+        }
+      })
     }
   }, [errors])
 

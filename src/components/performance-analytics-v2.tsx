@@ -751,13 +751,13 @@ export function PerformanceAnalyticsV2({
 
     // 期間フィルターを適用
     if (weeklyStartDate && weeklyEndDate) {
-      weeklyStats = weeklyStats.filter(item =>
+      weeklyStats = weeklyStats.filter((item: any) =>
         item.yearMonth >= weeklyStartDate && item.yearMonth <= weeklyEndDate
       )
     } else if (weeklyStartDate) {
-      weeklyStats = weeklyStats.filter(item => item.yearMonth >= weeklyStartDate)
+      weeklyStats = weeklyStats.filter((item: any) => item.yearMonth >= weeklyStartDate)
     } else if (weeklyEndDate) {
-      weeklyStats = weeklyStats.filter(item => item.yearMonth <= weeklyEndDate)
+      weeklyStats = weeklyStats.filter((item: any) => item.yearMonth <= weeklyEndDate)
     }
 
     return weeklyStats

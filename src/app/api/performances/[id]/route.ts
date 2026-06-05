@@ -287,10 +287,21 @@ export async function PUT(
 
     // MNP ID契約を保存（2026-06-02以降のイベントのみ）
     if (isIdCalculationEnabled(data.startDate)) {
+      console.log('=== MNP ID契約処理開始 ===')
+      console.log('Start Date:', data.startDate)
+      console.log('Staff Performances:', data.staffPerformances?.length)
+
       const mnpIdContractsData: any[] = []
 
-      data.staffPerformances.forEach((staff: any) => {
+      data.staffPerformances.forEach((staff: any, staffIdx: number) => {
+        console.log(`Staff ${staffIdx}:`, staff.staffName)
+        console.log(`  Daily performances:`, staff.dailyPerformances?.length)
+
         staff.dailyPerformances.forEach((day: any, dayIndex: number) => {
+          console.log(`    Day ${dayIndex + 1}:`)
+          console.log(`      mnpIdContracts exists:`, !!day.mnpIdContracts)
+          console.log(`      mnpIdContracts length:`, day.mnpIdContracts?.length || 0)
+
           // この日のスタッフ実績IDを取得
           const staffPerformance = allStaffPerformances.find(
             (sp: any) =>
@@ -298,7 +309,12 @@ export async function PUT(
               sp.day_number === dayIndex + 1
           )
 
+          if (!staffPerformance) {
+            console.log(`      Warning: Staff performance not found for ${staff.staffName}, day ${dayIndex + 1}`)
+          }
+
           if (staffPerformance && day.mnpIdContracts && day.mnpIdContracts.length > 0) {
+            console.log(`      Adding ${day.mnpIdContracts.length} MNP ID contracts`)
             // MNP ID契約を追加
             day.mnpIdContracts.forEach((contract: any) => {
               const dbContract = mnpIdContractToDb(contract)
@@ -311,7 +327,10 @@ export async function PUT(
         })
       })
 
+      console.log('Total MNP ID contracts to insert:', mnpIdContractsData.length)
+
       if (mnpIdContractsData.length > 0) {
+        console.log('Inserting MNP ID contracts...')
         const { data: mnpContracts, error: mnpError } = await supabase
           .from('mnp_id_contracts')
           .insert(mnpIdContractsData)
@@ -319,11 +338,21 @@ export async function PUT(
 
         if (mnpError) {
           console.error('MNP ID contracts creation error:', mnpError)
+          console.error('Error details:', {
+            message: mnpError.message,
+            code: mnpError.code,
+            details: mnpError.details,
+            hint: mnpError.hint
+          })
           // MNP ID契約のエラーは警告として扱い、実績データは保存する
         } else {
           console.log('MNP ID contracts created successfully:', mnpContracts?.length || 0)
         }
+      } else {
+        console.log('No MNP ID contracts to insert (empty array)')
       }
+    } else {
+      console.log('MNP ID calculation not enabled for this event date:', data.startDate)
     }
 
     // 削除する写真がある場合は削除

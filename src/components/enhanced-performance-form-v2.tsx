@@ -445,11 +445,20 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     register,
     control,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting: formIsSubmitting },
     reset,
     watch,
     setValue,
   } = form
+
+  // バリデーションエラーをデバッグ
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      console.error('=== Form Validation Errors ===')
+      console.error('Errors:', errors)
+      console.error('Error fields:', Object.keys(errors))
+    }
+  }, [errors])
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -1164,9 +1173,14 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
   }, [])
   
   const onSubmit = async (data: PerformanceFormData) => {
+    console.log('=== Form Submit Started ===')
+    console.log('Edit Mode:', editMode)
+    console.log('Event ID:', eventId)
+    console.log('Form Data:', data)
+
     setIsSubmitting(true)
     setSuccessMessage('')
-    
+
     try {
       // FormDataを使用してファイルアップロードに対応
       const formData = new FormData()
@@ -1281,9 +1295,12 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
         router.push(`/input/success?${params.toString()}`)
       }
     } catch (error) {
+      console.error('=== Form Submit Error ===')
       console.error('Error:', error)
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
       alert(`エラーが発生しました: ${error}`)
     } finally {
+      console.log('=== Form Submit Finished ===')
       setIsSubmitting(false)
     }
   }
@@ -2371,6 +2388,12 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
         <button
           type="submit"
           disabled={isSubmitting}
+          onClick={() => {
+            console.log('=== Save Button Clicked ===')
+            console.log('isSubmitting:', isSubmitting)
+            console.log('Form errors:', errors)
+            console.log('Has errors:', Object.keys(errors).length > 0)
+          }}
           className="w-full flex justify-center items-center px-4 py-4 md:py-3 text-lg md:text-base font-bold rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FFB300] disabled:opacity-50 disabled:cursor-not-allowed transition-all border"
           style={{ backgroundColor: '#FFB300', color: '#FFFFFF', borderColor: '#FFB300' }}
         >

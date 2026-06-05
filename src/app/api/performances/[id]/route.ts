@@ -19,6 +19,10 @@ export async function PUT(
     const formData = await request.formData()
     const eventId = params.id
 
+    console.log('=== PUT Request Debug ===')
+    console.log('Event ID:', eventId)
+    console.log('FormData keys:', Array.from(formData.keys()))
+
     // Service roleを使用してRLSをバイパス
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,8 +41,15 @@ export async function PUT(
       }
     }
 
+    console.log('FormData object keys:', Object.keys(formDataObj))
+    console.log('Photos count:', photos.length)
+
     const data = JSON.parse(formDataObj.data || '{}')
     const photosToDelete = formDataObj.photosToDelete ? JSON.parse(formDataObj.photosToDelete) : []
+
+    console.log('Parsed data keys:', Object.keys(data))
+    console.log('Staff performances count:', data.staffPerformances?.length)
+    console.log('Photos to delete:', photosToDelete)
 
     // イベントが存在するか確認
     const { data: existingEvent, error: eventError } = await supabase
@@ -73,8 +84,13 @@ export async function PUT(
 
     if (updateEventError) {
       console.error('Error updating event:', updateEventError)
-      throw new Error('Failed to update event')
+      return NextResponse.json(
+        { error: 'Failed to update event', details: updateEventError.message },
+        { status: 500 }
+      )
     }
+
+    console.log('Event updated successfully')
 
     // 既存のperformancesを削除
     const { error: deletePerformanceError } = await supabase
@@ -97,7 +113,27 @@ export async function PUT(
       warranty: 0, ott: 0, electricity: 0, gas: 0, networkCount: 0
     }
 
-    // 既存のstaff_performancesを削除
+    // 既存のstaff_performancesとMNP ID契約を削除
+    // まず、既存のstaff_performancesのIDを取得
+    const { data: existingStaffPerfs } = await supabase
+      .from('staff_performances')
+      .select('id')
+      .eq('event_id', eventId)
+
+    // MNP ID契約を削除（staff_performance_idに依存）
+    if (existingStaffPerfs && existingStaffPerfs.length > 0) {
+      const staffPerfIds = existingStaffPerfs.map((sp: any) => sp.id)
+      const { error: deleteMnpError } = await supabase
+        .from('mnp_id_contracts')
+        .delete()
+        .in('staff_performance_id', staffPerfIds)
+
+      if (deleteMnpError) {
+        console.error('Error deleting MNP ID contracts:', deleteMnpError)
+      }
+    }
+
+    // staff_performancesを削除
     const { error: deleteStaffError } = await supabase
       .from('staff_performances')
       .delete()
@@ -106,6 +142,8 @@ export async function PUT(
     if (deleteStaffError) {
       console.error('Error deleting staff performances:', deleteStaffError)
     }
+
+    console.log('Existing data deleted successfully')
 
     // 数値変換ヘルパー関数
     const toNumber = (value: any): number => {
@@ -194,11 +232,11 @@ export async function PUT(
     // performancesテーブルに全体の合計データを挿入
     const performanceData = {
       event_id: eventId,
-      target_hs_total: data.targetHsTotal || 0,
-      target_au_mnp: data.targetAuMnp || 0,
-      target_uq_mnp: data.targetUqMnp || 0,
-      target_au_new: data.targetAuNew || 0,
-      target_uq_new: data.targetUqNew || 0,
+      target_hs_total: toNumber(data.targetHsTotal),
+      target_au_mnp: toNumber(data.targetAuMnp),
+      target_uq_mnp: toNumber(data.targetUqMnp),
+      target_au_new: toNumber(data.targetAuNew),
+      target_uq_new: toNumber(data.targetUqNew),
       au_mnp_sp1: totalPerformance.auMnpSp1,
       au_mnp_sp2: totalPerformance.auMnpSp2,
       au_mnp_sim: totalPerformance.auMnpSim,
@@ -222,12 +260,12 @@ export async function PUT(
       electricity: totalPerformance.electricity,
       gas: totalPerformance.gas,
       network_count: totalPerformance.networkCount,
-      operation_details: data.operationDetails || '',
-      preparation_details: data.preparationDetails || '',
-      promotion_method: data.promotionMethod || '',
-      success_case_1: data.successCase1 || '',
-      success_case_2: data.successCase2 || '',
-      challenges_and_solutions: data.challengesAndSolutions || '',
+      operation_details: data.operationDetails || null,
+      preparation_details: data.preparationDetails || null,
+      promotion_method: data.promotionMethod || null,
+      success_case_1: data.successCase1 || null,
+      success_case_2: data.successCase2 || null,
+      challenges_and_solutions: data.challengesAndSolutions || null,
     }
 
     console.log('Performance data being inserted:', performanceData)
@@ -239,7 +277,10 @@ export async function PUT(
 
     if (performanceError) {
       console.error('Error inserting performance:', performanceError)
-      throw new Error('Failed to update performance')
+      return NextResponse.json(
+        { error: 'Failed to update performance', details: performanceError.message },
+        { status: 500 }
+      )
     }
 
     console.log('Performance data successfully inserted:', insertedPerformance)

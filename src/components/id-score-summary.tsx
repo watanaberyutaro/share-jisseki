@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { TrendingUp, Award, Calculator, Filter as FilterIcon } from 'lucide-react'
-import { mnpIdContractFromDb, calculateMnpIdScore } from '@/lib/mnp-id-calculator'
+import { calculateMnpIdScore } from '@/lib/mnp-id-calculator'
 import {
   StaffFilterConfig,
   DEFAULT_STAFF_FILTER,
@@ -57,18 +57,22 @@ export function IdScoreSummary({
 
       // 日別実績からMNP ID契約を集計
       staff.daily_performances?.forEach(daily => {
+        if (daily.mnp_id_contracts && daily.mnp_id_contracts.length > 0) {
+          console.log(`[IdScoreSummary] スタッフ「${staff.staff_name}」の契約データ:`, daily.mnp_id_contracts)
+        }
         daily.mnp_id_contracts?.forEach((contract: any) => {
-          const mnpContract = mnpIdContractFromDb(contract)
-          const { totalIdScore: score } = calculateMnpIdScore(mnpContract)
+          console.log('[IdScoreSummary] 契約データの構造:', contract)
+          // contractはすでにフォーム形式（キャメルケース）なので、そのまま使用
+          const { totalIdScore: score } = calculateMnpIdScore(contract)
 
           totalIdScore += score
-          totalCount += mnpContract.count
-          totalExcludedCount += mnpContract.excludedCount
+          totalCount += contract.count
+          totalExcludedCount += contract.excludedCount
 
-          if (mnpContract.carrier === 'au') {
-            auMnpCount += mnpContract.count
+          if (contract.carrier === 'au') {
+            auMnpCount += contract.count
           } else {
-            uqMnpCount += mnpContract.count
+            uqMnpCount += contract.count
           }
         })
       })

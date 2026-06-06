@@ -463,7 +463,7 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
     if (Object.keys(errors).length > 0) {
       console.error('=== Form Validation Errors ===')
       console.error('Error fields:', Object.keys(errors))
-      console.error('Full errors object:', JSON.stringify(errors, null, 2))
+      console.error('Full errors object:', errors)
 
       // 各フィールドのエラーメッセージを表示
       Object.keys(errors).forEach(fieldName => {

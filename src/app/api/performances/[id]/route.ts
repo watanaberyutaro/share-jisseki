@@ -19,9 +19,8 @@ export async function PUT(
     const formData = await request.formData()
     const eventId = params.id
 
-    console.log('=== PUT Request Debug ===')
-    console.log('Event ID:', eventId)
-    console.log('FormData keys:', Array.from(formData.keys()))
+    // ログを最小限に
+    console.log('[PUT] Updating event:', eventId)
 
     // Service roleを使用してRLSをバイパス
     const supabase = createClient(
@@ -41,15 +40,8 @@ export async function PUT(
       }
     }
 
-    console.log('FormData object keys:', Object.keys(formDataObj))
-    console.log('Photos count:', photos.length)
-
     const data = JSON.parse(formDataObj.data || '{}')
     const photosToDelete = formDataObj.photosToDelete ? JSON.parse(formDataObj.photosToDelete) : []
-
-    console.log('Parsed data keys:', Object.keys(data))
-    console.log('Staff performances count:', data.staffPerformances?.length)
-    console.log('Photos to delete:', photosToDelete)
 
     // 数値変換ヘルパー関数
     const toNumber = (value: any): number => {
@@ -96,8 +88,6 @@ export async function PUT(
         { status: 500 }
       )
     }
-
-    console.log('Event updated successfully')
 
     // 既存のperformancesを削除
     const { error: deletePerformanceError } = await supabase
@@ -150,13 +140,11 @@ export async function PUT(
       console.error('Error deleting staff performances:', deleteStaffError)
     }
 
-    console.log('Existing data deleted successfully')
+    // スタッフの日別実績を一括処理用に準備
+    const allStaffDailyData: any[] = []
 
-    // スタッフの日別実績を保存
-    const allStaffPerformances: any[] = []
     if (data.staffPerformances && data.staffPerformances.length > 0) {
       for (const staff of data.staffPerformances) {
-        // 日別データをループして保存
         if (staff.dailyPerformances && staff.dailyPerformances.length > 0) {
           staff.dailyPerformances.forEach((day: any, dayIndex: number) => {
             // 全体の合計に加算
@@ -183,49 +171,53 @@ export async function PUT(
             totalPerformance.electricity += toNumber(day.electricity)
             totalPerformance.gas += toNumber(day.gas)
             totalPerformance.networkCount += toNumber(day.networkCount)
+
+            // 一括挿入用データに追加
+            allStaffDailyData.push({
+              event_id: eventId,
+              staff_name: staff.staffName,
+              day_number: dayIndex + 1,
+              au_mnp_sp1: toNumber(day.auMnpSp1),
+              au_mnp_sp2: toNumber(day.auMnpSp2),
+              au_mnp_sim: toNumber(day.auMnpSim),
+              uq_mnp_sp1: toNumber(day.uqMnpSp1),
+              uq_mnp_sp2: toNumber(day.uqMnpSp2),
+              uq_mnp_sim: toNumber(day.uqMnpSim),
+              au_hs_sp1: toNumber(day.auHsSp1),
+              au_hs_sp2: toNumber(day.auHsSp2),
+              au_hs_sim: toNumber(day.auHsSim),
+              uq_hs_sp1: toNumber(day.uqHsSp1),
+              uq_hs_sp2: toNumber(day.uqHsSp2),
+              uq_hs_sim: toNumber(day.uqHsSim),
+              cell_up_sp1: toNumber(day.cellUpSp1),
+              cell_up_sp2: toNumber(day.cellUpSp2),
+              cell_up_sim: toNumber(day.cellUpSim),
+              credit_card: toNumber(day.creditCard),
+              gold_card: toNumber(day.goldCard),
+              ji_bank_account: toNumber(day.jiBankAccount),
+              warranty: toNumber(day.warranty),
+              ott: toNumber(day.ott),
+              electricity: toNumber(day.electricity),
+              gas: toNumber(day.gas),
+              network_count: toNumber(day.networkCount),
+            })
           })
-
-          // staff_performancesテーブルに日別データを挿入
-          const staffDailyData = staff.dailyPerformances.map((day: any, dayIndex: number) => ({
-            event_id: eventId,
-            staff_name: staff.staffName,
-            day_number: dayIndex + 1,
-            au_mnp_sp1: toNumber(day.auMnpSp1),
-            au_mnp_sp2: toNumber(day.auMnpSp2),
-            au_mnp_sim: toNumber(day.auMnpSim),
-            uq_mnp_sp1: toNumber(day.uqMnpSp1),
-            uq_mnp_sp2: toNumber(day.uqMnpSp2),
-            uq_mnp_sim: toNumber(day.uqMnpSim),
-            au_hs_sp1: toNumber(day.auHsSp1),
-            au_hs_sp2: toNumber(day.auHsSp2),
-            au_hs_sim: toNumber(day.auHsSim),
-            uq_hs_sp1: toNumber(day.uqHsSp1),
-            uq_hs_sp2: toNumber(day.uqHsSp2),
-            uq_hs_sim: toNumber(day.uqHsSim),
-            cell_up_sp1: toNumber(day.cellUpSp1),
-            cell_up_sp2: toNumber(day.cellUpSp2),
-            cell_up_sim: toNumber(day.cellUpSim),
-            credit_card: toNumber(day.creditCard),
-            gold_card: toNumber(day.goldCard),
-            ji_bank_account: toNumber(day.jiBankAccount),
-            warranty: toNumber(day.warranty),
-            ott: toNumber(day.ott),
-            electricity: toNumber(day.electricity),
-            gas: toNumber(day.gas),
-            network_count: toNumber(day.networkCount),
-          }))
-
-          const { data: insertedStaffPerformances, error: staffPerformanceError } = await supabase
-            .from('staff_performances')
-            .insert(staffDailyData)
-            .select()
-
-          if (staffPerformanceError) {
-            console.error('Error inserting staff daily performances:', staffPerformanceError)
-          } else if (insertedStaffPerformances) {
-            allStaffPerformances.push(...insertedStaffPerformances)
-          }
         }
+      }
+    }
+
+    // スタッフパフォーマンスを一括挿入
+    let allStaffPerformances: any[] = []
+    if (allStaffDailyData.length > 0) {
+      const { data: insertedStaffPerformances, error: staffPerformanceError } = await supabase
+        .from('staff_performances')
+        .insert(allStaffDailyData)
+        .select()
+
+      if (staffPerformanceError) {
+        console.error('[PUT] スタッフ実績保存エラー:', staffPerformanceError.message)
+      } else if (insertedStaffPerformances) {
+        allStaffPerformances = insertedStaffPerformances
       }
     }
 
@@ -268,8 +260,6 @@ export async function PUT(
       challenges_and_solutions: data.challengesAndSolutions || null,
     }
 
-    console.log('Performance data being inserted:', performanceData)
-
     const { data: insertedPerformance, error: performanceError } = await supabase
       .from('performances')
       .insert(performanceData)
@@ -283,24 +273,12 @@ export async function PUT(
       )
     }
 
-    console.log('Performance data successfully inserted:', insertedPerformance)
-
     // MNP ID契約を保存（2026-06-02以降のイベントのみ）
     if (isIdCalculationEnabled(data.startDate)) {
-      console.log('=== MNP ID契約処理開始 ===')
-      console.log('Start Date:', data.startDate)
-      console.log('Staff Performances:', data.staffPerformances?.length)
-
       const mnpIdContractsData: any[] = []
 
       data.staffPerformances.forEach((staff: any, staffIdx: number) => {
-        console.log(`Staff ${staffIdx}:`, staff.staffName)
-        console.log(`  Daily performances:`, staff.dailyPerformances?.length)
-
         staff.dailyPerformances.forEach((day: any, dayIndex: number) => {
-          console.log(`    Day ${dayIndex + 1}:`)
-          console.log(`      mnpIdContracts exists:`, !!day.mnpIdContracts)
-          console.log(`      mnpIdContracts length:`, day.mnpIdContracts?.length || 0)
 
           // この日のスタッフ実績IDを取得
           const staffPerformance = allStaffPerformances.find(
@@ -309,12 +287,7 @@ export async function PUT(
               sp.day_number === dayIndex + 1
           )
 
-          if (!staffPerformance) {
-            console.log(`      Warning: Staff performance not found for ${staff.staffName}, day ${dayIndex + 1}`)
-          }
-
           if (staffPerformance && day.mnpIdContracts && day.mnpIdContracts.length > 0) {
-            console.log(`      Adding ${day.mnpIdContracts.length} MNP ID contracts`)
             // MNP ID契約を追加
             day.mnpIdContracts.forEach((contract: any) => {
               const dbContract = mnpIdContractToDb(contract)
@@ -327,32 +300,15 @@ export async function PUT(
         })
       })
 
-      console.log('Total MNP ID contracts to insert:', mnpIdContractsData.length)
-
       if (mnpIdContractsData.length > 0) {
-        console.log('Inserting MNP ID contracts...')
-        const { data: mnpContracts, error: mnpError } = await supabase
+        const { error: mnpError } = await supabase
           .from('mnp_id_contracts')
           .insert(mnpIdContractsData)
-          .select()
 
         if (mnpError) {
-          console.error('MNP ID contracts creation error:', mnpError)
-          console.error('Error details:', {
-            message: mnpError.message,
-            code: mnpError.code,
-            details: mnpError.details,
-            hint: mnpError.hint
-          })
-          // MNP ID契約のエラーは警告として扱い、実績データは保存する
-        } else {
-          console.log('MNP ID contracts created successfully:', mnpContracts?.length || 0)
+          console.error('[PUT] MNP ID契約保存エラー:', mnpError.message)
         }
-      } else {
-        console.log('No MNP ID contracts to insert (empty array)')
       }
-    } else {
-      console.log('MNP ID calculation not enabled for this event date:', data.startDate)
     }
 
     // 削除する写真がある場合は削除
@@ -390,13 +346,10 @@ export async function PUT(
     let uploadedPhotos = []
     if (photos.length > 0) {
       try {
-        console.log(`Uploading ${photos.length} photos for event ${eventId}`)
         const photoUploadResult = await uploadEventPhotos(eventId, photos)
         uploadedPhotos = photoUploadResult.photos
-        console.log('Photos uploaded successfully:', uploadedPhotos.length)
       } catch (photoError) {
-        console.error('Photo upload failed:', photoError)
-        // 写真アップロードのエラーは警告として扱い、実績データは保存する
+        console.error('[PUT] 写真アップロードエラー:', photoError)
       }
     }
 

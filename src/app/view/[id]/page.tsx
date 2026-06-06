@@ -151,14 +151,9 @@ export default function EventDetailPage() {
   const eventId = params?.id as string
   const isRefresh = searchParams?.get('refresh') === 'true'
 
-  useEffect(() => {
-    if (eventId) {
-      fetchEventDetail()
-    }
-  }, [eventId, isRefresh])
-
-  const fetchEventDetail = async () => {
+  const fetchEventDetail = useCallback(async () => {
     try {
+      setIsLoading(true)
       // キャッシュバスティングのためにタイムスタンプを追加
       const response = await fetch(`/api/events/${eventId}/detail?t=${Date.now()}`, {
         cache: 'no-store',
@@ -176,9 +171,15 @@ export default function EventDetailPage() {
     } catch (error) {
       console.error('Error fetching event detail:', error)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
-  }
+  }, [eventId])
+
+  useEffect(() => {
+    if (eventId) {
+      fetchEventDetail()
+    }
+  }, [eventId, isRefresh, fetchEventDetail])
 
   // Calculate event days（メモ化）
   const calculateEventDays = useCallback((startDate: string, endDate: string) => {

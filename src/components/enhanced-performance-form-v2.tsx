@@ -1221,8 +1221,8 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
         dailyPerformances: staff.dailyPerformances.map(day => ({
           ...day,
           mnpIdContracts: day.mnpIdContracts?.filter(contract =>
-            // planTypeとdeviceTypeが両方存在する契約のみを含める
-            contract.planType && contract.deviceType
+            // 必須フィールドがすべて存在する契約のみを含める
+            contract.carrier && contract.planType && contract.deviceType && contract.orderType
           ) || []
         }))
       }))
@@ -1237,6 +1237,15 @@ export function EnhancedPerformanceFormV2({ editMode = false, initialData, event
       console.log('Cleaned MNP ID contracts - filtering empty entries')
       console.log('Original staff performances:', jsonData.staffPerformances.length)
       console.log('Cleaned staff performances:', cleanedStaffPerformances.length)
+
+      // MNP ID契約のデータを確認
+      cleanedStaffPerformances.forEach((staff, staffIdx) => {
+        staff.dailyPerformances.forEach((day, dayIdx) => {
+          if (day.mnpIdContracts && day.mnpIdContracts.length > 0) {
+            console.log(`[FORM] スタッフ「${staff.staffName}」の${dayIdx + 1}日目のMNP ID契約:`, day.mnpIdContracts)
+          }
+        })
+      })
 
       formData.append('data', JSON.stringify(dataToSend))
 

@@ -232,7 +232,16 @@ export async function GET(
         // この日のMNP ID契約データを取得して、フォーム用の形式に変換
         const dailyContracts = mnpIdContracts
           .filter((c: any) => c.staff_performance_id === daily.id)
-          .map((c: any) => mnpIdContractFromDb(c))
+          .map((c: any) => {
+            const converted = mnpIdContractFromDb(c)
+            console.log('[GET] DB形式:', c)
+            console.log('[GET] フォーム形式に変換:', converted)
+            return converted
+          })
+
+        if (dailyContracts.length > 0) {
+          console.log(`[GET] スタッフ「${staffName}」の${daily.day_number}日目のMNP ID契約: ${dailyContracts.length}件`)
+        }
 
         // 日別データを追加（MNP ID契約を含む）
         staff.daily_performances.push({

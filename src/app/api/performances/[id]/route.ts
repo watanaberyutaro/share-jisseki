@@ -288,9 +288,11 @@ export async function PUT(
           )
 
           if (staffPerformance && day.mnpIdContracts && day.mnpIdContracts.length > 0) {
+            console.log(`[PUT] スタッフ「${staff.staffName}」の${dayIndex + 1}日目のMNP ID契約:`, day.mnpIdContracts)
             // MNP ID契約を追加
             day.mnpIdContracts.forEach((contract: any) => {
               const dbContract = mnpIdContractToDb(contract)
+              console.log('[PUT] 変換後のDB形式:', dbContract)
               mnpIdContractsData.push({
                 staff_performance_id: staffPerformance.id,
                 ...dbContract
@@ -300,6 +302,7 @@ export async function PUT(
         })
       })
 
+      console.log(`[PUT] 保存するMNP ID契約の総数: ${mnpIdContractsData.length}`)
       if (mnpIdContractsData.length > 0) {
         const { error: mnpError } = await supabase
           .from('mnp_id_contracts')
@@ -307,6 +310,8 @@ export async function PUT(
 
         if (mnpError) {
           console.error('[PUT] MNP ID契約保存エラー:', mnpError.message)
+        } else {
+          console.log('[PUT] MNP ID契約を正常に保存しました')
         }
       }
     }

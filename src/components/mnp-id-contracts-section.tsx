@@ -234,10 +234,15 @@ export function MnpIdContractsSection({
                 </button>
               </div>
 
-              {/* orderTypeをhidden inputとして保持 */}
+              {/* carrierとorderTypeをhidden inputとして保持 */}
               <input
                 type="hidden"
-                value={contract.orderType}
+                {...form.register(
+                  `staffPerformances.${staffIndex}.dailyPerformances.${dayIndex}.mnpIdContracts.${index}.carrier`
+                )}
+              />
+              <input
+                type="hidden"
                 {...form.register(
                   `staffPerformances.${staffIndex}.dailyPerformances.${dayIndex}.mnpIdContracts.${index}.orderType`
                 )}

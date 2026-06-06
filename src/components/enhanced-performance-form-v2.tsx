@@ -38,7 +38,7 @@ const mnpIdContractSchema = z.object({
     'TOKUTOKU'
   ] as const).optional(),
   deviceType: z.enum(['DEVICE', 'SIM_ONLY'] as const).optional(),
-  orderType: z.enum(['MNP', 'REGULAR'] as const).optional().default('MNP'),
+  orderType: z.enum(['MNP', 'REGULAR'] as const).optional(),
   specialDevice: z.boolean().default(false),
   count: z.preprocess(
     (val) => val === '' || val === undefined || val === null ? 0 : Number(val),
@@ -148,8 +148,8 @@ const dailyPerformanceSchema = z.object({
   // バリデーション時に空の契約を自動的にフィルタリング
   mnpIdContracts: z.array(mnpIdContractSchema).optional().default([]).transform((contracts) =>
     contracts.filter(contract =>
-      // planTypeとdeviceTypeが両方存在する契約のみを含める
-      contract.planType && contract.deviceType
+      // carrier, planType, deviceType, orderTypeがすべて存在する契約のみを含める
+      contract.carrier && contract.planType && contract.deviceType && contract.orderType
     )
   ),
 })

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useFieldArray, UseFormReturn } from 'react-hook-form'
+import { useState, useEffect } from 'react'
+import { useFieldArray, UseFormReturn, Controller } from 'react-hook-form'
 import { Plus, Trash2, Calculator } from 'lucide-react'
 import {
   PLAN_TYPES,
@@ -234,18 +234,18 @@ export function MnpIdContractsSection({
                 </button>
               </div>
 
-              {/* carrierとorderTypeをhidden inputとして保持 */}
-              <input
-                type="hidden"
-                {...form.register(
-                  `staffPerformances.${staffIndex}.dailyPerformances.${dayIndex}.mnpIdContracts.${index}.carrier`
-                )}
+              {/* carrierとorderTypeをControllerで管理 */}
+              <Controller
+                name={`staffPerformances.${staffIndex}.dailyPerformances.${dayIndex}.mnpIdContracts.${index}.carrier` as const}
+                control={form.control}
+                defaultValue={contract.carrier}
+                render={({ field }) => <input type="hidden" {...field} />}
               />
-              <input
-                type="hidden"
-                {...form.register(
-                  `staffPerformances.${staffIndex}.dailyPerformances.${dayIndex}.mnpIdContracts.${index}.orderType`
-                )}
+              <Controller
+                name={`staffPerformances.${staffIndex}.dailyPerformances.${dayIndex}.mnpIdContracts.${index}.orderType` as const}
+                control={form.control}
+                defaultValue={contract.orderType}
+                render={({ field }) => <input type="hidden" {...field} />}
               />
 
               {/* 入力フィールド */}

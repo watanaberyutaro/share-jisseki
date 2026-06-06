@@ -933,7 +933,7 @@ export default function EventDetailPage() {
 
           {/* MNP ID Score Summary (2026-06-02 onwards) */}
           <IdScoreSummary
-            staffPerformances={event.staff_performances || []}
+            staffPerformances={filteredStaffPerformances}
             eventStartDate={event.start_date}
             eventEndDate={event.end_date}
           />

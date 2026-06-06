@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { mnpIdContractFromDb } from '@/lib/mnp-id-calculator'
 
 // Route Segmentのキャッシュを完全に無効化
 export const dynamic = 'force-dynamic'
@@ -228,8 +229,10 @@ export async function GET(
 
         const staff = staffGrouped[staffName]
 
-        // この日のMNP ID契約データを取得
-        const dailyContracts = mnpIdContracts.filter((c: any) => c.staff_performance_id === daily.id)
+        // この日のMNP ID契約データを取得して、フォーム用の形式に変換
+        const dailyContracts = mnpIdContracts
+          .filter((c: any) => c.staff_performance_id === daily.id)
+          .map((c: any) => mnpIdContractFromDb(c))
 
         // 日別データを追加（MNP ID契約を含む）
         staff.daily_performances.push({

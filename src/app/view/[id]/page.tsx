@@ -153,7 +153,7 @@ export default function EventDetailPage() {
 
   const fetchEventDetail = useCallback(async () => {
     try {
-      setIsLoading(true)
+      setLoading(true)
       // キャッシュバスティングのためにタイムスタンプを追加
       const response = await fetch(`/api/events/${eventId}/detail?t=${Date.now()}`, {
         cache: 'no-store',
@@ -171,7 +171,7 @@ export default function EventDetailPage() {
     } catch (error) {
       console.error('Error fetching event detail:', error)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }, [eventId])
 

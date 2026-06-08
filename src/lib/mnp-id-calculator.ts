@@ -48,7 +48,7 @@ export const PLAN_BASE_POINTS: Record<PlanType, number> = {
   VALUE_LINK: 2,
   KOMIKOMI: 2,
   U12_U18_SENIOR_MINI: 1.5,
-  TOKUTOKU: 0.5,
+  TOKUTOKU: 1.5,
 }
 
 // 端末係数の定義

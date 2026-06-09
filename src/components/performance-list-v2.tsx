@@ -105,7 +105,7 @@ export function PerformanceListV2() {
     }
   }, [])
 
-  // フィルター変更時にlocalStorageとURLを更新
+  // フィルター変更時にlocalStorageを更新
   useEffect(() => {
     const filters = {
       searchTerm,
@@ -126,23 +126,37 @@ export function PerformanceListV2() {
     } catch (error) {
       console.error('Failed to save filters to localStorage:', error)
     }
+  }, [searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, agencyTierFilter, eventTypeFilter, achievementFilter, sortBy, viewMode])
 
-    // URLパラメータを更新
-    const params = new URLSearchParams()
-    if (searchTerm) params.set('search', searchTerm)
-    if (yearFilter !== 'all') params.set('year', String(yearFilter))
-    if (monthFilter !== 'all') params.set('month', String(monthFilter))
-    if (weekFilter !== 'all') params.set('week', String(weekFilter))
-    if (agencyFilter !== 'all') params.set('agency', agencyFilter)
-    if (agencyTierFilter !== 'all') params.set('agencyTier', agencyTierFilter)
-    if (eventTypeFilter !== 'all') params.set('eventType', eventTypeFilter)
-    if (achievementFilter !== 'all') params.set('achievement', achievementFilter)
-    if (sortBy !== 'date') params.set('sort', sortBy)
-    if (viewMode !== 'panel') params.set('view', viewMode)
+  // URLパラメータを更新（debounce付き）
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      try {
+        const params = new URLSearchParams()
+        if (searchTerm) params.set('search', searchTerm)
+        if (yearFilter !== 'all') params.set('year', String(yearFilter))
+        if (monthFilter !== 'all') params.set('month', String(monthFilter))
+        if (weekFilter !== 'all') params.set('week', String(weekFilter))
+        if (agencyFilter !== 'all') params.set('agency', agencyFilter)
+        if (agencyTierFilter !== 'all') params.set('agencyTier', agencyTierFilter)
+        if (eventTypeFilter !== 'all') params.set('eventType', eventTypeFilter)
+        if (achievementFilter !== 'all') params.set('achievement', achievementFilter)
+        if (sortBy !== 'date') params.set('sort', sortBy)
+        if (viewMode !== 'panel') params.set('view', viewMode)
 
-    const queryString = params.toString()
-    const newUrl = queryString ? `/view?${queryString}` : '/view'
-    router.replace(newUrl, { scroll: false })
+        const queryString = params.toString()
+        const newUrl = queryString ? `/view?${queryString}` : '/view'
+
+        // 現在のURLと異なる場合のみ更新
+        if (window.location.pathname + (window.location.search || '') !== newUrl) {
+          router.replace(newUrl, { scroll: false })
+        }
+      } catch (error) {
+        console.error('Failed to update URL:', error)
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
   }, [searchTerm, yearFilter, monthFilter, weekFilter, agencyFilter, agencyTierFilter, eventTypeFilter, achievementFilter, sortBy, viewMode])
 
   // リセット関数
@@ -233,12 +247,18 @@ export function PerformanceListV2() {
 
     return events
       .filter(event => {
-        // テキスト検索
-        if (searchTerm && !(
-          event.venue.toLowerCase().includes(searchLower) ||
-          event.agency_name.toLowerCase().includes(searchLower) ||
-          event.period_display.toLowerCase().includes(searchLower)
-        )) return false
+        // テキスト検索（null/undefinedチェック付き）
+        if (searchTerm) {
+          const venue = event.venue?.toLowerCase() || ''
+          const agencyName = event.agency_name?.toLowerCase() || ''
+          const periodDisplay = event.period_display?.toLowerCase() || ''
+
+          if (!(
+            venue.includes(searchLower) ||
+            agencyName.includes(searchLower) ||
+            periodDisplay.includes(searchLower)
+          )) return false
+        }
 
         // 年月週代理店フィルター
         if (yearFilter !== 'all' && event.year !== yearFilter) return false
@@ -282,7 +302,7 @@ export function PerformanceListV2() {
           case 'actual_hs_total':
             return b.actual_hs_total - a.actual_hs_total
           case 'venue':
-            return a.venue.localeCompare(b.venue)
+            return (a.venue || '').localeCompare(b.venue || '')
           default:
             return 0
         }

@@ -8,6 +8,7 @@ import { format, parseISO } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { LoadingAnimation } from '@/components/loading-animation'
 import { MonthlyAchievementStatus } from '@/components/monthly-achievement-status'
+import { CloserMonthlyIdRanking } from '@/components/closer-monthly-id-ranking'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import {
@@ -2203,7 +2204,7 @@ export function PerformanceAnalyticsV2({
                 <YAxis stroke="#3dae6c" fontSize={12} domain={[0, 100]} unit="%" />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(value: any, name: string) => {
+                  formatter={(value: any, name: any) => {
                     if (name === '達成率') return [`${value}%`, name]
                     return [value, name]
                   }}
@@ -2243,7 +2244,7 @@ export function PerformanceAnalyticsV2({
                 <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(value: any, name: string) => {
+                  formatter={(value: any, name: any) => {
                     if (name === 'MNP') return [`${value}件`, 'MNP']
                     if (name === '新規') return [`${value}件`, '新規']
                     return [value, name]
@@ -2387,7 +2388,7 @@ export function PerformanceAnalyticsV2({
                 <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(value: any, name: string) => {
+                  formatter={(value: any, name: any) => {
                     if (name === 'MNP') return [`${value}件`, 'MNP']
                     if (name === '新規') return [`${value}件`, '新規']
                     return [value, name]
@@ -2439,7 +2440,7 @@ export function PerformanceAnalyticsV2({
                 <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(value: any, name: string) => {
+                  formatter={(value: any, name: any) => {
                     if (name === 'MNP') return [`${value}件`, 'MNP']
                     if (name === '新規') return [`${value}件`, '新規']
                     return [value, name]
@@ -2893,7 +2894,7 @@ export function PerformanceAnalyticsV2({
                   />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value: any, name: string, props: any) => {
+                    formatter={(value: any, name: any, props: any) => {
                       const venueName = name
                       const month = props.payload.month
                       const mnp = props.payload[`${venueName}_mnp`] || 0
@@ -3732,6 +3733,13 @@ export function PerformanceAnalyticsV2({
         </div>
       )}
 
+      {/* クローザー別月次ID係数ランキング */}
+      <div className="mb-8">
+        <CloserMonthlyIdRanking
+          availableYears={availableYears}
+        />
+      </div>
+
       {/* 月次獲得実績ランキング */}
       <div className="glass rounded-lg border p-4 mb-8" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
@@ -4124,7 +4132,7 @@ export function PerformanceAnalyticsV2({
                   <YAxis stroke="#3dae6c" fontSize={12} domain={[0, 100]} unit="%" />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value: any, name: string) => {
+                    formatter={(value: any, name: any) => {
                       if (name === '達成率') return [`${value}%`, name]
                       return [value, name]
                     }}
@@ -4289,7 +4297,7 @@ export function PerformanceAnalyticsV2({
                   <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value: any, name: string) => {
+                    formatter={(value: any, name: any) => {
                       if (name === 'MNP') return [`${value}件`, 'MNP']
                       if (name === '新規') return [`${value}件`, '新規']
                       return [value, name]
@@ -4864,7 +4872,7 @@ export function PerformanceAnalyticsV2({
                     <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                     <Tooltip
                       contentStyle={tooltipStyle}
-                      formatter={(value: any, name: string) => {
+                      formatter={(value: any, name: any) => {
                         if (name === 'MNP') return [`${value}件`, 'MNP']
                         if (name === '新規') return [`${value}件`, '新規']
                         return [value, name]
@@ -5101,7 +5109,7 @@ export function PerformanceAnalyticsV2({
                     <YAxis stroke="#3dae6c" fontSize={12} label={{ value: '合計件数', angle: -90, position: 'insideLeft', style: { fill: '#3dae6c' } }} />
                     <Tooltip
                       contentStyle={tooltipStyle}
-                      formatter={(value: any, name: string) => {
+                      formatter={(value: any, name: any) => {
                         if (name === 'MNP') return [`${value}件`, 'MNP']
                         if (name === '新規') return [`${value}件`, '新規']
                         return [value, name]
@@ -5764,7 +5772,7 @@ export function PerformanceAnalyticsV2({
                   />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value: any, name: string, props: any) => {
+                    formatter={(value: any, name: any, props: any) => {
                       // 会場名を取得
                       const venueName = name
                       const data = props.payload

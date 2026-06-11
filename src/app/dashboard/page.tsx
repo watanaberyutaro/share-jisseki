@@ -1325,7 +1325,7 @@ export default function Dashboard() {
                     tickFormatter={(value) => `${value}%`}
                   />
                   <Tooltip
-                    formatter={(value: any, name: string) => [`${value}%`, '達成率']}
+                    formatter={(value: any) => [`${value}%`, '達成率']}
                     labelFormatter={(label) => `期間: ${label}`}
                     contentStyle={{
                       backgroundColor: '#ffffff',

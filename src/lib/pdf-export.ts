@@ -379,9 +379,9 @@ function generateMainSection(event: EventDataForPDF, includeDetails: boolean): s
 
     event.staff_performances.forEach(staff => {
       staff.daily_performances?.forEach(daily => {
-        daily.mnp_id_contracts?.forEach(contract => {
-          totalIdScore += contract.total_id_score
-          totalCount += (contract.count - contract.excluded_count)
+        daily.mnp_id_contracts?.forEach((contract: any) => {
+          totalIdScore += contract.totalIdScore ?? contract.total_id_score ?? 0
+          totalCount += (contract.count - (contract.excludedCount ?? contract.excluded_count ?? 0))
         })
       })
     })
@@ -616,7 +616,7 @@ function generateStaffSection(staff: StaffPerformanceForPDF, showTitle: boolean)
 
       // MNP ID契約がある場合
       if (daily.mnp_id_contracts && daily.mnp_id_contracts.length > 0) {
-        const dailyIdScore = daily.mnp_id_contracts.reduce((sum, c) => sum + c.total_id_score, 0)
+        const dailyIdScore = daily.mnp_id_contracts.reduce((sum: number, c: any) => sum + (c.totalIdScore ?? c.total_id_score ?? 0), 0)
         html += `
           <div style="margin-top: 4px; background-color: rgba(220, 237, 200, 0.3); border: 1px solid #4abf79; border-radius: 3px; padding: 4px;">
             <div style="font-size: 8px; font-weight: bold; margin-bottom: 3px; color: #22211A;">
@@ -625,11 +625,13 @@ function generateStaffSection(staff: StaffPerformanceForPDF, showTitle: boolean)
             <div style="font-size: 7px; line-height: 1.4; color: #22211A;">
         `
 
-        daily.mnp_id_contracts.forEach((contract, idx) => {
-          const effectiveCount = contract.count - contract.excluded_count
+        daily.mnp_id_contracts.forEach((contract: any, idx: number) => {
+          const effectiveCount = contract.count - (contract.excludedCount ?? contract.excluded_count ?? 0)
+          const scorePerContract = contract.idScorePerContract ?? contract.id_score_per_contract ?? 0
+          const totalScore = contract.totalIdScore ?? contract.total_id_score ?? 0
           html += `
               <div style="margin-bottom: 2px;">
-                • ${contract.carrier.toUpperCase()} ${effectiveCount}件 × ${contract.id_score_per_contract.toFixed(1)}点 = ${contract.total_id_score.toFixed(1)}点
+                • ${(contract.carrier ?? '').toUpperCase()} ${effectiveCount}件 × ${Number(scorePerContract).toFixed(1)}点 = ${Number(totalScore).toFixed(1)}点
               </div>
           `
         })
@@ -870,9 +872,9 @@ function generatePDFContent(event: EventDataForPDF, includeDetails: boolean): st
 
     event.staff_performances.forEach(staff => {
       staff.daily_performances?.forEach(daily => {
-        daily.mnp_id_contracts?.forEach(contract => {
-          totalIdScoreCompat += contract.total_id_score
-          totalCountCompat += (contract.count - contract.excluded_count)
+        daily.mnp_id_contracts?.forEach((contract: any) => {
+          totalIdScoreCompat += contract.totalIdScore ?? contract.total_id_score ?? 0
+          totalCountCompat += (contract.count - (contract.excludedCount ?? contract.excluded_count ?? 0))
         })
       })
     })
@@ -1105,7 +1107,7 @@ function generatePDFContent(event: EventDataForPDF, includeDetails: boolean): st
 
           // MNP ID契約がある場合
           if (daily.mnp_id_contracts && daily.mnp_id_contracts.length > 0) {
-            const dailyIdScoreCompat = daily.mnp_id_contracts.reduce((sum, c) => sum + c.total_id_score, 0)
+            const dailyIdScoreCompat = daily.mnp_id_contracts.reduce((sum: number, c: any) => sum + (c.totalIdScore ?? c.total_id_score ?? 0), 0)
             html += `
               <div style="margin-top: 3px; background-color: rgba(220, 237, 200, 0.3); border: 1px solid #4abf79; border-radius: 3px; padding: 3px; page-break-inside: avoid; break-inside: avoid;">
                 <div style="font-size: 7px; font-weight: bold; margin-bottom: 2px; color: #22211A;">
@@ -1114,11 +1116,13 @@ function generatePDFContent(event: EventDataForPDF, includeDetails: boolean): st
                 <div style="font-size: 6px; line-height: 1.4; color: #22211A;">
             `
 
-            daily.mnp_id_contracts.forEach((contract, idx) => {
-              const effectiveCountCompat = contract.count - contract.excluded_count
+            daily.mnp_id_contracts.forEach((contract: any, idx: number) => {
+              const effectiveCountCompat = contract.count - (contract.excludedCount ?? contract.excluded_count ?? 0)
+              const scorePerContractCompat = contract.idScorePerContract ?? contract.id_score_per_contract ?? 0
+              const totalScoreCompat = contract.totalIdScore ?? contract.total_id_score ?? 0
               html += `
                   <div style="margin-bottom: 1px;">
-                    • ${contract.carrier.toUpperCase()} ${effectiveCountCompat}件 × ${contract.id_score_per_contract.toFixed(1)}点 = ${contract.total_id_score.toFixed(1)}点
+                    • ${(contract.carrier ?? '').toUpperCase()} ${effectiveCountCompat}件 × ${Number(scorePerContractCompat).toFixed(1)}点 = ${Number(totalScoreCompat).toFixed(1)}点
                   </div>
               `
             })

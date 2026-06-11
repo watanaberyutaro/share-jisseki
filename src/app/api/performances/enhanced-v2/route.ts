@@ -334,25 +334,67 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-    
+
     // ビューを使用してイベントデータを取得
     const { data: events, error } = await supabase
       .from('event_summary')
       .select('*')
       .order('created_at', { ascending: false })
-    
+
     if (error) {
       console.error('Error fetching event summary:', error)
       throw error
     }
-    
-    const response = NextResponse.json(events || [])
+
+    const eventList = events || []
+
+    // 2026-06-02以降のイベントのMNP ID合計点数を取得して付加
+    const idEnabledEventIds = eventList
+      .filter((e: any) => e.start_date && new Date(e.start_date) >= new Date('2026-06-02'))
+      .map((e: any) => e.id)
+
+    if (idEnabledEventIds.length > 0) {
+      const { data: staffPerfs } = await supabase
+        .from('staff_performances')
+        .select('id, event_id')
+        .in('event_id', idEnabledEventIds)
+
+      if (staffPerfs && staffPerfs.length > 0) {
+        const staffPerfIds = staffPerfs.map((sp: any) => sp.id)
+        const { data: contracts } = await supabase
+          .from('mnp_id_contracts')
+          .select('staff_performance_id, total_id_score')
+          .in('staff_performance_id', staffPerfIds)
+
+        if (contracts && contracts.length > 0) {
+          // staff_performance_id → event_id マップ
+          const spToEvent = new Map<string, string>()
+          staffPerfs.forEach((sp: any) => spToEvent.set(sp.id, sp.event_id))
+
+          // event_id → total_id_score 合計マップ
+          const eventIdScores = new Map<string, number>()
+          contracts.forEach((c: any) => {
+            const eventId = spToEvent.get(c.staff_performance_id)
+            if (eventId) {
+              eventIdScores.set(eventId, (eventIdScores.get(eventId) || 0) + parseFloat(c.total_id_score || '0'))
+            }
+          })
+
+          // eventsにtotal_id_scoreを付加
+          eventList.forEach((e: any) => {
+            e.total_id_score = eventIdScores.get(e.id) ?? null
+          })
+        }
+      }
+    }
+
+    const response = NextResponse.json(eventList)
 
     // キャッシュを無効化（常に最新データを取得）
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
 
     return response
-    
+
   } catch (error) {
     console.error('Error fetching enhanced v2 performances:', error)
     return NextResponse.json(

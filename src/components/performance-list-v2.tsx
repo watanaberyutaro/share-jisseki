@@ -32,6 +32,7 @@ interface EventSummary {
   actual_uq_new: number
   actual_cellup: number
   created_at: string
+  total_id_score?: number | null
 }
 
 const STORAGE_KEY = 'performanceListFilters'
@@ -685,6 +686,18 @@ export function PerformanceListV2() {
                 <span className="font-medium" style={{ color: '#22211A' }}>{event.actual_cellup || 0}件</span>
               </div>
             </div>
+
+            {/* MNP新規ID点数サマリー */}
+            {event.total_id_score != null && event.total_id_score > 0 && (
+              <div className="mt-3 pt-3 border-t border-border">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium" style={{ color: '#22211A' }}>MNP新規ID点数</span>
+                  <span className="text-base font-bold" style={{ color: '#4abf79' }}>
+                    {event.total_id_score.toFixed(1)}点
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Progress Indicator */}
             {event.target_hs_total > 0 && (

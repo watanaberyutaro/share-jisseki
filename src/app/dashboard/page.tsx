@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { TrendingUp, Target, StickyNote, Save, Edit3, Trophy, Award, Medal, BarChart, User, Store, Filter, Building2, MapPin } from 'lucide-react'
+import { TrendingUp, Target, Trophy, Award, Medal, BarChart, User, Store, Filter, Building2, MapPin, BookOpen, ChevronRight } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, BarChart as RechartsBarChart, Bar } from 'recharts'
 import { MagneticDots } from '@/components/MagneticDots'
 import {
@@ -220,37 +220,19 @@ export default function Dashboard() {
   }, [])
   const [allEvents, setAllEvents] = useState<any[]>([])
   const [staffData, setStaffData] = useState<any[]>([])
-  const [memo, setMemo] = useState('')
-  const [isEditing, setIsEditing] = useState(false)
-  const [savedMemo, setSavedMemo] = useState('')
+  const [recentKnowledge, setRecentKnowledge] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [staffFilter, setStaffFilter] = useState<StaffFilterConfig>(DEFAULT_STAFF_FILTER)
   const [agencyTierFilter, setAgencyTierFilter] = useState<AgencyTierFilter>(DEFAULT_AGENCY_TIER_FILTER)
   const [eventTypeFilter, setEventTypeFilter] = useState<EventTypeFilter>(DEFAULT_EVENT_TYPE_FILTER)
 
-  // メモ機能のローカルストレージ管理
+  // 直近ナレッジ取得
   useEffect(() => {
-    const saved = localStorage.getItem('dashboard-memo')
-    if (saved) {
-      setSavedMemo(saved)
-      setMemo(saved)
-    }
+    fetch('/api/knowledge?sort=created_at_desc&page=1')
+      .then(r => r.json())
+      .then(d => setRecentKnowledge((d.posts || []).slice(0, 5)))
+      .catch(() => {})
   }, [])
-
-  const handleSaveMemo = useCallback(() => {
-    localStorage.setItem('dashboard-memo', memo)
-    setSavedMemo(memo)
-    setIsEditing(false)
-  }, [memo])
-
-  const handleEditMemo = useCallback(() => {
-    setIsEditing(true)
-  }, [])
-
-  const handleCancelEdit = useCallback(() => {
-    setMemo(savedMemo)
-    setIsEditing(false)
-  }, [savedMemo])
 
 
   // データフェッチ処理
@@ -943,75 +925,64 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* メモ機能パネル */}
+          {/* 直近ナレッジパネル */}
           <div className="glass rounded-lg border p-6" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
-                <StickyNote className="w-6 h-6 mr-3" style={{ color: '#22211A' }} />
-                <h2 className="text-2xl font-bold" style={{ color: '#22211A' }}>
-                  メモ
-                </h2>
+                <BookOpen className="w-6 h-6 mr-3" style={{ color: '#22211A' }} />
+                <h2 className="text-2xl font-bold" style={{ color: '#22211A' }}>直近のナレッジ</h2>
               </div>
-              <div className="flex items-center space-x-2">
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={handleSaveMemo}
-                      className="flex items-center px-3 py-1.5 bg-muted rounded-lg hover:bg-muted/80 transition-all border"
-                      style={{ borderColor: '#22211A', color: '#22211A' }}
-                    >
-                      <Save className="w-4 h-4 mr-1" />
-                      保存
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="px-3 py-1.5 text-sm border rounded-lg hover:bg-muted/50 transition-all"
-                      style={{ borderColor: '#22211A', color: '#22211A' }}
-                    >
-                      キャンセル
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={handleEditMemo}
-                    className="flex items-center px-3 py-1.5 bg-muted rounded-lg hover:bg-muted/80 transition-all border"
-                    style={{ borderColor: '#22211A', color: '#22211A' }}
-                  >
-                    <Edit3 className="w-4 h-4 mr-1" />
-                    編集
-                  </button>
-                )}
-              </div>
+              <a
+                href="/knowledge"
+                className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border"
+                style={{ borderColor: '#22211A44', color: '#22211A' }}
+              >
+                一覧を見る <ChevronRight className="w-3 h-3" />
+              </a>
             </div>
 
-            {isEditing ? (
-              <textarea
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                className="w-full h-48 p-3 bg-background/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
-                style={{ border: '1px solid #22211A', color: '#22211A' }}
-                placeholder="ここにメモを入力してください..."
-              />
+            {recentKnowledge.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-40 text-center" style={{ color: '#22211A', opacity: 0.5 }}>
+                <BookOpen className="w-8 h-8 mb-2 opacity-40" />
+                <p className="text-sm">ナレッジはまだありません</p>
+              </div>
             ) : (
-              <div className="min-h-[192px] p-3 bg-background/50 rounded-lg" style={{ border: '1px solid #22211A' }}>
-                {savedMemo ? (
-                  <div className="whitespace-pre-wrap" style={{ color: '#22211A' }}>
-                    {savedMemo}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full min-h-[168px] text-center" style={{ color: '#22211A', opacity: 0.6 }}>
-                    <div>
-                      <StickyNote className="w-8 h-8 mx-auto mb-2" style={{ color: '#22211A', opacity: 0.4 }} />
-                      <p>メモを追加するには「編集」ボタンをクリック</p>
-                    </div>
-                  </div>
-                )}
+              <div className="space-y-2">
+                {recentKnowledge.map((post: any) => {
+                  const statusColors: Record<string, { bg: string; color: string; icon: string }> = {
+                    verified:     { bg: '#DCFCE7', color: '#15803D', icon: '✅' },
+                    unverified:   { bg: '#FEF3C7', color: '#B45309', icon: '⚠️' },
+                    under_review: { bg: '#DBEAFE', color: '#1D4ED8', icon: '🔍' },
+                    returned:     { bg: '#FEE2E2', color: '#C2410C', icon: '↩️' },
+                    expired:      { bg: '#F3F4F6', color: '#6B7280', icon: '❌' },
+                  }
+                  const s = statusColors[post.status] || statusColors.unverified
+                  return (
+                    <a
+                      key={post.id}
+                      href={`/knowledge/${post.id}`}
+                      className="flex items-center gap-3 p-2.5 rounded-lg"
+                      style={{ backgroundColor: 'rgba(34,33,26,0.04)' }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(34,33,26,0.08)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'rgba(34,33,26,0.04)')}
+                    >
+                      <span
+                        className="text-xs px-1.5 py-0.5 rounded-full font-bold flex-shrink-0"
+                        style={{ backgroundColor: s.bg, color: s.color }}
+                      >
+                        {s.icon}
+                      </span>
+                      <span className="flex-1 text-sm font-bold truncate" style={{ color: '#22211A' }}>
+                        {post.title}
+                      </span>
+                      <span className="text-xs flex-shrink-0" style={{ color: '#22211A', opacity: 0.45 }}>
+                        {post.author_name || ''}
+                      </span>
+                    </a>
+                  )
+                })}
               </div>
             )}
-
-            <div className="mt-3 text-xs" style={{ color: '#22211A', opacity: 0.7 }}>
-              メモはブラウザのローカルストレージに保存されます
-            </div>
           </div>
         </div>
 

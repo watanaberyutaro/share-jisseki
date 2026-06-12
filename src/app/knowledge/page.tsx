@@ -233,7 +233,7 @@ export default function KnowledgePage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-8">
             {posts.map(post => (
               <KnowledgeCard key={post.id} post={post} />
             ))}
@@ -276,7 +276,7 @@ function KnowledgeCard({ post }: { post: KnowledgePost }) {
   return (
     <Link href={`/knowledge/${post.id}`}>
       <div
-        className="glass rounded-lg border p-3 cursor-pointer"
+        className="glass rounded-lg border px-3 py-2 cursor-pointer"
         style={{
           borderColor: '#22211A',
           boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
@@ -285,11 +285,11 @@ function KnowledgeCard({ post }: { post: KnowledgePost }) {
         onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)' }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)' }}
       >
-        <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-2">
           {/* 左側：メインコンテンツ */}
           <div className="flex-1 min-w-0">
             {/* バッジ行 */}
-            <div className="flex flex-wrap items-center gap-1.5 mb-2">
+            <div className="flex flex-wrap items-center gap-1 mb-1">
               <span
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
                 style={{
@@ -313,7 +313,7 @@ function KnowledgeCard({ post }: { post: KnowledgePost }) {
             </div>
 
             {/* タイトル */}
-            <h3 className="font-bold text-sm mb-1.5 line-clamp-1" style={{ color: '#22211A' }}>
+            <h3 className="font-bold text-sm mb-1 line-clamp-1" style={{ color: '#22211A' }}>
               {post.title}
             </h3>
 
@@ -341,7 +341,7 @@ function KnowledgeCard({ post }: { post: KnowledgePost }) {
 
           {/* 右側：メタ情報 */}
           <div
-            className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-1.5 text-xs flex-shrink-0"
+            className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1 text-xs flex-shrink-0"
             style={{ color: '#22211A', opacity: 0.55 }}
           >
             <div className="flex items-center gap-1">

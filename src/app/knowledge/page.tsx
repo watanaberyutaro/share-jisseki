@@ -233,7 +233,7 @@ export default function KnowledgePage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-12">
+          <div className="flex flex-col" style={{ gap: '2.5rem' }}>
             {posts.map(post => (
               <KnowledgeCard key={post.id} post={post} />
             ))}

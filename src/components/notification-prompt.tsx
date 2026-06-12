@@ -4,12 +4,17 @@ import { useState, useEffect } from 'react'
 import { Bell, X } from 'lucide-react'
 
 const STORAGE_KEY = 'shela_notification_prompt'
+const VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
 
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = window.atob(base64)
-  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)))
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  try {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const rawData = window.atob(base64)
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)))
+  } catch {
+    return new Uint8Array()
+  }
 }
 
 export function NotificationPrompt() {
@@ -18,7 +23,9 @@ export function NotificationPrompt() {
   const [done, setDone] = useState(false)
 
   useEffect(() => {
-    // 通知非対応・許可済み・却下済みは表示しない
+    // VAPID キー未設定なら何もしない
+    if (!VAPID_KEY) return
+
     if (
       !('Notification' in window) ||
       !('serviceWorker' in navigator) ||
@@ -30,16 +37,15 @@ export function NotificationPrompt() {
     const prompted = localStorage.getItem(STORAGE_KEY)
     if (prompted) return
 
-    // ログイン済みユーザーにのみ表示
     const role = localStorage.getItem('userRole')
     if (!role) return
 
-    // 少し遅延して表示（ページロード直後を避ける）
     const timer = setTimeout(() => setShow(true), 1500)
     return () => clearTimeout(timer)
   }, [])
 
   async function handleAllow() {
+    if (!VAPID_KEY) return
     setLoading(true)
     try {
       const permission = await Notification.requestPermission()
@@ -54,15 +60,9 @@ export function NotificationPrompt() {
       const existing = await reg.pushManager.getSubscription()
       if (existing) await existing.unsubscribe()
 
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-      if (!vapidKey) {
-        console.error('VAPID公開鍵が設定されていません')
-        setShow(false)
-        return
-      }
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_KEY),
       })
 
       const userName =
@@ -100,7 +100,7 @@ export function NotificationPrompt() {
       style={{ transform: 'translateX(-50%)' }}
     >
       <div
-        className="glass rounded-2xl border p-4 shadow-2xl"
+        className="rounded-2xl border p-4 shadow-2xl"
         style={{
           borderColor: '#22211A',
           boxShadow: '0 24px 48px rgba(0,0,0,0.25)',

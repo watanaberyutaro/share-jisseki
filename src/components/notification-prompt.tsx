@@ -100,7 +100,7 @@ export function NotificationPrompt() {
         style={{
           borderColor: '#22211A',
           boxShadow: '0 24px 48px rgba(0,0,0,0.25)',
-          backgroundColor: 'rgba(220,237,200,0.97)',
+          backgroundColor: 'rgba(255,255,255,0.97)',
         }}
       >
         {!done ? (

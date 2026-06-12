@@ -54,11 +54,15 @@ export function NotificationPrompt() {
       const existing = await reg.pushManager.getSubscription()
       if (existing) await existing.unsubscribe()
 
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      if (!vapidKey) {
+        console.error('VAPID公開鍵が設定されていません')
+        setShow(false)
+        return
+      }
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(
-          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-        ),
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
       })
 
       const userName =

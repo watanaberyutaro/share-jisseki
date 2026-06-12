@@ -459,7 +459,7 @@ export default function KnowledgeDetailPage() {
           </div>
         )}
 
-        {/* 添付ファイル */}
+        {/* 添付写真 */}
         {post.files && post.files.length > 0 && (
           <div
             className="glass rounded-lg border p-5"
@@ -467,24 +467,29 @@ export default function KnowledgeDetailPage() {
           >
             <h2 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#22211A' }}>
               <Paperclip className="w-4 h-4" />
-              添付ファイル
+              添付写真
             </h2>
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-3">
               {post.files.map(file => (
                 <a
                   key={file.id}
                   href={file.file_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-2 rounded-lg text-sm"
-                  style={{ backgroundColor: 'rgba(34,33,26,0.05)', color: '#22211A' }}
+                  className="block rounded-lg overflow-hidden border"
+                  style={{ borderColor: '#22211A22' }}
                 >
-                  <Paperclip className="w-4 h-4 flex-shrink-0" />
-                  <span className="flex-1 truncate">{file.file_name}</span>
+                  <img
+                    src={file.file_url}
+                    alt={file.file_name}
+                    className="w-full object-cover"
+                    style={{ maxHeight: 280 }}
+                    loading="lazy"
+                  />
                   {file.purpose === 'evidence' && (
-                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}>
+                    <div className="px-2 py-1 text-xs font-bold" style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}>
                       エビデンス
-                    </span>
+                    </div>
                   )}
                 </a>
               ))}

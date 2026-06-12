@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, X, Loader2 } from 'lucide-react'
+import { ArrowLeft, Plus, X, Loader2, ImagePlus } from 'lucide-react'
 import Link from 'next/link'
 import { MagneticDots } from '@/components/MagneticDots'
 import { KNOWLEDGE_TYPES, CARRIERS } from '@/types/knowledge'
 import type { KnowledgeGenre } from '@/types/knowledge'
+import { compressImage } from '@/lib/compress-image'
 
 export default function KnowledgeNewPage() {
   const router = useRouter()
@@ -23,8 +24,12 @@ export default function KnowledgeNewPage() {
   const [genres, setGenres] = useState<KnowledgeGenre[]>([])
   const [newGenreName, setNewGenreName] = useState('')
   const [showNewGenre, setShowNewGenre] = useState(false)
+  const [photos, setPhotos] = useState<File[]>([])
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState('')
   const [error, setError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [displayedTitle, setDisplayedTitle] = useState('')
   const fullTitle = 'ナレッジ作成'
@@ -44,6 +49,26 @@ export default function KnowledgeNewPage() {
       .then(d => setGenres(d.genres || []))
       .catch(() => {})
   }, [])
+
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || [])
+    const remaining = 2 - photos.length
+    const selected = files.slice(0, remaining)
+    if (selected.length === 0) return
+
+    selected.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = ev => setPhotoPreviews(prev => [...prev, ev.target?.result as string])
+      reader.readAsDataURL(file)
+    })
+    setPhotos(prev => [...prev, ...selected])
+    e.target.value = ''
+  }
+
+  function removePhoto(index: number) {
+    setPhotos(prev => prev.filter((_, i) => i !== index))
+    setPhotoPreviews(prev => prev.filter((_, i) => i !== index))
+  }
 
   function addTag() {
     const t = tagInput.trim()
@@ -102,9 +127,25 @@ export default function KnowledgeNewPage() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || '投稿に失敗しました'); return }
+
+      // 画像アップロード
+      if (photos.length > 0) {
+        for (let i = 0; i < photos.length; i++) {
+          setUploadProgress(`写真を圧縮・アップロード中... (${i + 1}/${photos.length})`)
+          try {
+            const compressed = await compressImage(photos[i])
+            const fd = new FormData()
+            fd.append('file', compressed)
+            fd.append('user_name', authorName)
+            fd.append('purpose', 'post_attachment')
+            await fetch(`/api/knowledge/${data.post.id}/files`, { method: 'POST', body: fd })
+          } catch { /* アップロード失敗でも投稿自体は続行 */ }
+        }
+      }
+
       router.push(`/knowledge/${data.post.id}`)
     } catch { setError('投稿に失敗しました') }
-    finally { setSubmitting(false) }
+    finally { setSubmitting(false); setUploadProgress('') }
   }
 
   return (
@@ -254,6 +295,47 @@ export default function KnowledgeNewPage() {
               </div>
             </div>
 
+            {/* 写真添付 */}
+            <div>
+              <label className="block text-sm font-bold mb-1.5" style={{ color: '#22211A' }}>
+                写真添付 <span className="font-normal text-xs" style={{ opacity: 0.5 }}>（最大2枚・自動圧縮）</span>
+              </label>
+              <div className="flex flex-wrap gap-3">
+                {photoPreviews.map((src, i) => (
+                  <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border" style={{ borderColor: '#22211A44' }}>
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(i)}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+                    >
+                      <X className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+                {photos.length < 2 && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-24 h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs"
+                    style={{ borderColor: '#22211A44', color: '#22211A', opacity: 0.6 }}
+                  >
+                    <ImagePlus className="w-5 h-5" />
+                    追加
+                  </button>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handlePhotoSelect}
+              />
+            </div>
+
             {/* 送信ボタン */}
             <div className="flex justify-end gap-3 pt-2">
               <Link href="/knowledge" className="px-4 py-2 rounded-lg border text-sm font-bold"
@@ -264,7 +346,7 @@ export default function KnowledgeNewPage() {
                 className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
                 style={{ backgroundColor: '#22211A', color: '#DCEDC8' }}>
                 {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                投稿する
+                {uploadProgress || '投稿する'}
               </button>
             </div>
           </div>

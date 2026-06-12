@@ -6,6 +6,7 @@ import { ConditionalHeader } from '@/components/conditional-header'
 import { SessionMonitor } from '@/components/session-monitor'
 import { NavigationProvider } from '@/contexts/navigation-context'
 import { PwaRegister } from '@/components/pwa-register'
+import { NotificationPrompt } from '@/components/notification-prompt'
 
 const inter = Inter({ subsets: ['latin'] })
 const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron' })
@@ -38,6 +39,7 @@ export default function RootLayout({
     <html lang="ja">
       <body className={`${inter.className} ${orbitron.variable}`}>
         <PwaRegister />
+        <NotificationPrompt />
         <NavigationProvider>
           <SessionMonitor />
           <div className="flex min-h-screen">

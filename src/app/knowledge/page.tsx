@@ -97,7 +97,7 @@ export default function KnowledgePage() {
     return () => clearTimeout(timer)
   }, [fetchPosts])
 
-  const totalPages = Math.ceil(total / 20)
+  const totalPages = Math.ceil(total / 10)
 
   return (
     <div
@@ -233,7 +233,7 @@ export default function KnowledgePage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-5">
             {posts.map(post => (
               <KnowledgeCard key={post.id} post={post} />
             ))}
@@ -242,7 +242,7 @@ export default function KnowledgePage() {
 
         {/* ページネーション */}
         {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-6">
+          <div className="flex justify-center items-center gap-2 mt-8">
             <button
               onClick={() => setPage(p => p - 1)}
               disabled={page <= 1}
@@ -276,7 +276,7 @@ function KnowledgeCard({ post }: { post: KnowledgePost }) {
   return (
     <Link href={`/knowledge/${post.id}`}>
       <div
-        className="glass rounded-lg border p-4 cursor-pointer"
+        className="glass rounded-lg border p-3 cursor-pointer"
         style={{
           borderColor: '#22211A',
           boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
@@ -313,7 +313,7 @@ function KnowledgeCard({ post }: { post: KnowledgePost }) {
             </div>
 
             {/* タイトル */}
-            <h3 className="font-bold text-base mb-2 line-clamp-1" style={{ color: '#22211A' }}>
+            <h3 className="font-bold text-sm mb-1.5 line-clamp-1" style={{ color: '#22211A' }}>
               {post.title}
             </h3>
 

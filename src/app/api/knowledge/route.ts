@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const genre_id     = searchParams.get('genre_id')      || ''
     const sort         = searchParams.get('sort')          || 'created_at_desc'
     const page         = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit        = 20
+    const limit        = 10
 
     let query = supabase
       .from('knowledge_posts')

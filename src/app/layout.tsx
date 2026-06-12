@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     title: 'SHELA',
   },
   icons: {
-    icon: '/api/pwa-icon?size=192',
-    apple: '/api/pwa-icon?size=192',
+    icon: '/icon.png',
+    apple: '/icon.png',
   },
 }
 

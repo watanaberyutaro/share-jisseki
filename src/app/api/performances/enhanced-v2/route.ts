@@ -304,7 +304,7 @@ export async function POST(request: NextRequest) {
       title: '📊 イベント実績が投稿されました',
       body: `${event.venue} の実績が登録されました`,
       url: `/view/${event.id}`,
-      icon: '/api/pwa-icon?size=192',
+      icon: '/icon.png',
     }).catch(() => {})
 
     return NextResponse.json({

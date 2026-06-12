@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'タイトルと本文は必須です' }, { status: 400 })
     }
 
-    await sendPushToAll({ title, body, url: url || '/', icon: '/api/pwa-icon?size=192' })
+    await sendPushToAll({ title, body, url: url || '/', icon: '/icon.png' })
     return NextResponse.json({ success: true })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

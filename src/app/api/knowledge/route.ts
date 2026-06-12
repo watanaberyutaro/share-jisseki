@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       title: '📚 新しいナレッジが投稿されました',
       body: post.title,
       url: `/knowledge/${post.id}`,
-      icon: '/api/pwa-icon?size=192',
+      icon: '/icon.png',
     }).catch(() => {})
 
     return NextResponse.json({ post }, { status: 201 })

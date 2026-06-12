@@ -35,7 +35,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         title: '💬 あなたの投稿にコメントがつきました',
         body: `「${post.title}」に ${user_name || '誰か'} がコメントしました`,
         url: `/knowledge/${params.id}`,
-        icon: '/api/pwa-icon?size=192',
+        icon: '/icon.png',
       }).catch(() => {})
     }
 

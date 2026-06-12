@@ -4,8 +4,8 @@ self.addEventListener('push', event => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'SHELA', {
       body: data.body || '',
-      icon: data.icon || '/api/pwa-icon?size=192',
-      badge: '/api/pwa-icon?size=192',
+      icon: data.icon || '/icon.png',
+      badge: '/icon.png',
       data: { url: data.url || '/' },
       vibrate: [200, 100, 200],
     })

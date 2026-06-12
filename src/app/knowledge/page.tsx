@@ -233,7 +233,7 @@ export default function KnowledgePage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-12">
             {posts.map(post => (
               <KnowledgeCard key={post.id} post={post} />
             ))}

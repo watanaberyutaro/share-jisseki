@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Shield, Users, CheckCircle, XCircle, Clock, AlertCircle, Calculator, Save, Edit2, Trash2, X, Database, Calendar, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, Check } from 'lucide-react'
+import { Shield, Users, CheckCircle, XCircle, Clock, AlertCircle, Calculator, Save, Edit2, Trash2, X, Database, Calendar, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, Check, Send } from 'lucide-react'
 import { LoadingAnimation } from '@/components/loading-animation'
 import { MagneticDots } from '@/components/MagneticDots'
 import { NewsManager } from '@/components/news-manager'
@@ -1391,6 +1391,11 @@ export default function AdminDashboard() {
           )}
         </div>
 
+        {/* プッシュ通知一斉送信 */}
+        <div className="mb-8">
+          <PushBroadcast />
+        </div>
+
         {/* ニュース管理 */}
         <div className="mb-8">
           <NewsManager />
@@ -1499,6 +1504,62 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+function PushBroadcast() {
+  const [title, setTitle] = useState("")
+  const [body, setBody] = useState("")
+  const [url, setUrl] = useState("/")
+  const [sending, setSending] = useState(false)
+  const [msg, setMsg] = useState("")
+
+  const handleSend = async () => {
+    if (!title.trim() || !body.trim()) return
+    setSending(true)
+    setMsg("")
+    try {
+      const res = await fetch("/api/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body, url, user_role: "admin" }),
+      })
+      const data = await res.json()
+      setMsg(res.ok ? "送信しました" : data.error || "送信失敗")
+      if (res.ok) { setTitle(""); setBody(""); setUrl("/") }
+    } catch {
+      setMsg("送信失敗")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="glass rounded-2xl p-6 border mb-0" style={{ borderColor: "#22211A", borderWidth: "1px", borderStyle: "solid" }}>
+      <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: "#22211A" }}>
+        <Send className="w-5 h-5" style={{ color: "#FFB300" }} />
+        プッシュ通知一斉送信
+      </h2>
+      <div className="space-y-3">
+        <div>
+          <label className="block text-sm font-bold mb-1" style={{ color: "#22211A" }}>タイトル</label>
+          <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="例：新しいお知らせ" className="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style={{ borderColor: "#22211A44", color: "#22211A" }} />
+        </div>
+        <div>
+          <label className="block text-sm font-bold mb-1" style={{ color: "#22211A" }}>本文</label>
+          <textarea value={body} onChange={e => setBody(e.target.value)} rows={3} placeholder="通知の内容..." className="w-full px-3 py-2 rounded-lg border text-sm bg-transparent resize-none" style={{ borderColor: "#22211A44", color: "#22211A" }} />
+        </div>
+        <div>
+          <label className="block text-sm font-bold mb-1" style={{ color: "#22211A" }}>タップ時の遷移先URL</label>
+          <input type="text" value={url} onChange={e => setUrl(e.target.value)} placeholder="/" className="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style={{ borderColor: "#22211A44", color: "#22211A" }} />
+        </div>
+        {msg && <p className="text-sm font-bold" style={{ color: msg === "送信しました" ? "#15803D" : "#C2410C" }}>{msg}</p>}
+        <div className="flex justify-end">
+          <button onClick={handleSend} disabled={sending || !title.trim() || !body.trim()} className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold disabled:opacity-40" style={{ backgroundColor: "#22211A", color: "#DCEDC8" }}>
+            {sending ? "送信中..." : <><Send className="w-4 h-4" />全員に送信</>}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

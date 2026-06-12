@@ -6,6 +6,7 @@ import { useNavigation } from '@/contexts/navigation-context'
 import { User, LogOut, Bell } from 'lucide-react'
 import { removeSession } from '@/lib/supabase/sessions'
 import { getActiveNews, type News } from '@/lib/supabase/news'
+import { PushBell } from '@/components/push-bell'
 
 interface HeaderProps {
   isLoginPage?: boolean
@@ -145,6 +146,7 @@ export function Header({ isLoginPage = false }: HeaderProps) {
                   {userRole === 'admin' ? '管理者' : userName || 'ユーザー'}
                 </span>
               </div>
+              <PushBell />
               <button
                 onClick={handleLogout}
                 className="flex items-center space-x-1 md:space-x-2 px-2 md:px-4 py-1 md:py-2 rounded-lg transition-all"

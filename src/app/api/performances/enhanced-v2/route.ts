@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { uploadEventPhotos } from '@/lib/supabase/storage'
 import { mnpIdContractToDb, isIdCalculationEnabled } from '@/lib/mnp-id-calculator'
+import { sendPushToAll } from '@/lib/send-push'
 
 export const dynamic = 'force-dynamic'
 
@@ -298,6 +299,14 @@ export async function POST(request: NextRequest) {
       console.log('No photos to upload')
     }
     
+    // プッシュ通知（fire-and-forget）
+    sendPushToAll({
+      title: '📊 イベント実績が投稿されました',
+      body: `${event.venue} の実績が登録されました`,
+      url: `/view/${event.id}`,
+      icon: '/api/pwa-icon?size=192',
+    }).catch(() => {})
+
     return NextResponse.json({
       success: true,
       event,

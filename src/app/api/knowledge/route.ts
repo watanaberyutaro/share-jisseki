@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { sendPushToAll } from '@/lib/send-push'
 
 export const dynamic = 'force-dynamic'
 
@@ -138,6 +139,14 @@ export async function POST(request: NextRequest) {
         await supabase.from('knowledge_post_tags').insert({ post_id: post.id, tag_id: tagId })
       }
     }
+
+    // プッシュ通知（fire-and-forget）
+    sendPushToAll({
+      title: '📚 新しいナレッジが投稿されました',
+      body: post.title,
+      url: `/knowledge/${post.id}`,
+      icon: '/api/pwa-icon?size=192',
+    }).catch(() => {})
 
     return NextResponse.json({ post }, { status: 201 })
   } catch (error: any) {

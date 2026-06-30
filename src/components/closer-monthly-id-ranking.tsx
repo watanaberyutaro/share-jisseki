@@ -16,6 +16,7 @@ interface CloserIdScore {
   totalIdScore: number
   eventCount: number
   mnpCount: number
+  newCount: number
   effectiveCount: number
   avgIdScore: number
 }
@@ -211,6 +212,7 @@ export function CloserMonthlyIdRanking({ availableYears }: CloserMonthlyIdRankin
                   <th className="px-4 py-3 text-right text-xs md:text-sm font-semibold" style={{ color: '#22211A' }}>イベント数</th>
                   <th className="px-4 py-3 text-right text-xs md:text-sm font-semibold" style={{ color: '#22211A' }}>平均ID係数</th>
                   <th className="px-4 py-3 text-right text-xs md:text-sm font-semibold" style={{ color: '#22211A' }}>MNP件数</th>
+                  <th className="px-4 py-3 text-right text-xs md:text-sm font-semibold" style={{ color: '#22211A' }}>新規件数</th>
                 </tr>
               </thead>
               <tbody>
@@ -249,6 +251,9 @@ export function CloserMonthlyIdRanking({ availableYears }: CloserMonthlyIdRankin
                     <td className="px-4 py-3 text-right text-sm md:text-base" style={{ color: '#22211A' }}>
                       {closer.mnpCount}
                     </td>
+                    <td className="px-4 py-3 text-right text-sm md:text-base" style={{ color: '#22211A' }}>
+                      {closer.newCount}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -256,7 +261,7 @@ export function CloserMonthlyIdRanking({ availableYears }: CloserMonthlyIdRankin
           </div>
           {/* サマリー */}
           <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-border" style={{ borderColor: '#22211A' }}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center">
               <div className="text-xs md:text-sm mb-1" style={{ color: '#22211A', opacity: 0.7 }}>総クローザー数</div>
               <div className="text-xl md:text-2xl font-bold" style={{ color: '#22211A' }}>
@@ -273,6 +278,12 @@ export function CloserMonthlyIdRanking({ availableYears }: CloserMonthlyIdRankin
               <div className="text-xs md:text-sm mb-1" style={{ color: '#22211A', opacity: 0.7 }}>総MNP件数</div>
               <div className="text-xl md:text-2xl font-bold" style={{ color: '#4abf79' }}>
                 {filteredCloserScores.reduce((sum, c) => sum + c.mnpCount, 0)}件
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs md:text-sm mb-1" style={{ color: '#22211A', opacity: 0.7 }}>総新規件数</div>
+              <div className="text-xl md:text-2xl font-bold" style={{ color: '#4abf79' }}>
+                {filteredCloserScores.reduce((sum, c) => sum + c.newCount, 0)}件
               </div>
             </div>
             <div className="text-center">

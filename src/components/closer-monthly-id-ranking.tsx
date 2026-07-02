@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Users, Filter as FilterIcon } from 'lucide-react'
+import { Users, Filter as FilterIcon, Download } from 'lucide-react'
 import { LoadingAnimation } from '@/components/loading-animation'
 import {
   StaffFilterConfig,
@@ -87,6 +87,23 @@ export function CloserMonthlyIdRanking({ availableYears }: CloserMonthlyIdRankin
   }, [closerScores, staffFilter, staffNameFilter])
 
 
+  const handleDownloadCsv = () => {
+    const headers = ['クローザー名', '区分', 'ID係数合計', 'イベント数', '平均ID係数', 'MNP件数', '新規件数']
+    const rows = filteredCloserScores.map(c => {
+      const cat = getStaffCategory(c.staffName)
+      const label = cat === 'internal' ? '自社' : cat === 'external' ? '他社' : '店舗'
+      return [c.staffName, label, c.totalIdScore.toFixed(1), c.eventCount, c.avgIdScore.toFixed(1), c.mnpCount, c.newCount]
+    })
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `クローザー別ID係数_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '-')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   if (loading) {
     return <LoadingAnimation />
   }
@@ -95,11 +112,22 @@ export function CloserMonthlyIdRanking({ availableYears }: CloserMonthlyIdRankin
     <div className="glass rounded-lg border p-4 md:p-6" style={{ borderColor: '#22211A', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08)' }}>
       {/* ヘッダー */}
       <div className="mb-4 md:mb-6">
-        <div className="flex items-center mb-2">
-          <Users className="w-6 h-6 mr-3" style={{ color: '#FFB300' }} />
-          <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#22211A' }}>
-            クローザー別月次ID係数
-          </h2>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            <Users className="w-6 h-6 mr-3" style={{ color: '#FFB300' }} />
+            <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#22211A' }}>
+              クローザー別月次ID係数
+            </h2>
+          </div>
+          <button
+            onClick={handleDownloadCsv}
+            disabled={filteredCloserScores.length === 0}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-40"
+            style={{ backgroundColor: 'rgba(34,33,26,0.08)', color: '#22211A', border: '1px solid #22211A' }}
+          >
+            <Download className="w-4 h-4" />
+            CSV
+          </button>
         </div>
         <p className="text-sm md:text-base" style={{ color: '#22211A', opacity: 0.7 }}>
           2026年6月2日以降のイベントにおけるHS新規ID計算による係数合計

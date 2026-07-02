@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { Home, FileInput, Eye, BarChart3, Camera, Settings, Calculator, Shield, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
+import { Home, FileInput, Eye, BarChart3, Camera, Settings, Calculator, Shield, ChevronLeft, ChevronRight, BookOpen, FileDown } from 'lucide-react'
 import { useNavigation } from '@/contexts/navigation-context'
 
 export function Navigation() {
@@ -25,6 +25,7 @@ export function Navigation() {
     { name: 'アルバム', shortName: 'アルバム', href: '/album', icon: Camera, requireAdmin: false },
     { name: '計算機', shortName: '計算機', href: '/calculator', icon: Calculator, requireAdmin: false },
     { name: 'ナレッジ', shortName: 'ナレッジ', href: '/knowledge', icon: BookOpen, requireAdmin: false },
+    { name: 'エクスポート', shortName: 'エクス\nポート', href: '/export', icon: FileDown, requireAdmin: false },
     { name: '管理者', shortName: '管理者', href: '/admin', icon: Shield, requireAdmin: true },
   ]
 

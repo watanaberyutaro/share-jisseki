@@ -58,12 +58,15 @@ export async function GET(request: NextRequest) {
       uq_hs_sp1: number
       uq_hs_sp2: number
       uq_hs_sim: number
+      cell_up_sp1: number
+      cell_up_sp2: number
+      cell_up_sim: number
     }> = []
     for (let i = 0; i < eventIds.length; i += EVENT_CHUNK_SIZE) {
       const chunk = eventIds.slice(i, i + EVENT_CHUNK_SIZE)
       const { data: chunkSP, error: chunkSPError } = await supabase
         .from('staff_performances')
-        .select('id, staff_name, event_id, au_mnp_sp1, au_mnp_sp2, au_mnp_sim, uq_mnp_sp1, uq_mnp_sp2, uq_mnp_sim, au_hs_sp1, au_hs_sp2, au_hs_sim, uq_hs_sp1, uq_hs_sp2, uq_hs_sim')
+        .select('id, staff_name, event_id, au_mnp_sp1, au_mnp_sp2, au_mnp_sim, uq_mnp_sp1, uq_mnp_sp2, uq_mnp_sim, au_hs_sp1, au_hs_sp2, au_hs_sim, uq_hs_sp1, uq_hs_sp2, uq_hs_sim, cell_up_sp1, cell_up_sp2, cell_up_sim')
         .in('event_id', chunk)
         .limit(50000)
       if (chunkSPError) {
@@ -103,7 +106,7 @@ export async function GET(request: NextRequest) {
     }
 
     // staff_performance_id → staff_name / event_id / MNP列 のマップを作成
-    const staffPerfMap = new Map<string, { staffName: string; eventId: string; mnpCount: number; newCount: number }>()
+    const staffPerfMap = new Map<string, { staffName: string; eventId: string; mnpCount: number; newCount: number; cellupCount: number }>()
     staffPerformances.forEach(sp => {
       const mnpCount =
         (sp.au_mnp_sp1 || 0) + (sp.au_mnp_sp2 || 0) + (sp.au_mnp_sim || 0) +
@@ -111,7 +114,9 @@ export async function GET(request: NextRequest) {
       const newCount =
         (sp.au_hs_sp1 || 0) + (sp.au_hs_sp2 || 0) + (sp.au_hs_sim || 0) +
         (sp.uq_hs_sp1 || 0) + (sp.uq_hs_sp2 || 0) + (sp.uq_hs_sim || 0)
-      staffPerfMap.set(sp.id, { staffName: sp.staff_name, eventId: sp.event_id, mnpCount, newCount })
+      const cellupCount =
+        (sp.cell_up_sp1 || 0) + (sp.cell_up_sp2 || 0) + (sp.cell_up_sim || 0)
+      staffPerfMap.set(sp.id, { staffName: sp.staff_name, eventId: sp.event_id, mnpCount, newCount, cellupCount })
     })
 
     // スタッフ名ごとに集計
@@ -121,6 +126,7 @@ export async function GET(request: NextRequest) {
       eventIds: Set<string>
       mnpCount: number
       newCount: number
+      cellupCount: number
       effectiveCount: number
     }>()
 
@@ -137,6 +143,7 @@ export async function GET(request: NextRequest) {
           eventIds: new Set<string>(),
           mnpCount: 0,
           newCount: 0,
+          cellupCount: 0,
           effectiveCount: 0,
         })
       }
@@ -147,13 +154,14 @@ export async function GET(request: NextRequest) {
       entry.effectiveCount += Math.max(0, (contract.count || 0) - (contract.excluded_count || 0))
     })
 
-    // MNP件数・新規件数はstaff_performancesの集計列から算出（mnp_id_contractsより正確）
+    // MNP件数・新規件数・セルアップ件数はstaff_performancesの集計列から算出
     staffPerformances.forEach(sp => {
-      const { staffName, mnpCount, newCount } = staffPerfMap.get(sp.id)!
+      const { staffName, mnpCount, newCount, cellupCount } = staffPerfMap.get(sp.id)!
       if (!staffScores.has(staffName)) return // ID係数が0のスタッフは除外
       const entry = staffScores.get(staffName)!
       entry.mnpCount += mnpCount
       entry.newCount += newCount
+      entry.cellupCount += cellupCount
     })
 
     const result = Array.from(staffScores.values())
@@ -165,6 +173,7 @@ export async function GET(request: NextRequest) {
         eventCount: s.eventIds.size,
         mnpCount: s.mnpCount,
         newCount: s.newCount,
+        cellupCount: s.cellupCount,
         effectiveCount: s.effectiveCount,
         avgIdScore: s.eventIds.size > 0 ? s.totalIdScore / s.eventIds.size : 0,
       }))

@@ -17,6 +17,7 @@ interface CloserIdScore {
   eventCount: number
   mnpCount: number
   newCount: number
+  cellupCount: number
   effectiveCount: number
   avgIdScore: number
 }
@@ -88,11 +89,11 @@ export function CloserMonthlyIdRanking({ availableYears }: CloserMonthlyIdRankin
 
 
   const handleDownloadCsv = () => {
-    const headers = ['クローザー名', '区分', 'ID係数合計', 'イベント数', '平均ID係数', 'MNP件数', '新規件数']
+    const headers = ['クローザー名', '区分', 'ID係数合計', 'イベント数', '平均ID係数', 'MNP件数', '新規件数', 'CU件数']
     const rows = filteredCloserScores.map(c => {
       const cat = getStaffCategory(c.staffName)
       const label = cat === 'internal' ? '自社' : cat === 'external' ? '他社' : '店舗'
-      return [c.staffName, label, c.totalIdScore.toFixed(1), c.eventCount, c.avgIdScore.toFixed(1), c.mnpCount, c.newCount]
+      return [c.staffName, label, c.totalIdScore.toFixed(1), c.eventCount, c.avgIdScore.toFixed(1), c.mnpCount, c.newCount, c.cellupCount]
     })
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -241,6 +242,7 @@ export function CloserMonthlyIdRanking({ availableYears }: CloserMonthlyIdRankin
                   <th className="px-4 py-3 text-right text-xs md:text-sm font-semibold" style={{ color: '#22211A' }}>平均ID係数</th>
                   <th className="px-4 py-3 text-right text-xs md:text-sm font-semibold" style={{ color: '#22211A' }}>MNP件数</th>
                   <th className="px-4 py-3 text-right text-xs md:text-sm font-semibold" style={{ color: '#22211A' }}>新規件数</th>
+                  <th className="px-4 py-3 text-right text-xs md:text-sm font-semibold" style={{ color: '#22211A' }}>CU件数</th>
                 </tr>
               </thead>
               <tbody>
@@ -282,6 +284,9 @@ export function CloserMonthlyIdRanking({ availableYears }: CloserMonthlyIdRankin
                     <td className="px-4 py-3 text-right text-sm md:text-base" style={{ color: '#22211A' }}>
                       {closer.newCount}
                     </td>
+                    <td className="px-4 py-3 text-right text-sm md:text-base" style={{ color: '#22211A' }}>
+                      {closer.cellupCount}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -289,7 +294,7 @@ export function CloserMonthlyIdRanking({ availableYears }: CloserMonthlyIdRankin
           </div>
           {/* サマリー */}
           <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-border" style={{ borderColor: '#22211A' }}>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="text-center">
               <div className="text-xs md:text-sm mb-1" style={{ color: '#22211A', opacity: 0.7 }}>総クローザー数</div>
               <div className="text-xl md:text-2xl font-bold" style={{ color: '#22211A' }}>
@@ -312,6 +317,12 @@ export function CloserMonthlyIdRanking({ availableYears }: CloserMonthlyIdRankin
               <div className="text-xs md:text-sm mb-1" style={{ color: '#22211A', opacity: 0.7 }}>総新規件数</div>
               <div className="text-xl md:text-2xl font-bold" style={{ color: '#4abf79' }}>
                 {filteredCloserScores.reduce((sum, c) => sum + c.newCount, 0)}件
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs md:text-sm mb-1" style={{ color: '#22211A', opacity: 0.7 }}>総CU件数</div>
+              <div className="text-xl md:text-2xl font-bold" style={{ color: '#4abf79' }}>
+                {filteredCloserScores.reduce((sum, c) => sum + c.cellupCount, 0)}件
               </div>
             </div>
             <div className="text-center">

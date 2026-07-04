@@ -10,10 +10,11 @@ export async function GET() {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // 全イベント取得
+    // クローザーパネルと同じく 2026-06-02 以降のイベントを対象にする
     const { data: events, error: eventsError } = await supabase
       .from('events')
       .select('id, year, month, week_number, start_date, end_date, venue, agency_name, agency_tier')
+      .gte('start_date', '2026-06-02')
       .order('start_date', { ascending: false })
       .limit(10000)
 
@@ -24,7 +25,7 @@ export async function GET() {
     const eventMap = new Map(events.map(e => [e.id, e]))
     const eventIds = events.map(e => e.id)
 
-    // staff_performances を chunk 取得（URL長制限回避のため100件ずつ分割）
+    // staff_performances を chunk 取得（id も含めて取得）
     const CHUNK = 100
     const allSP: any[] = []
     for (let i = 0; i < eventIds.length; i += CHUNK) {
@@ -32,7 +33,7 @@ export async function GET() {
       const { data, error } = await supabase
         .from('staff_performances')
         .select(`
-          event_id, staff_name,
+          id, event_id, staff_name,
           au_mnp_sp1, au_mnp_sp2, au_mnp_sim,
           uq_mnp_sp1, uq_mnp_sp2, uq_mnp_sim,
           au_hs_sp1, au_hs_sp2, au_hs_sim,
@@ -47,8 +48,42 @@ export async function GET() {
       if (data) allSP.push(...data)
     }
 
+    if (allSP.length === 0) return NextResponse.json([])
+
+    // mnp_id_contracts を先に取得し、契約のある staff_performance_id を特定する
+    // （クローザーパネルと同じく、ID係数が登録済みのスタッフのみを対象にする）
+    const allSpIds = allSP.map(sp => sp.id)
+    const staffPerfIdsWithContracts = new Set<string>()
+    const idScoreBySpId = new Map<string, number>()
+
+    const ID_CHUNK = 500
+    for (let i = 0; i < allSpIds.length; i += ID_CHUNK) {
+      const chunk = allSpIds.slice(i, i + ID_CHUNK)
+      const { data: contracts, error: contractsError } = await supabase
+        .from('mnp_id_contracts')
+        .select('staff_performance_id, total_id_score')
+        .in('staff_performance_id', chunk)
+        .limit(50000)
+      if (contractsError) continue
+      if (contracts) {
+        for (const contract of contracts) {
+          staffPerfIdsWithContracts.add(contract.staff_performance_id)
+          idScoreBySpId.set(
+            contract.staff_performance_id,
+            (idScoreBySpId.get(contract.staff_performance_id) || 0) +
+              parseFloat(String(contract.total_id_score || '0'))
+          )
+        }
+      }
+    }
+
+    // mnp_id_contracts に紐づく staff_performances のみに絞る（クローザーパネルと同じ）
+    const filteredSP = allSP.filter(sp => staffPerfIdsWithContracts.has(sp.id))
+
+    if (filteredSP.length === 0) return NextResponse.json([])
+
     // (staff_name, event_id) ごとに集計
-    const key = (sp: any) => `${sp.staff_name}__${sp.event_id}`
+    const aggKey = (sp: any) => `${sp.staff_name}__${sp.event_id}`
     const agg = new Map<string, any>()
 
     const NUM_COLS = [
@@ -61,11 +96,10 @@ export async function GET() {
       'warranty', 'ott', 'electricity', 'gas', 'network_count',
     ]
 
-    for (const sp of allSP) {
-      const k = key(sp)
+    for (const sp of filteredSP) {
+      const k = aggKey(sp)
       if (!agg.has(k)) {
         const ev = eventMap.get(sp.event_id)
-        // year/month が未設定の場合は start_date 文字列から直接補完（タイムゾーン問題を回避）
         const sd = ev?.start_date ?? ''
         const derivedYear = ev?.year ?? (sd.length >= 4 ? parseInt(sd.slice(0, 4), 10) : null)
         const derivedMonth = ev?.month ?? (sd.length >= 7 ? parseInt(sd.slice(5, 7), 10) : null)
@@ -79,11 +113,13 @@ export async function GET() {
           agency_name: ev?.agency_name ?? '',
           agency_tier: ev?.agency_tier ?? '',
           staff_name: sp.staff_name,
+          id_score: 0,
           ...Object.fromEntries(NUM_COLS.map(c => [c, 0])),
         })
       }
       const row = agg.get(k)!
       for (const c of NUM_COLS) row[c] += Number(sp[c] || 0)
+      row.id_score += idScoreBySpId.get(sp.id) || 0
     }
 
     const result = Array.from(agg.values()).sort((a, b) => {

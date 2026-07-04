@@ -16,6 +16,7 @@ interface StaffRow {
   agency_name: string
   agency_tier: string
   staff_name: string
+  id_score: number
   au_mnp_sp1: number; au_mnp_sp2: number; au_mnp_sim: number
   uq_mnp_sp1: number; uq_mnp_sp2: number; uq_mnp_sim: number
   au_hs_sp1: number; au_hs_sp2: number; au_hs_sim: number
@@ -28,6 +29,7 @@ interface StaffRow {
 const CSV_HEADERS = [
   '年', '月', '週', '開始日', '終了日', '会場', '代理店名', '商流',
   'スタッフ名', '区分',
+  'ID点数',
   'au MNP SP1', 'au MNP SP2', 'au MNP SIM', 'au MNP合計',
   'UQ MNP SP1', 'UQ MNP SP2', 'UQ MNP SIM', 'UQ MNP合計',
   'MNP合計',
@@ -50,12 +52,13 @@ function rowToCsvValues(r: StaffRow): (string | number)[] {
     r.year, r.month, r.week_number ?? '', r.start_date, r.end_date ?? '',
     r.venue, r.agency_name, r.agency_tier ?? '',
     r.staff_name, catLabel,
+    r.id_score ?? 0,
     r.au_mnp_sp1, r.au_mnp_sp2, r.au_mnp_sim, auMnp,
     r.uq_mnp_sp1, r.uq_mnp_sp2, r.uq_mnp_sim, uqMnp,
     auMnp + uqMnp,
     r.au_hs_sp1, r.au_hs_sp2, r.au_hs_sim, auHs,
     r.uq_hs_sp1, r.uq_hs_sp2, r.uq_hs_sim, uqHs,
-    auHs + uqHs,
+    auHs + uqHs + cellup,
     r.cell_up_sp1, r.cell_up_sp2, r.cell_up_sim, cellup,
     r.credit_card, r.gold_card, r.ji_bank_account,
     r.warranty, r.ott, r.electricity, r.gas, r.network_count,
@@ -169,7 +172,7 @@ export default function ExportPage() {
             スタッフ獲得データ エクスポート
           </h1>
           <p className="text-sm" style={{ color: '#22211A', opacity: 0.6 }}>
-            SP1/SP2/SIM 内訳を含む全獲得実績をCSVでダウンロードできます
+            2026年6月2日以降・ID係数登録済みのスタッフ実績をCSVでダウンロードできます
           </p>
         </div>
 
@@ -301,6 +304,8 @@ export default function ExportPage() {
                         <th className="px-3 py-2 text-left font-semibold whitespace-nowrap" style={{ color: '#22211A' }}>会場</th>
                         <th className="px-3 py-2 text-left font-semibold whitespace-nowrap" style={{ color: '#22211A' }}>代理店名</th>
                         <th className="px-3 py-2 text-left font-semibold whitespace-nowrap" style={{ color: '#22211A' }}>商流</th>
+                        {/* ID点数 */}
+                        <th className="px-3 py-2 text-right font-semibold whitespace-nowrap" style={{ color: '#4abf79', backgroundColor: 'rgba(74,191,121,0.10)' }}>ID点数</th>
                         {/* au MNP */}
                         <th className="px-3 py-2 text-right font-semibold whitespace-nowrap" style={{ color: '#22211A' }}>au MNP SP1</th>
                         <th className="px-3 py-2 text-right font-semibold whitespace-nowrap" style={{ color: '#22211A' }}>au MNP SP2</th>
@@ -369,6 +374,9 @@ export default function ExportPage() {
                             <td className="px-3 py-1.5 whitespace-nowrap" style={{ color: '#22211A' }}>{r.venue}</td>
                             <td className="px-3 py-1.5 whitespace-nowrap" style={{ color: '#22211A' }}>{r.agency_name}</td>
                             <td className="px-3 py-1.5 whitespace-nowrap" style={{ color: '#22211A' }}>{r.agency_tier ?? '-'}</td>
+                            <td className="px-3 py-1.5 text-right whitespace-nowrap font-semibold" style={{ color: '#4abf79', backgroundColor: 'rgba(74,191,121,0.06)' }}>
+                              {(r.id_score ?? 0) > 0 ? (r.id_score ?? 0).toFixed(1) : '-'}
+                            </td>
                             {td(r.au_mnp_sp1)} {td(r.au_mnp_sp2)} {td(r.au_mnp_sim)}
                             {td(auMnp, true, 'rgba(34,33,26,0.04)')}
                             {td(r.uq_mnp_sp1)} {td(r.uq_mnp_sp2)} {td(r.uq_mnp_sim)}
@@ -378,7 +386,7 @@ export default function ExportPage() {
                             {td(auHs, true, 'rgba(34,33,26,0.04)')}
                             {td(r.uq_hs_sp1)} {td(r.uq_hs_sp2)} {td(r.uq_hs_sim)}
                             {td(uqHs, true, 'rgba(34,33,26,0.04)')}
-                            {td(auHs + uqHs, true, 'rgba(255,179,0,0.08)')}
+                            {td(auHs + uqHs + cu, true, 'rgba(255,179,0,0.08)')}
                             {td(r.cell_up_sp1)} {td(r.cell_up_sp2)} {td(r.cell_up_sim)}
                             {td(cu, false, 'rgba(34,33,26,0.04)')}
                             {td(r.credit_card)} {td(r.gold_card)} {td(r.ji_bank_account)}

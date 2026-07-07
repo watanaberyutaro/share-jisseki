@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Search } from 'lucide-react'
+import { X, Send, Search, Square } from 'lucide-react'
 
 type Emotion =
   | 'normal' | 'normal2' | 'support' | 'dance' | 'proud'
@@ -62,6 +62,8 @@ export function ChatBot() {
   const inputRef = useRef<HTMLInputElement>(null)
   const inactivityRef = useRef<ReturnType<typeof setTimeout>>()
   const containerRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
+  const cancelledRef = useRef(false)
   const chatBoxRef = useRef<HTMLDivElement>(null)
   const dragStartRef = useRef<{ mouseX: number; mouseY: number; elemX: number; elemY: number } | null>(null)
   const resizeStartRef = useRef<{ mouseX: number; mouseY: number; width: number; height: number } | null>(null)
@@ -194,6 +196,15 @@ export function ChatBot() {
     }
   }, [isResizing])
 
+  // 生成の停止（考え込み中・タイピング中のキャンセル）
+  const stopGeneration = () => {
+    cancelledRef.current = true
+    abortRef.current?.abort()
+    setLoading(false)
+    setEmotion('normal2')
+    resetInactivity()
+  }
+
   const sendMessage = async () => {
     if (!input.trim() || loading) return
 
@@ -205,6 +216,10 @@ export function ChatBot() {
     setEmotion('normal2')
     resetInactivity()
 
+    cancelledRef.current = false
+    const controller = new AbortController()
+    abortRef.current = controller
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -212,14 +227,17 @@ export function ChatBot() {
         body: JSON.stringify({
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
         }),
+        signal: controller.signal,
       })
 
       const data = await res.json()
+      if (cancelledRef.current) return // 応答到着前に停止された
+
       const { emotion: e, text } = parseResponse(data.content)
       setEmotion(e)
       setLoading(false)
 
-      // タイピング風演出: 空の枠を追加してから1文字ずつ表示
+      // タイピング風演出: 空の枠を追加してから1文字ずつ表示（停止で中断）
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: '',
@@ -227,6 +245,7 @@ export function ChatBot() {
         searchUsed: data.searchUsed,
       }])
       for (let i = 1; i <= text.length; i++) {
+        if (cancelledRef.current) break
         await new Promise(r => setTimeout(r, 18))
         setMessages(prev => {
           const updated = [...prev]
@@ -234,15 +253,18 @@ export function ChatBot() {
           return updated
         })
       }
-    } catch {
-      setEmotion('disappointed')
+    } catch (err) {
       setLoading(false)
+      // ユーザーが停止した場合はエラー表示しない
+      if (cancelledRef.current || (err as Error)?.name === 'AbortError') return
+      setEmotion('disappointed')
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'エラーが発生しました。もう一度試してください。',
         emotion: 'disappointed',
       }])
     } finally {
+      abortRef.current = null
       resetInactivity()
     }
   }
@@ -463,17 +485,28 @@ export function ChatBot() {
                   border: '1px solid #3a3a30',
                 }}
               />
-              <button
-                onClick={sendMessage}
-                disabled={loading || !input.trim()}
-                className="px-3 py-2 rounded-xl disabled:opacity-40 transition-opacity"
-                style={{ backgroundColor: '#4abf79', color: '#22211A' }}
-              >
-                <Send className="w-4 h-4" />
-              </button>
+              {loading ? (
+                <button
+                  onClick={stopGeneration}
+                  className="px-3 py-2 rounded-xl transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: '#e05555', color: '#fff' }}
+                  title="停止"
+                >
+                  <Square className="w-4 h-4" fill="#fff" />
+                </button>
+              ) : (
+                <button
+                  onClick={sendMessage}
+                  disabled={!input.trim()}
+                  className="px-3 py-2 rounded-xl disabled:opacity-40 transition-opacity"
+                  style={{ backgroundColor: '#4abf79', color: '#22211A' }}
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              )}
             </div>
             <p className="text-center mt-1" style={{ color: '#444', fontSize: '10px' }}>
-              Enter で送信 · Shift+Enter で改行
+              {loading ? '生成中… 停止ボタンでキャンセルできます' : 'Enter で送信 · Shift+Enter で改行'}
             </p>
           </div>
           </div>

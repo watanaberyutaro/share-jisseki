@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getShelaSnapshot, formatSnapshot, answerFromSnapshot } from '@/lib/shela-data'
+import { searchKnowledge, formatKnowledgeAnswer } from '@/lib/knowledge-search'
 
 export const dynamic = 'force-dynamic'
 // gpt-oss系モデルの生成が遅いため、関数の最大実行時間を延ばす（Vercelのタイムアウト対策）
@@ -243,6 +244,18 @@ export async function POST(request: NextRequest) {
         }
       } catch (e) {
         console.error('SHELA data fetch error:', e)
+      }
+    }
+
+    // シェアナレッジ（知恵袋）を柔軟検索し、関連があれば即提示（言い回しが違っても拾う）
+    if (!isDataQuery) {
+      try {
+        const hits = await searchKnowledge(lastMessage)
+        if (hits.length > 0) {
+          return NextResponse.json({ content: formatKnowledgeAnswer(hits), searchUsed: false })
+        }
+      } catch (e) {
+        console.error('Knowledge search error:', e)
       }
     }
 

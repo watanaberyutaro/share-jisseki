@@ -1,8 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getShelaSnapshot, formatSnapshot, answerFromSnapshot } from '@/lib/shela-data'
 
 export const dynamic = 'force-dynamic'
 // gpt-oss系モデルの生成が遅いため、関数の最大実行時間を延ばす（Vercelのタイムアウト対策）
 export const maxDuration = 60
+
+// SHELA内の実データ質問を検知するキーワード
+const DATA_KEYWORDS = [
+  'ランキング', 'トップ', '何位', '順位', 'ベスト', '上位',
+  '実績', '成績', '数字', 'ID係数', 'ID数', 'id係数',
+  'MNP', 'mnp', '新規', 'セルアップ', 'CU', 'cu',
+  '件数', '何件', '合計', '平均', '達成',
+  '会場別', '商流別', '一次', '二次', '今月', '先月',
+  '一番', '誰が',
+]
+
+// データ提供時のルール（実データを根拠に答えさせる）
+const DATA_GUARD_WITH_DATA = `
+【データ回答ルール（厳守）】
+- 下記に提供された「SHELA実績データ」を唯一の根拠として、具体的な数値で答えること。
+- データにない数値は推測せず、「そのデータは持っていません」と正直に伝えること。
+- 数値は正確に引用し、勝手に増減させないこと。`
+
+// データ未提供時のルール（推測数値を作らせない）
+const DATA_GUARD_NO_DATA = `
+【データに関する正直ルール（厳守）】
+- SHELA内の実際の数字を今回は取得できませんでした。推測やそれらしい数字を絶対に作らないこと。
+- 「その月・条件の実データが見つかりませんでした」と正直に伝え、一般的な考え方やアドバイスに留めること。`
+
+// 対象の年月を判定（デフォルトは当月、「先月」「N月」に対応）
+function detectMonth(message: string): { year: number; month: number } {
+  const now = new Date()
+  let year = now.getFullYear()
+  let month = now.getMonth() + 1
+  if (/先月/.test(message)) {
+    month -= 1
+    if (month < 1) { month = 12; year -= 1 }
+  }
+  const m = message.match(/(\d{1,2})月/)
+  if (m) {
+    const mm = parseInt(m[1], 10)
+    if (mm >= 1 && mm <= 12) month = mm
+  }
+  return { year, month }
+}
 
 const SEARCH_KEYWORDS = [
   '調べて', '検索して', '最新', 'ニュース', 'とは', '知りたい',
@@ -133,11 +174,6 @@ const SYSTEM_PROMPT = `あなたは外販イベント実績管理アプリ「SHE
 - 情報や助言は「結論 → 理由 → 次のアクション」の順で簡潔に。
 - ミスや悪い数字を指摘するときも責めず、次に伸ばす視点で伝える。
 
-【データに関する正直ルール（厳守）】
-- SHELA内の実際の数字（実績・達成率・ID係数・スタッフ別成績・LTV・特定の月や人の数値など）にはまだアクセスできません。
-- そうした具体的な数値を聞かれたら、推測やそれらしい数字を絶対に作らず、正直に「実データ連携はまだ準備中で、具体的な数値はお答えできません」と伝えること。
-- 一般的な考え方・分析観点・アドバイスは答えてよい。
-
 【返答の長さ（最重要・厳守）】
 - 挨拶・雑談・お礼など軽い会話は「1文だけ」で返す。前置きや補足を一切足さない。
 - 質問への回答も原則2文以内。長い説明が必要な場合のみ最大3文。
@@ -179,8 +215,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ content: canned, searchUsed: false })
     }
 
-    // Web検索が必要か判定
-    const needsSearch = SEARCH_KEYWORDS.some((k: string) => lastMessage.includes(k))
+    // SHELA内の実データ質問の処理
+    const isDataQuery = DATA_KEYWORDS.some((k: string) => lastMessage.includes(k))
+    let dataContext = ''
+    let dataGuard = ''
+    if (isDataQuery) {
+      dataGuard = DATA_GUARD_NO_DATA
+      try {
+        const { month } = detectMonth(lastMessage)
+        const { year } = detectMonth(lastMessage)
+        const snap = await getShelaSnapshot(year, month)
+        if (snap) {
+          // よくある構造化質問はモデルを使わず即答（高速・正確・トークンゼロ）
+          const direct = answerFromSnapshot(lastMessage, snap)
+          if (direct) {
+            return NextResponse.json({ content: direct, searchUsed: false })
+          }
+          // 構造化できない分析質問はデータを根拠としてモデルに渡す
+          dataContext = '\n\n' + formatSnapshot(snap)
+          dataGuard = DATA_GUARD_WITH_DATA
+        } else {
+          // 対象月のデータなし → 正直に即答
+          return NextResponse.json({
+            content: `[doubt]${month}月のSHELA実績データが見つかりませんでした。別の月や条件で聞いてみてください。`,
+            searchUsed: false,
+          })
+        }
+      } catch (e) {
+        console.error('SHELA data fetch error:', e)
+      }
+    }
+
+    // Web検索が必要か判定（データ質問のときは検索しない）
+    const needsSearch = !isDataQuery && SEARCH_KEYWORDS.some((k: string) => lastMessage.includes(k))
     let searchContext = ''
 
     if (needsSearch && process.env.TAVILY_API_KEY) {
@@ -211,7 +278,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const systemContent = SYSTEM_PROMPT + searchContext
+    const systemContent = SYSTEM_PROMPT + dataGuard + dataContext + searchContext
 
     const gatewayRes = await fetch(`${process.env.AI_GATEWAY_URL}/api/v1/chat`, {
       method: 'POST',

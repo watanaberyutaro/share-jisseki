@@ -73,6 +73,9 @@ const SEARCH_KEYWORDS = [
   'どうやって', '方法', '教えて', '何？', 'なに？', 'いつ', 'どこ',
 ]
 
+// 応答に困ったときに提示する定型質問の候補
+const FALLBACK_SUGGESTIONS = ['今月のランキング', '今月の全体実績', '営業のコツ教えて', 'ドコモの予約番号']
+
 // 定型あいさつ・雑談は即答（モデルを呼ばずゼロ秒で返す）
 // ローマ字での誤送信（例: konnichiha）にも対応
 const CANNED_REPLIES: { test: RegExp; replies: string[]; suggestions?: string[] }[] = [
@@ -254,6 +257,14 @@ const CANNED_REPLIES: { test: RegExp; replies: string[]; suggestions?: string[] 
     // 短い相槌・フィラー（会話が一往復で終わらないよう、続きを促す応答＋候補チップ）
     test: /^(ふ[ーうん]*ん|ふん|へ[ーぇえ〜]+|ほ[ーうお〜]+|なるほど(ね|な)?|そう(ですね|だね|なんだ|か|ね)|そっか|そっかー|はい|はーい|うん(うん)?|ええ|了解|りょうかい|承知(しました)?|わかった|分かった|お?っ?け[ー〜]?|ok|okay|オッケー|おっけ[ー〜]?|ふむ+|だよね|ですね|まあね|確かに|たしかに|なるほどです)[。、！!？?〜ー～ｗw\s]*$/i,
     replies: [
+      // シンプルな相槌返し
+      '[normal2]そうですね！',
+      '[normal]はい！',
+      '[support]うんうん！',
+      '[normal2]なるほどです！',
+      '[love]ですね！',
+      '[normal]ふふ、そうなんです。',
+      // 会話を続ける応答
       '[normal]ふふ、他にも気になることはありますか？何でも聞いてくださいね！',
       '[support]いいですね！次は何を見てみましょうか？',
       '[guidance]もっと知りたいことがあれば、いつでもどうぞ！',
@@ -268,8 +279,6 @@ const CANNED_REPLIES: { test: RegExp; replies: string[]; suggestions?: string[] 
       '[shy]えへへ、そう言ってもらえると照れます。他にご用はありますか？',
       '[sneaky_snack]まったりしますね〜。暇つぶしに面白い話でもします？',
       '[normal2]はい！次のアクション、一緒に決めましょうか？',
-      '[support]何でも遠慮なくどうぞ！SHELAはずっとここにいますよ。',
-      '[proud]いいお返事ですね！では、次に気になることを教えてください。',
     ],
     suggestions: ['今月のランキング', '営業のコツ教えて', '面白い話して'],
   },
@@ -487,16 +496,24 @@ export async function POST(request: NextRequest) {
 
     const data = await gatewayRes.json()
     const raw = data.choices?.[0]?.message?.content ?? ''
-    // 推論モデルが中身を空で返すことがあるため、空・空白のみのときは案内文にフォールバック
-    const content = raw.trim().length > 0
-      ? raw
-      : '[doubt]うまく答えをまとめきれませんでした。もう一度、少し言い方を変えて聞いてもらえますか？'
 
-    return NextResponse.json({ content, searchUsed: needsSearch })
+    // 応答に困った（空・空白のみ）場合は、定型質問の候補を添えて会話を続ける
+    if (raw.trim().length === 0) {
+      return NextResponse.json({
+        content: '[normal2]うまくお答えできませんでした…。他にも聞きたいことはありますか？下から選ぶこともできますよ！',
+        searchUsed: false,
+        suggestions: FALLBACK_SUGGESTIONS,
+      })
+    }
+
+    return NextResponse.json({ content: raw, searchUsed: needsSearch })
   } catch (error) {
     console.error('Chat API error:', error)
     return Response.json(
-      { content: '[disappointed]エラーが発生しました。もう一度試してください。' },
+      {
+        content: '[disappointed]うまくお答えできませんでした…。他にも聞きたいことはありますか？',
+        suggestions: FALLBACK_SUGGESTIONS,
+      },
       { status: 500 }
     )
   }

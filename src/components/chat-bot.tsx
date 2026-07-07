@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Search, Square } from 'lucide-react'
+import { X, Send, Search, Square, RotateCcw } from 'lucide-react'
 
 type Emotion =
   | 'normal' | 'normal2' | 'support' | 'dance' | 'proud'
@@ -347,8 +347,9 @@ export function ChatBot() {
             background: 'none',
             border: 'none',
             padding: 0,
-            bottom: isMobile ? '16px' : '24px',
-            right: isMobile ? '12px' : '24px',
+            // モバイルは下部ナビ(高さ64px)、PCは余白を避けて配置
+            bottom: isMobile ? '76px' : '28px',
+            right: isMobile ? '12px' : '28px',
           }}
           aria-label="SHELAチャット"
         >
@@ -371,7 +372,7 @@ export function ChatBot() {
           className="fixed z-50 flex flex-col items-center"
           style={{
             width: size ? `${size.width}px` : (isMobile ? 'min(280px, calc(100vw - 16px))' : 'min(360px, calc(100vw - 16px))'),
-            ...(position ? { left: position.x, top: position.y } : { bottom: isMobile ? '12px' : '16px', right: isMobile ? '8px' : '8px' }),
+            ...(position ? { left: position.x, top: position.y } : { bottom: isMobile ? '72px' : '16px', right: '8px' }),
             cursor: isDragging ? 'grabbing' : 'default',
             userSelect: 'none',
           }}
@@ -402,7 +403,7 @@ export function ChatBot() {
             className="w-full flex flex-col rounded-2xl overflow-hidden"
             style={{
               position: 'relative',
-              height: size ? `${size.height}px` : (isMobile ? 'min(360px, calc(100dvh - 140px))' : 'min(480px, calc(100dvh - 180px))'),
+              height: size ? `${size.height}px` : (isMobile ? 'min(360px, calc(100dvh - 210px))' : 'min(480px, calc(100dvh - 180px))'),
               backgroundColor: '#1a1a16',
               border: '1px solid #2a2a20',
               boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(74,191,121,0.1)',
@@ -447,6 +448,17 @@ export function ChatBot() {
               <span className="text-xs" style={{ color: '#4abf79', opacity: 0.8 }}>AI アシスタント</span>
             </div>
             <div className="flex items-center gap-2">
+              {messages.length > 0 && (
+                <button
+                  onMouseDown={e => e.stopPropagation()}
+                  onClick={() => { stopGeneration(); setMessages([]) }}
+                  className="flex items-center gap-0.5 transition-opacity text-xs px-1 rounded opacity-80 hover:opacity-100"
+                  style={{ color: '#7ee0a3' }}
+                  title="最初の選択肢に戻る"
+                >
+                  <RotateCcw className="w-3 h-3" />最初へ
+                </button>
+              )}
               <button
                 onMouseDown={e => e.stopPropagation()}
                 onClick={() => { setPosition(null); setSize(null) }}
@@ -561,7 +573,7 @@ export function ChatBot() {
             className="px-3 py-3 flex-shrink-0"
             style={{ backgroundColor: '#22211A', borderTop: '1px solid #2a2a20' }}
           >
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <input
                 ref={inputRef}
                 type="text"
@@ -570,7 +582,7 @@ export function ChatBot() {
                 onKeyDown={handleKeyDown}
                 placeholder="メッセージを入力..."
                 disabled={loading}
-                className="flex-1 px-3 py-2 rounded-xl text-sm outline-none disabled:opacity-50"
+                className="flex-1 min-w-0 px-3 py-2 rounded-xl text-sm outline-none disabled:opacity-50"
                 style={{
                   backgroundColor: '#2a2a20',
                   color: '#e0e0d8',
@@ -580,7 +592,7 @@ export function ChatBot() {
               {loading ? (
                 <button
                   onClick={stopGeneration}
-                  className="px-3 py-2 rounded-xl transition-opacity hover:opacity-90"
+                  className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl transition-opacity hover:opacity-90"
                   style={{ backgroundColor: '#e05555', color: '#fff' }}
                   title="停止"
                 >
@@ -590,7 +602,7 @@ export function ChatBot() {
                 <button
                   onClick={() => sendMessage()}
                   disabled={!input.trim()}
-                  className="px-3 py-2 rounded-xl disabled:opacity-40 transition-opacity"
+                  className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl disabled:opacity-40 transition-opacity"
                   style={{ backgroundColor: '#4abf79', color: '#22211A' }}
                 >
                   <Send className="w-4 h-4" />

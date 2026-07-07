@@ -47,6 +47,30 @@ function parseResponse(raw: string): { emotion: Emotion; text: string } {
   return { emotion: 'normal', text: raw.trim() }
 }
 
+// [表示名](URL) 形式のリンクをクリック可能なアンカーに変換して描画
+function renderContent(text: string): React.ReactNode {
+  const regex = /\[([^\]]+)\]\(([^)]+)\)/g
+  const nodes: React.ReactNode[] = []
+  let last = 0
+  let key = 0
+  let m: RegExpExecArray | null
+  while ((m = regex.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index))
+    nodes.push(
+      <a
+        key={key++}
+        href={m[2]}
+        style={{ color: '#7ee0a3', textDecoration: 'underline', fontWeight: 600 }}
+      >
+        {m[1]}
+      </a>
+    )
+    last = regex.lastIndex
+  }
+  if (last < text.length) nodes.push(text.slice(last))
+  return nodes.length > 0 ? nodes : text
+}
+
 export function ChatBot() {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
@@ -452,7 +476,7 @@ export function ChatBot() {
                       : '16px 16px 16px 4px',
                   }}
                 >
-                  {msg.content}
+                  {renderContent(msg.content)}
                   {msg.searchUsed && msg.role === 'assistant' && (
                     <div className="flex items-center gap-1 mt-1 opacity-50">
                       <Search className="w-3 h-3" />

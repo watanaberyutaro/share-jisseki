@@ -32,6 +32,7 @@ export interface ShelaSnapshot {
   staff: StaffAgg[]
   venues: GroupAgg[]
   tiers: GroupAgg[]
+  venueEvents: Record<string, { id: string; date: string }[]>
   totals: {
     idScore: number
     mnpCount: number
@@ -70,7 +71,7 @@ export async function getShelaSnapshot(year: number, month: number): Promise<She
 
   const { data: events, error: eventsError } = await supabase
     .from('events')
-    .select('id, venue, agency_tier')
+    .select('id, venue, agency_tier, start_date')
     .eq('year', year)
     .eq('month', month)
     .gte('start_date', '2026-06-02')
@@ -80,6 +81,14 @@ export async function getShelaSnapshot(year: number, month: number): Promise<She
 
   const eventMap = new Map(events.map(e => [e.id, e]))
   const eventIds = events.map(e => e.id)
+
+  // 会場 → イベント（id・日付）のマップ
+  const venueEvents: Record<string, { id: string; date: string }[]> = {}
+  for (const e of events) {
+    const v = e.venue || '不明'
+    if (!venueEvents[v]) venueEvents[v] = []
+    venueEvents[v].push({ id: e.id, date: (e.start_date || '').slice(0, 10) })
+  }
 
   const EVENT_CHUNK = 500
   const allSP: any[] = []
@@ -175,7 +184,7 @@ export async function getShelaSnapshot(year: number, month: number): Promise<She
   const venues = Array.from(venueMap.values()).sort((a, b) => b.idScore - a.idScore)
   const tiers = Array.from(tierMap.values()).sort((a, b) => b.idScore - a.idScore)
 
-  return { year, month, staff, venues, tiers, totals: t }
+  return { year, month, staff, venues, tiers, totals: t, venueEvents }
 }
 
 const r1 = (v: number) => Math.round(v * 10) / 10
@@ -268,6 +277,22 @@ export function answerFromSnapshot(message: string, snap: ShelaSnapshot): string
   // --- 新規 ---
   if (/新規/.test(message)) {
     return `[guidance]${period}の新規は合計${T.newCount}件です。`
+  }
+
+  // --- 特定の会場名を指定（〇〇のイベント実績 → 実績＋詳細ページリンク） ---
+  for (const v of snap.venues) {
+    if (!v.name || v.name === '不明') continue
+    // 会場名フル一致、または特徴的なトークン（漢字・カタカナ3文字以上）で一致判定
+    const tokens = v.name.match(/[ァ-ヶー]{3,}|[一-龠々]{3,}/g) || []
+    const hit = message.includes(v.name) || tokens.some(tok => message.includes(tok))
+    if (hit) {
+      const rank = snap.venues.findIndex(x => x.name === v.name) + 1
+      const evs = snap.venueEvents[v.name] || []
+      const links = evs.slice(0, 3)
+        .map(e => `\n・[${e.date} の詳細を見る](/view/${e.id})`)
+        .join('')
+      return `[guidance]${period}の${v.name}は、ID係数${r1(v.idScore)}pt（会場${rank}位）・MNP${v.mnpCount}件・新規${v.newCount}件・LTV${v.ltv}件です。${links}`
+    }
   }
 
   // --- 会場別（良い/悪い） ---

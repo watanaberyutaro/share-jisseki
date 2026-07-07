@@ -60,32 +60,48 @@ export function ChatBot() {
   const [isResizing, setIsResizing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const inactivityRef = useRef<ReturnType<typeof setTimeout>>()
   const containerRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const cancelledRef = useRef(false)
   const chatBoxRef = useRef<HTMLDivElement>(null)
   const dragStartRef = useRef<{ mouseX: number; mouseY: number; elemX: number; elemY: number } | null>(null)
   const resizeStartRef = useRef<{ mouseX: number; mouseY: number; width: number; height: number } | null>(null)
+  const lastActivityRef = useRef<number>(Date.now())
 
+  // 操作があるたびに最終操作時刻を更新（待機表情のリセット用）
   const resetInactivity = useCallback(() => {
-    if (inactivityRef.current) clearTimeout(inactivityRef.current)
-    inactivityRef.current = setTimeout(() => {
-      setEmotion('sleep')
-    }, 30000)
+    lastActivityRef.current = Date.now()
   }, [])
 
   useEffect(() => {
     if (isOpen) {
       resetInactivity()
       setTimeout(() => inputRef.current?.focus(), 100)
-    } else {
-      if (inactivityRef.current) clearTimeout(inactivityRef.current)
-    }
-    return () => {
-      if (inactivityRef.current) clearTimeout(inactivityRef.current)
     }
   }, [isOpen, resetInactivity])
+
+  // 待機中は表情を短い間隔で多彩に巡回させて“生きている”感を出す
+  useEffect(() => {
+    if (!isOpen) return
+    const IDLE_POOL: Emotion[] = [
+      'normal', 'normal2', 'support', 'proud', 'guidance', 'love',
+      'shy', 'surprised', 'sneaky_snack', 'dance', 'hero_pose', 'doubt',
+    ]
+    const id = setInterval(() => {
+      if (loading) return // 生成中は考え中の表情を維持
+      const idleFor = Date.now() - lastActivityRef.current
+      if (idleFor < 2500) return // 直後は返答の表情を保持
+      if (idleFor > 90000) { setEmotion('sleep'); return } // 長時間放置で居眠り
+      setEmotion(prev => {
+        let next = prev
+        for (let i = 0; i < 6 && next === prev; i++) {
+          next = IDLE_POOL[Math.floor(Math.random() * IDLE_POOL.length)]
+        }
+        return next
+      })
+    }, 2500)
+    return () => clearInterval(id)
+  }, [isOpen, loading])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

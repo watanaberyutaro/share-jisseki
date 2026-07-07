@@ -75,7 +75,7 @@ const SEARCH_KEYWORDS = [
 
 // 定型あいさつ・雑談は即答（モデルを呼ばずゼロ秒で返す）
 // ローマ字での誤送信（例: konnichiha）にも対応
-const CANNED_REPLIES: { test: RegExp; replies: string[] }[] = [
+const CANNED_REPLIES: { test: RegExp; replies: string[]; suggestions?: string[] }[] = [
   {
     test: /^(おはよ|オハヨ|good morning|ohayou?|ohayo-?)/i,
     replies: [
@@ -250,14 +250,40 @@ const CANNED_REPLIES: { test: RegExp; replies: string[] }[] = [
       '[hero_pose]即決を求めすぎないこと。「今日決めなくてもOK」の余裕が、逆に信頼と成約を生みます。',
     ],
   },
+  {
+    // 短い相槌・フィラー（会話が一往復で終わらないよう、続きを促す応答＋候補チップ）
+    test: /^(ふ[ーうん]*ん|ふん|へ[ーぇえ〜]+|ほ[ーうお〜]+|なるほど(ね|な)?|そう(ですね|だね|なんだ|か|ね)|そっか|そっかー|はい|はーい|うん(うん)?|ええ|了解|りょうかい|承知(しました)?|わかった|分かった|お?っ?け[ー〜]?|ok|okay|オッケー|おっけ[ー〜]?|ふむ+|だよね|ですね|まあね|確かに|たしかに|なるほどです)[。、！!？?〜ー～ｗw\s]*$/i,
+    replies: [
+      '[normal]ふふ、他にも気になることはありますか？何でも聞いてくださいね！',
+      '[support]いいですね！次は何を見てみましょうか？',
+      '[guidance]もっと知りたいことがあれば、いつでもどうぞ！',
+      '[sneaky_snack]ふむふむ。ところで、今日の調子はどうですか？',
+      '[love]お話できて嬉しいです！他にもお手伝いできることはありますか？',
+      '[proud]了解です！実績のこともナレッジのことも、お任せください！',
+      '[normal2]なるほど。何か気になる数字、見てみますか？',
+      '[support]その調子です！続けて何かありますか？',
+      '[dance]よし！せっかくなので、今月のランキングでも見てみますか？',
+      '[normal]ですね！ちなみに、営業のコツもお伝えできますよ？',
+      '[guidance]承知しました。会場別やスタッフ別でも見られますよ！',
+      '[shy]えへへ、そう言ってもらえると照れます。他にご用はありますか？',
+      '[sneaky_snack]まったりしますね〜。暇つぶしに面白い話でもします？',
+      '[normal2]はい！次のアクション、一緒に決めましょうか？',
+      '[support]何でも遠慮なくどうぞ！SHELAはずっとここにいますよ。',
+      '[proud]いいお返事ですね！では、次に気になることを教えてください。',
+    ],
+    suggestions: ['今月のランキング', '営業のコツ教えて', '面白い話して'],
+  },
 ]
 
-function getCannedReply(message: string): string | null {
+function getCannedReply(message: string): { content: string; suggestions?: string[] } | null {
   const trimmed = message.trim()
   if (trimmed.length > 20) return null // 長文は対象外（ローマ字対応で少し余裕を持たせる）
   for (const entry of CANNED_REPLIES) {
     if (entry.test.test(trimmed)) {
-      return entry.replies[Math.floor(Math.random() * entry.replies.length)]
+      return {
+        content: entry.replies[Math.floor(Math.random() * entry.replies.length)],
+        suggestions: entry.suggestions,
+      }
     }
   }
   return null
@@ -314,7 +340,7 @@ export async function POST(request: NextRequest) {
     // 定型あいさつ・雑談は即答（モデルを呼ばずゼロ秒）
     const canned = getCannedReply(lastMessage)
     if (canned) {
-      return NextResponse.json({ content: canned, searchUsed: false })
+      return NextResponse.json({ content: canned.content, searchUsed: false, suggestions: canned.suggestions })
     }
 
     // 直近のユーザー発話（会話の流れからの推測に使う）

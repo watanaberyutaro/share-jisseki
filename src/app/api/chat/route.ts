@@ -35,11 +35,13 @@ const DATA_GUARD_NO_DATA = `
 - SHELA内の実際の数字を今回は取得できませんでした。推測やそれらしい数字を絶対に作らないこと。
 - 「その月・条件の実データが見つかりませんでした」と正直に伝え、一般的な考え方やアドバイスに留めること。`
 
-// 対象の年月を判定（デフォルトは当月、「先月」「N月」に対応）
-function detectMonth(message: string): { year: number; month: number } {
+// 対象の期間を判定。「今月/今週/今日」は当年で判断。「先月」「N月」「今週/先週/N週」に対応。
+function detectPeriod(message: string): { year: number; month: number; week?: number } {
   const now = new Date()
-  let year = now.getFullYear()
+  let year = now.getFullYear() // 当年を基準
   let month = now.getMonth() + 1
+
+  // 月の判定
   if (/先月/.test(message)) {
     month -= 1
     if (month < 1) { month = 12; year -= 1 }
@@ -47,9 +49,23 @@ function detectMonth(message: string): { year: number; month: number } {
   const m = message.match(/(\d{1,2})月/)
   if (m) {
     const mm = parseInt(m[1], 10)
-    if (mm >= 1 && mm <= 12) month = mm
+    if (mm >= 1 && mm <= 12) month = mm // 年は当年のまま
   }
-  return { year, month }
+
+  // 週の判定（週番号 = 月内の週 = ceil(日/7)）
+  let week: number | undefined
+  const currentWeek = Math.ceil(now.getDate() / 7)
+  if (/今週/.test(message)) {
+    week = currentWeek
+  } else if (/先週/.test(message)) {
+    week = Math.max(1, currentWeek - 1)
+  }
+  const w = message.match(/(\d)\s*週/)
+  if (w) {
+    const ww = parseInt(w[1], 10)
+    if (ww >= 1 && ww <= 5) week = ww
+  }
+  return { year, month, week }
 }
 
 const SEARCH_KEYWORDS = [
@@ -235,15 +251,15 @@ export async function POST(request: NextRequest) {
     if (isDataQuery) {
       dataGuard = DATA_GUARD_NO_DATA
       try {
-        // 月の推測：現在の発話に月指定がなければ直近の発話から引き継ぐ
-        let monthSource = lastMessage
-        if (!/今月|先月|\d{1,2}月/.test(lastMessage)) {
+        // 期間の推測：現在の発話に期間指定がなければ直近の発話から引き継ぐ
+        let periodSource = lastMessage
+        if (!/今月|先月|今週|先週|今日|\d{1,2}月|\d\s*週/.test(lastMessage)) {
           for (let i = priorUserTexts.length - 1; i >= 0; i--) {
-            if (/今月|先月|\d{1,2}月/.test(priorUserTexts[i])) { monthSource = priorUserTexts[i]; break }
+            if (/今月|先月|今週|先週|\d{1,2}月|\d\s*週/.test(priorUserTexts[i])) { periodSource = priorUserTexts[i]; break }
           }
         }
-        const { year, month } = detectMonth(monthSource)
-        const snap = await getShelaSnapshot(year, month)
+        const { year, month, week } = detectPeriod(periodSource)
+        const snap = await getShelaSnapshot(year, month, week)
         if (snap) {
           // 主語（スタッフ/会場）の推測：指示語や短い追い質問なら直近の主語を補う
           const staffHit = (text: string, name: string) => {
@@ -272,9 +288,10 @@ export async function POST(request: NextRequest) {
           dataContext = '\n\n' + formatSnapshot(snap)
           dataGuard = DATA_GUARD_WITH_DATA
         } else {
-          // 対象月のデータなし → 正直に即答
+          // 対象期間のデータなし → 正直に即答
+          const label = week ? `${month}月第${week}週` : `${month}月`
           return NextResponse.json({
-            content: `[doubt]${month}月のSHELA実績データが見つかりませんでした。別の月や条件で聞いてみてください。`,
+            content: `[doubt]${label}のSHELA実績データが見つかりませんでした。別の期間や条件で聞いてみてください。`,
             searchUsed: false,
           })
         }

@@ -29,6 +29,7 @@ export interface GroupAgg {
 export interface ShelaSnapshot {
   year: number
   month: number
+  week?: number
   staff: StaffAgg[]
   venues: GroupAgg[]
   tiers: GroupAgg[]
@@ -63,19 +64,21 @@ const SP_COLUMNS = `id, staff_name, event_id,
 
 const n = (v: unknown) => Number(v || 0)
 
-export async function getShelaSnapshot(year: number, month: number): Promise<ShelaSnapshot | null> {
+export async function getShelaSnapshot(year: number, month: number, week?: number): Promise<ShelaSnapshot | null> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const { data: events, error: eventsError } = await supabase
+  let eventsQuery = supabase
     .from('events')
     .select('id, venue, agency_tier, start_date')
     .eq('year', year)
     .eq('month', month)
     .gte('start_date', '2026-06-02')
     .limit(10000)
+  if (week) eventsQuery = eventsQuery.eq('week_number', week)
+  const { data: events, error: eventsError } = await eventsQuery
 
   if (eventsError || !events || events.length === 0) return null
 
@@ -184,7 +187,7 @@ export async function getShelaSnapshot(year: number, month: number): Promise<She
   const venues = Array.from(venueMap.values()).sort((a, b) => b.idScore - a.idScore)
   const tiers = Array.from(tierMap.values()).sort((a, b) => b.idScore - a.idScore)
 
-  return { year, month, staff, venues, tiers, totals: t, venueEvents }
+  return { year, month, week, staff, venues, tiers, totals: t, venueEvents }
 }
 
 const r1 = (v: number) => Math.round(v * 10) / 10
@@ -206,7 +209,7 @@ const LTV_ITEMS: { test: RegExp; label: string; key: keyof ShelaSnapshot['totals
  * 該当がなければ null を返し、呼び出し側でLLMにデータを渡す。
  */
 export function answerFromSnapshot(message: string, snap: ShelaSnapshot): string | null {
-  const period = `${snap.year}年${snap.month}月`
+  const period = snap.week ? `${snap.year}年${snap.month}月第${snap.week}週` : `${snap.year}年${snap.month}月`
   const T = snap.totals
 
   // --- スタッフ比較（〇〇と△△を比べて） ---

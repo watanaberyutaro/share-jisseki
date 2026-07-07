@@ -22,17 +22,38 @@ const STOPWORDS = new Set([
   'です', 'ます', 'こと', '場合', '時に', '何か', '知り', '知りたい',
 ])
 
+// 表記ゆれ・略称・同義語（片方を含むと両方で検索する）
+const SYNONYMS: Record<string, string[]> = {
+  'アハモ': ['ahamo', 'アハモ'],
+  'ahamo': ['ahamo', 'アハモ'],
+  'ワイモバ': ['ワイモバ', 'ワイモバイル', 'ymobile'],
+  'ワイモバイル': ['ワイモバ', 'ワイモバイル', 'ymobile'],
+  'ソフトバンク': ['ソフトバンク', 'softbank', 'SB'],
+  'softbank': ['ソフトバンク', 'softbank', 'SB'],
+  'ドコモ': ['ドコモ', 'docomo'],
+  'docomo': ['ドコモ', 'docomo'],
+  '予番': ['予番', '予約番号', 'よばん'],
+  '予約番号': ['予番', '予約番号', 'よばん'],
+  'じぶん銀行': ['じぶん銀行', '自分銀行', 'au自分銀行'],
+  'クレカ': ['クレカ', 'クレジット'],
+  '重説': ['重説', '重要事項説明'],
+  '重要事項説明': ['重説', '重要事項説明'],
+  '未納': ['未納', '滞納'],
+}
+
 export function extractKeywords(text: string): string[] {
   const matches = text.match(/[ァ-ヶー]{2,}|[一-龠々〆ヵヶ]{2,}|[A-Za-z0-9]{2,}/g) || []
   const seen = new Set<string>()
   const result: string[] = []
   for (const m of matches) {
     if (STOPWORDS.has(m)) continue
-    if (seen.has(m)) continue
-    seen.add(m)
-    result.push(m)
+    // 同義語を展開して検索対象を広げる
+    const expanded = SYNONYMS[m] || [m]
+    for (const e of expanded) {
+      if (!seen.has(e)) { seen.add(e); result.push(e) }
+    }
   }
-  return result.slice(0, 8)
+  return result.slice(0, 12)
 }
 
 const STATUS_LABEL: Record<string, string> = {

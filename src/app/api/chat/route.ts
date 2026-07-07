@@ -222,6 +222,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ content: canned, searchUsed: false })
     }
 
+    // 直近のユーザー発話（会話の流れからの推測に使う）
+    const priorUserTexts: string[] = messages
+      .slice(0, -1)
+      .filter((m: { role: string }) => m.role === 'user')
+      .map((m: { content: string }) => String(m.content || ''))
+
     // SHELA内の実データ質問の処理（データ語 or 月指定を含む）
     const isDataQuery = /\d{1,2}月/.test(lastMessage) || DATA_KEYWORDS.some((k: string) => lastMessage.includes(k))
     let dataContext = ''
@@ -229,12 +235,36 @@ export async function POST(request: NextRequest) {
     if (isDataQuery) {
       dataGuard = DATA_GUARD_NO_DATA
       try {
-        const { month } = detectMonth(lastMessage)
-        const { year } = detectMonth(lastMessage)
+        // 月の推測：現在の発話に月指定がなければ直近の発話から引き継ぐ
+        let monthSource = lastMessage
+        if (!/今月|先月|\d{1,2}月/.test(lastMessage)) {
+          for (let i = priorUserTexts.length - 1; i >= 0; i--) {
+            if (/今月|先月|\d{1,2}月/.test(priorUserTexts[i])) { monthSource = priorUserTexts[i]; break }
+          }
+        }
+        const { year, month } = detectMonth(monthSource)
         const snap = await getShelaSnapshot(year, month)
         if (snap) {
+          // 主語（スタッフ/会場）の推測：指示語や短い追い質問なら直近の主語を補う
+          const staffHit = (text: string, name: string) => {
+            const fam = name.split(/[\s　]/)[0]
+            return text.includes(name) || (fam.length >= 2 && text.includes(fam))
+          }
+          const hasSubject = snap.staff.some(s => staffHit(lastMessage, s.staffName)) ||
+            snap.venues.some(v => v.name && v.name !== '不明' && lastMessage.includes(v.name))
+          let effective = lastMessage
+          if (!hasSubject && (/その|この|あの|さっき|同じ|同|彼|彼女|そこ|前の/.test(lastMessage) || lastMessage.length <= 12)) {
+            for (let i = priorUserTexts.length - 1; i >= 0 && effective === lastMessage; i--) {
+              const prev = priorUserTexts[i]
+              const s = snap.staff.find(st => staffHit(prev, st.staffName))
+              if (s) { effective = `${s.staffName} ${lastMessage}`; break }
+              const v = snap.venues.find(vv => vv.name && vv.name !== '不明' && prev.includes(vv.name))
+              if (v) { effective = `${v.name} ${lastMessage}`; break }
+            }
+          }
+
           // よくある構造化質問はモデルを使わず即答（高速・正確・トークンゼロ）
-          const direct = answerFromSnapshot(lastMessage, snap)
+          const direct = answerFromSnapshot(effective, snap)
           if (direct) {
             return NextResponse.json({ content: direct, searchUsed: false })
           }

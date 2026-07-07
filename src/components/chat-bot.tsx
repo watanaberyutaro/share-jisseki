@@ -34,7 +34,17 @@ interface Message {
   content: string
   emotion?: Emotion
   searchUsed?: boolean
+  suggestions?: string[]
 }
+
+// 起動時に出すジャンル別の質問候補
+const STARTER_GROUPS: { genre: string; items: string[] }[] = [
+  { genre: '📊 実績・進捗', items: ['今月の全体実績は？', '今週どう？', '今月の達成状況'] },
+  { genre: '🏆 ランキング', items: ['今月のランキングは？', 'MNPランキング', '伸び悩んでるスタッフは？'] },
+  { genre: '📍 会場・スタッフ', items: ['スタッフ別で見て', '一番良い会場は？', '会場別ランキング'] },
+  { genre: '💰 商材・LTV', items: ['今月のMNP取れてる？', 'LTVどう？', 'クレカ取れてる？'] },
+  { genre: '📚 ナレッジ検索', items: ['ドコモの予約番号', 'アハモのエラー対応', 'ワイモバの未納'] },
+]
 
 function parseResponse(raw: string): { emotion: Emotion; text: string } {
   const match = raw.match(/^\[([a-z0-9_]+)\]([\s\S]*)$/)
@@ -245,10 +255,11 @@ export function ChatBot() {
     resetInactivity()
   }
 
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return
+  const sendMessage = async (overrideText?: string) => {
+    const text0 = (overrideText ?? input).trim()
+    if (!text0 || loading) return
 
-    const userMsg: Message = { role: 'user', content: input.trim() }
+    const userMsg: Message = { role: 'user', content: text0 }
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
     setInput('')
@@ -290,6 +301,14 @@ export function ChatBot() {
         setMessages(prev => {
           const updated = [...prev]
           updated[updated.length - 1] = { ...updated[updated.length - 1], content: text.slice(0, i) }
+          return updated
+        })
+      }
+      // 「これかな？」候補があれば付与
+      if (!cancelledRef.current && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+        setMessages(prev => {
+          const updated = [...prev]
+          updated[updated.length - 1] = { ...updated[updated.length - 1], suggestions: data.suggestions }
           return updated
         })
       }
@@ -458,9 +477,28 @@ export function ChatBot() {
             style={{ backgroundColor: '#1a1a16' }}
           >
             {messages.length === 0 && (
-              <div className="text-center py-6 space-y-1">
-                <p className="text-sm font-medium" style={{ color: '#4abf79' }}>こんにちは！SHELAです。</p>
-                <p className="text-xs" style={{ color: '#666' }}>なんでも聞いてください！</p>
+              <div className="py-3 space-y-3">
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-medium" style={{ color: '#4abf79' }}>こんにちは！SHELAです。</p>
+                  <p className="text-xs" style={{ color: '#888' }}>下から選ぶか、そのまま入力してもOKです。</p>
+                </div>
+                {STARTER_GROUPS.map(group => (
+                  <div key={group.genre} className="space-y-1.5">
+                    <p className="text-xs font-semibold" style={{ color: '#7ee0a3' }}>{group.genre}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {group.items.map(item => (
+                        <button
+                          key={item}
+                          onClick={() => sendMessage(item)}
+                          className="px-2.5 py-1 rounded-full text-xs transition-colors"
+                          style={{ backgroundColor: '#2a2a20', color: '#d8d8cf', border: '1px solid #3a3a30' }}
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -481,6 +519,20 @@ export function ChatBot() {
                     <div className="flex items-center gap-1 mt-1 opacity-50">
                       <Search className="w-3 h-3" />
                       <span className="text-xs">Web検索を使用</span>
+                    </div>
+                  )}
+                  {msg.role === 'assistant' && msg.suggestions && msg.suggestions.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {msg.suggestions.map(sug => (
+                        <button
+                          key={sug}
+                          onClick={() => sendMessage(sug)}
+                          className="px-2.5 py-1 rounded-full text-xs transition-colors"
+                          style={{ backgroundColor: '#1a1a16', color: '#7ee0a3', border: '1px solid #4abf79' }}
+                        >
+                          {sug}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -536,7 +588,7 @@ export function ChatBot() {
                 </button>
               ) : (
                 <button
-                  onClick={sendMessage}
+                  onClick={() => sendMessage()}
                   disabled={!input.trim()}
                   className="px-3 py-2 rounded-xl disabled:opacity-40 transition-opacity"
                   style={{ backgroundColor: '#4abf79', color: '#22211A' }}

@@ -284,7 +284,20 @@ export async function POST(request: NextRequest) {
           if (direct) {
             return NextResponse.json({ content: direct, searchUsed: false })
           }
-          // 構造化できない分析質問はデータを根拠としてモデルに渡す
+          // 直接答えられない場合：分析質問はモデルへ、曖昧な質問は「これかな？」候補を提示
+          const analysisIntent = /分析|なぜ|理由|どうすれ|改善|提案|傾向|まとめ|対策|比べ|比較/.test(lastMessage)
+          if (!analysisIntent) {
+            const label = week ? `${month}月第${week}週` : `${month}月`
+            return NextResponse.json({
+              content: `[doubt]${label}のどれについて知りたいですか？下から選ぶか、具体的に聞いてくださいね。`,
+              searchUsed: false,
+              suggestions: [
+                `${label}のランキング`, `${label}の会場別`, `${label}のスタッフ別`,
+                `${label}のMNP`, `${label}のLTV`, `${label}の全体実績`,
+              ],
+            })
+          }
+          // 分析質問はデータを根拠としてモデルに渡す
           dataContext = '\n\n' + formatSnapshot(snap)
           dataGuard = DATA_GUARD_WITH_DATA
         } else {

@@ -14,6 +14,12 @@ const DATA_KEYWORDS = [
   '件数', '何件', '合計', '平均', '達成',
   '会場別', '商流別', '一次', '二次', '今月', '先月',
   '一番', '誰が',
+  // LTV・付帯項目
+  'LTV', 'ltv', '付帯', 'クレカ', 'クレジット', 'ゴールド',
+  'じぶん銀行', '銀行', '口座', '保証', 'OTT', '電気', 'ガス', 'ネットワーク',
+  // 比較・会場・スタッフ・良し悪し
+  '比べ', '比較', 'どっち', '会場', '現場', 'スタッフ', 'クローザー',
+  '強い', '弱い', '悪い', '伸び悩', '下位', 'ワースト',
 ]
 
 // データ提供時のルール（実データを根拠に答えさせる）
@@ -216,8 +222,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ content: canned, searchUsed: false })
     }
 
-    // SHELA内の実データ質問の処理
-    const isDataQuery = DATA_KEYWORDS.some((k: string) => lastMessage.includes(k))
+    // SHELA内の実データ質問の処理（データ語 or 月指定を含む）
+    const isDataQuery = /\d{1,2}月/.test(lastMessage) || DATA_KEYWORDS.some((k: string) => lastMessage.includes(k))
     let dataContext = ''
     let dataGuard = ''
     if (isDataQuery) {

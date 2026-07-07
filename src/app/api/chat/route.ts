@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
+// gpt-oss系モデルの生成が遅いため、関数の最大実行時間を延ばす（Vercelのタイムアウト対策）
+export const maxDuration = 60
 
 const SEARCH_KEYWORDS = [
   '調べて', '検索して', '最新', 'ニュース', 'とは', '知りたい',
@@ -233,8 +235,11 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await gatewayRes.json()
-    const content = data.choices?.[0]?.message?.content
-      ?? '[disappointed]うまく受信できませんでした。'
+    const raw = data.choices?.[0]?.message?.content ?? ''
+    // 推論モデルが中身を空で返すことがあるため、空・空白のみのときは案内文にフォールバック
+    const content = raw.trim().length > 0
+      ? raw
+      : '[doubt]うまく答えをまとめきれませんでした。もう一度、少し言い方を変えて聞いてもらえますか？'
 
     return NextResponse.json({ content, searchUsed: needsSearch })
   } catch (error) {

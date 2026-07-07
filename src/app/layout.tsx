@@ -7,6 +7,9 @@ import { SessionMonitor } from '@/components/session-monitor'
 import { NavigationProvider } from '@/contexts/navigation-context'
 import { PwaRegister } from '@/components/pwa-register'
 import { NotificationPrompt } from '@/components/notification-prompt'
+import dynamic from 'next/dynamic'
+
+const ChatBot = dynamic(() => import('@/components/chat-bot').then(m => m.ChatBot), { ssr: false })
 
 const inter = Inter({ subsets: ['latin'] })
 const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron' })
@@ -52,6 +55,7 @@ export default function RootLayout({
             </div>
           </div>
         </NavigationProvider>
+        <ChatBot />
       </body>
     </html>
   )

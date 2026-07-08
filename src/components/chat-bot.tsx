@@ -8,6 +8,13 @@ type Emotion =
   | 'hero_pose' | 'guidance' | 'love' | 'shy' | 'surprised'
   | 'shocked' | 'doubt' | 'sulk' | 'angry' | 'disappointed'
   | 'sneaky_snack' | 'sleep'
+  // 追加キャラクター
+  | 'listening' | 'oops' | 'tada' | 'thumbsup' | 'yawn'
+  | 'alarmedrun' | 'bigvictory' | 'breakdance' | 'clapping' | 'confused'
+  | 'crying' | 'curious' | 'dab' | 'dizzy' | 'dogeza'
+  | 'embarrassed' | 'goofy' | 'laughing' | 'morning_stretch' | 'panicked'
+  | 'politebow' | 'readyfor' | 'relieved' | 'running' | 'salute'
+  | 'slipping' | 'sneaking' | 'thinking' | 'victory' | 'wink_wave'
 
 const EMOTION_FILES: Record<Emotion, string> = {
   normal:       '/characters/SHELA_normal.png',
@@ -27,6 +34,37 @@ const EMOTION_FILES: Record<Emotion, string> = {
   disappointed: '/characters/SHERL_dissapointed.png',
   sneaky_snack: '/characters/SHELA_sneaky_snack.png',
   sleep:        '/characters/SHELA_sleep.png',
+  // 追加キャラクター（大文字/ハイフンを含むファイル名は小文字キーにマッピング）
+  listening:       '/characters/SHELA_Listening.png',
+  oops:            '/characters/SHELA_Oops.png',
+  tada:            '/characters/SHELA_Ta-da.png',
+  thumbsup:        '/characters/SHELA_Thumbsup.png',
+  yawn:            '/characters/SHELA_Yawn.png',
+  alarmedrun:      '/characters/SHELA_alarmedrun.png',
+  bigvictory:      '/characters/SHELA_bigvictory.png',
+  breakdance:      '/characters/SHELA_breakdance.png',
+  clapping:        '/characters/SHELA_clapping.png',
+  confused:        '/characters/SHELA_confused.png',
+  crying:          '/characters/SHELA_crying.png',
+  curious:         '/characters/SHELA_curious.png',
+  dab:             '/characters/SHELA_dab.png',
+  dizzy:           '/characters/SHELA_dizzy.png',
+  dogeza:          '/characters/SHELA_dogeza.png',
+  embarrassed:     '/characters/SHELA_embarressed_crouch.png',
+  goofy:           '/characters/SHELA_goofy.png',
+  laughing:        '/characters/SHELA_laughing.png',
+  morning_stretch: '/characters/SHELA_morning_stretch.png',
+  panicked:        '/characters/SHELA_panicked.png',
+  politebow:       '/characters/SHELA_politebow.png',
+  readyfor:        '/characters/SHELA_readyfor.png',
+  relieved:        '/characters/SHELA_relieved.png',
+  running:         '/characters/SHELA_running.png',
+  salute:          '/characters/SHELA_salute.png',
+  slipping:        '/characters/SHELA_slipping.png',
+  sneaking:        '/characters/SHELA_sneaking.png',
+  thinking:        '/characters/SHELA_thinking.png',
+  victory:         '/characters/SHELA_victory.png',
+  wink_wave:       '/characters/SHELA_wink_wave.png',
 }
 
 interface Message {
@@ -120,6 +158,10 @@ export function ChatBot() {
     const IDLE_POOL: Emotion[] = [
       'normal', 'normal2', 'support', 'proud', 'guidance', 'love',
       'shy', 'surprised', 'sneaky_snack', 'dance', 'hero_pose', 'doubt',
+      // 追加キャラクター（待機中に見せる、明るめ・かわいい系）
+      'listening', 'thumbsup', 'clapping', 'curious', 'wink_wave', 'relieved',
+      'thinking', 'victory', 'goofy', 'readyfor', 'salute', 'tada',
+      'breakdance', 'dab', 'sneaking', 'morning_stretch',
     ]
     const id = setInterval(() => {
       if (loading) return // 生成中は考え中の表情を維持

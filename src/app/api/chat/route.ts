@@ -108,6 +108,7 @@ const CANNED_REPLIES: { test: RegExp; replies: string[]; suggestions?: string[] 
       '[love]どういたしまして！お役に立ててうれしいです！',
       '[shy]いえいえ、これくらい当然です！',
       '[support]どういたしまして！また何でも聞いてくださいね！',
+      '[politebow]恐れ入ります！こちらこそ、ありがとうございます！',
     ],
   },
   {
@@ -134,7 +135,7 @@ const CANNED_REPLIES: { test: RegExp; replies: string[]; suggestions?: string[] 
   {
     test: /^(バイバイ|ばいばい|またね|また明日|じゃあね|さようなら|bye|baibai|matane|mata ?ne|sayounara|jaane)/i,
     replies: [
-      '[support]またね！いつでも呼んでください！',
+      '[wink_wave]またね！いつでも呼んでください！',
       '[normal]また明日！お疲れさまでした！',
     ],
   },
@@ -170,8 +171,8 @@ const CANNED_REPLIES: { test: RegExp; replies: string[]; suggestions?: string[] 
   {
     test: /^(よろしく|宜しく|お願いします|おねがい|yoroshiku|onegai)/i,
     replies: [
-      '[support]こちらこそ、よろしくお願いします！全力でサポートします！',
-      '[normal]よろしくお願いします！何でも聞いてくださいね！',
+      '[salute]こちらこそ、よろしくお願いします！全力でサポートします！',
+      '[politebow]よろしくお願いします！何でも聞いてくださいね！',
     ],
   },
   {
@@ -214,10 +215,10 @@ const CANNED_REPLIES: { test: RegExp; replies: string[]; suggestions?: string[] 
   {
     test: /(うぇーい|うえーい|うぇい|ウェーイ|いえーい|イエーイ|わーい|やったー|やったね|ひゃっほ)/i,
     replies: [
-      '[dance]うぇーい！！ノリノリですね、SHELAも一緒にテンション上げていきます！',
-      '[dance]いえーい！その勢い最高です！今日は良いことありそうですね！',
-      '[proud]ノってますね！その調子でガンガンいきましょう！',
-      '[love]わーい！楽しそうで何よりです、SHELAも嬉しくなっちゃいます！',
+      '[breakdance]うぇーい！！ノリノリですね、SHELAも一緒にテンション上げていきます！',
+      '[victory]いえーい！その勢い最高です！今日は良いことありそうですね！',
+      '[dab]ノってますね！その調子でガンガンいきましょう！',
+      '[clapping]わーい！楽しそうで何よりです、SHELAも嬉しくなっちゃいます！',
     ],
   },
   {
@@ -499,8 +500,37 @@ const SYSTEM_PROMPT = `あなたは外販イベント実績管理アプリ「SHE
 [disappointed] - 悪い結果・残念な数字・うまくいかなかったとき
 [sneaky_snack] - 雑談・暇話・のんびりトークのとき
 [sleep] - 眠そうなとき・ぼんやりしているとき
+[thumbsup] - いいね・OK・賛成・グッジョブのとき
+[clapping] - 拍手・称賛・よくやったと伝えるとき
+[victory] - 目標達成・勝ち・やったねのとき
+[bigvictory] - 特大の成果・記録更新・大勝利のとき
+[laughing] - 笑い・面白い話・楽しいとき
+[curious] - 興味しんしん・気になるとき
+[thinking] - 考え中・じっくり検討するとき
+[listening] - 相手の話を聞くとき・相談を受けるとき
+[relieved] - ほっとしたとき・安心したとき
+[readyfor] - やる気・これから頑張るとき・準備OKのとき
+[salute] - 了解・お任せください・敬礼のとき
+[politebow] - お礼・丁寧なお願い・恐縮するとき
+[wink_wave] - あいさつ・ウインク・またねのとき
+[tada] - 発表・ジャジャーン・お披露目のとき
+[morning_stretch] - 朝・起き抜け・伸びをするとき
+[yawn] - あくび・眠いけど起きているとき
+[goofy] - おどけ・冗談・ゆるい雑談のとき
+[dab] - ノリノリ・キメるとき
+[breakdance] - 大はしゃぎ・テンションMAXのとき
+[running] - 急ぐ・すぐ確認しますと動くとき
+[oops] - 軽い失敗・うっかり・すみませんのとき
+[confused] - 混乱・よく分からないとき
+[dizzy] - 情報過多でくらくら・お手上げのとき
+[crying] - 悲しい・とても残念なとき
+[panicked] - 焦り・大変なことに気づいたとき
+[dogeza] - 深く謝るとき・平謝りのとき
+[embarrassed] - 恥ずかしい・照れて縮こまるとき
+[slipping] - しくじり・ずっこけ・そそっかしいとき
+[sneaking] - こっそり・内緒話・いたずらっぽいとき
 
-返答は日本語で、簡潔かつ的確に。`
+返答は日本語で、簡潔かつ的確に。基本は[normal2]を使い、場面に合う時だけ上記の表情を選ぶこと。`
 
 export async function POST(request: NextRequest) {
   try {

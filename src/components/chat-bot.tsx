@@ -124,7 +124,7 @@ export function ChatBot() {
     const id = setInterval(() => {
       if (loading) return // 生成中は考え中の表情を維持
       const idleFor = Date.now() - lastActivityRef.current
-      if (idleFor < 2500) return // 直後は返答の表情を保持
+      if (idleFor < 6000) return // 直後は返答の表情を保持
       if (idleFor > 90000) { setEmotion('sleep'); return } // 長時間放置で居眠り
       setEmotion(prev => {
         let next = prev
@@ -133,7 +133,7 @@ export function ChatBot() {
         }
         return next
       })
-    }, 2500)
+    }, 6000)
     return () => clearInterval(id)
   }, [isOpen, loading])
 

@@ -25,6 +25,8 @@ export async function GET(
         id,
         venue,
         agency_name,
+        agency_tier,
+        event_type,
         start_date,
         end_date,
         year,

@@ -7,6 +7,12 @@ import { MagneticDots } from '@/components/MagneticDots'
 import { getSharedList, addToSharedList, updateSharedListItem, deleteFromSharedList, migrateLocalStorageToSupabase } from '@/lib/supabase/shared-lists'
 import { registerSession, cleanupOldSessions } from '@/lib/supabase/sessions'
 
+// 新規ユーザー登録・自由入力ログインのロック。
+// true の間は、既存の登録済みユーザー（user_names テーブルにある名前）しかログインできず、
+// 新規ユーザーの追加・自由入力でのログインを一切受け付けない。
+// 解除する場合は false に戻す。（管理者ログインはこの設定の影響を受けない）
+const REGISTRATION_LOCKED = true
+
 export default function LoginPage() {
   const router = useRouter()
   const [selectedRole, setSelectedRole] = useState<'user' | 'admin' | null>(null)
@@ -99,8 +105,12 @@ export default function LoginPage() {
   // Supabaseからユーザーリストを読み込み
   const loadUserList = async () => {
     try {
-      // まずlocalStorageから移行（初回のみ）
-      await migrateLocalStorageToSupabase('user_names', 'userList')
+      // ロック中はlocalStorageからの移行を行わない
+      // （古い端末に残ったリストから削除済みユーザーが復活するのを防ぐ）
+      if (!REGISTRATION_LOCKED) {
+        // まずlocalStorageから移行（初回のみ）
+        await migrateLocalStorageToSupabase('user_names', 'userList')
+      }
 
       // Supabaseから取得
       const names = await getSharedList('user_names')
@@ -130,6 +140,12 @@ export default function LoginPage() {
 
   const handleUserSelect = async (userName: string) => {
     try {
+      // ロック中は既存の登録済みユーザー以外のログインを拒否
+      if (REGISTRATION_LOCKED && !userList.includes(userName)) {
+        setAuthError('現在、新規ユーザーの登録・ログインは停止しています')
+        return
+      }
+
       // 古いセッションをクリーンアップ
       await cleanupOldSessions()
 
@@ -158,6 +174,10 @@ export default function LoginPage() {
   }
 
   const handleAddUser = async () => {
+    if (REGISTRATION_LOCKED) {
+      setAuthError('現在、新規ユーザーの登録は停止しています')
+      return
+    }
     if (newUserName.trim()) {
       try {
         await addToSharedList('user_names', newUserName.trim())
@@ -227,7 +247,9 @@ export default function LoginPage() {
             </div>
             <h2 className="text-2xl font-bold text-center mb-2" style={{ color: '#22211A' }}>ユーザー選択</h2>
             <p className="text-sm text-center mb-6" style={{ color: '#22211A', opacity: 0.7 }}>
-              ユーザー名を入力、または既存のユーザーを選択してください
+              {REGISTRATION_LOCKED
+                ? '登録済みのユーザーを選択してください'
+                : 'ユーザー名を入力、または既存のユーザーを選択してください'}
             </p>
 
             {/* エラーメッセージ */}
@@ -237,44 +259,48 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* ユーザー名入力フィールド */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2" style={{ color: '#22211A' }}>
-                ユーザー名を入力
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={inputUserName}
-                  onChange={(e) => setInputUserName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && inputUserName.trim()) {
-                      handleUserSelect(inputUserName.trim())
-                    }
-                  }}
-                  className="flex-1 px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2"
-                  style={{ borderColor: '#22211A', color: '#22211A' }}
-                  placeholder="ユーザー名を入力..."
-                />
-                <button
-                  onClick={() => inputUserName.trim() && handleUserSelect(inputUserName.trim())}
-                  disabled={!inputUserName.trim()}
-                  className="px-6 py-3 rounded-lg font-bold transition-all hover:opacity-90 disabled:opacity-50"
-                  style={{ backgroundColor: '#4abf79', color: '#FFFFFF' }}
-                >
-                  ログイン
-                </button>
-              </div>
-            </div>
+            {/* ユーザー名入力フィールド（ロック中は非表示） */}
+            {!REGISTRATION_LOCKED && (
+              <>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#22211A' }}>
+                    ユーザー名を入力
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={inputUserName}
+                      onChange={(e) => setInputUserName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && inputUserName.trim()) {
+                          handleUserSelect(inputUserName.trim())
+                        }
+                      }}
+                      className="flex-1 px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2"
+                      style={{ borderColor: '#22211A', color: '#22211A' }}
+                      placeholder="ユーザー名を入力..."
+                    />
+                    <button
+                      onClick={() => inputUserName.trim() && handleUserSelect(inputUserName.trim())}
+                      disabled={!inputUserName.trim()}
+                      className="px-6 py-3 rounded-lg font-bold transition-all hover:opacity-90 disabled:opacity-50"
+                      style={{ backgroundColor: '#4abf79', color: '#FFFFFF' }}
+                    >
+                      ログイン
+                    </button>
+                  </div>
+                </div>
 
-            <div className="relative mb-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t" style={{ borderColor: '#22211A', opacity: 0.2 }}></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white" style={{ color: '#22211A', opacity: 0.7 }}>または既存のユーザーを選択</span>
-              </div>
-            </div>
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t" style={{ borderColor: '#22211A', opacity: 0.2 }}></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white" style={{ color: '#22211A', opacity: 0.7 }}>または既存のユーザーを選択</span>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="space-y-2 mb-4 max-h-60 overflow-y-auto">
               {userList.map((userName) => (
@@ -317,67 +343,73 @@ export default function LoginPage() {
                       >
                         {userName}
                       </button>
-                      <button
-                        onClick={() => {
-                          setEditingUser(userName)
-                          setEditUserName(userName)
-                        }}
-                        className="p-2 rounded-lg hover:opacity-80"
-                        style={{ backgroundColor: '#FFB300', color: '#FFFFFF' }}
-                      >
-                        <Edit2 className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(userName)}
-                        className="p-2 rounded-lg hover:opacity-80"
-                        style={{ backgroundColor: '#ff4444', color: '#FFFFFF' }}
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      {!REGISTRATION_LOCKED && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setEditingUser(userName)
+                              setEditUserName(userName)
+                            }}
+                            className="p-2 rounded-lg hover:opacity-80"
+                            style={{ backgroundColor: '#FFB300', color: '#FFFFFF' }}
+                          >
+                            <Edit2 className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(userName)}
+                            className="p-2 rounded-lg hover:opacity-80"
+                            style={{ backgroundColor: '#ff4444', color: '#FFFFFF' }}
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
               ))}
 
-              {isAddingUser ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={newUserName}
-                    onChange={(e) => setNewUserName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddUser()}
-                    className="flex-1 px-4 py-2 rounded-lg border-2 focus:outline-none"
+              {!REGISTRATION_LOCKED && (
+                isAddingUser ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddUser()}
+                      className="flex-1 px-4 py-2 rounded-lg border-2 focus:outline-none"
+                      style={{ borderColor: '#22211A', color: '#22211A' }}
+                      placeholder="新しいユーザー名"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleAddUser}
+                      className="p-2 rounded-lg hover:opacity-80"
+                      style={{ backgroundColor: '#4abf79', color: '#FFFFFF' }}
+                    >
+                      <Check className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsAddingUser(false)
+                        setNewUserName('')
+                      }}
+                      className="p-2 rounded-lg hover:opacity-80"
+                      style={{ backgroundColor: '#9E9E9E', color: '#FFFFFF' }}
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsAddingUser(true)}
+                    className="w-full py-3 rounded-lg font-bold transition-all hover:opacity-90 flex items-center justify-center gap-2 border-2 border-dashed"
                     style={{ borderColor: '#22211A', color: '#22211A' }}
-                    placeholder="新しいユーザー名"
-                    autoFocus
-                  />
-                  <button
-                    onClick={handleAddUser}
-                    className="p-2 rounded-lg hover:opacity-80"
-                    style={{ backgroundColor: '#4abf79', color: '#FFFFFF' }}
                   >
-                    <Check className="w-5 h-5" />
+                    <Plus className="w-5 h-5" />
+                    新しいユーザーを追加
                   </button>
-                  <button
-                    onClick={() => {
-                      setIsAddingUser(false)
-                      setNewUserName('')
-                    }}
-                    className="p-2 rounded-lg hover:opacity-80"
-                    style={{ backgroundColor: '#9E9E9E', color: '#FFFFFF' }}
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setIsAddingUser(true)}
-                  className="w-full py-3 rounded-lg font-bold transition-all hover:opacity-90 flex items-center justify-center gap-2 border-2 border-dashed"
-                  style={{ borderColor: '#22211A', color: '#22211A' }}
-                >
-                  <Plus className="w-5 h-5" />
-                  新しいユーザーを追加
-                </button>
+                )
               )}
             </div>
 

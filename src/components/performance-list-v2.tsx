@@ -9,6 +9,7 @@ import { Calendar, MapPin, Users, TrendingUp, CheckCircle, XCircle, Search, Filt
 import { LoadingAnimation } from '@/components/loading-animation'
 import { generatePDFPreview, EventDataForPDF, PDFPreviewData } from '@/lib/pdf-export'
 import { PDFPreviewModal } from '@/components/pdf-preview-modal'
+import { isEventViewable } from '@/lib/user-access'
 
 interface EventSummary {
   id: string
@@ -189,7 +190,9 @@ export function PerformanceListV2() {
 
         if (response.ok && !cancelled) {
           const data = await response.json()
-          setEvents(data || [])
+          // 一般ユーザー(三浦)は指定年月のデータのみ閲覧可
+          const visible = (data || []).filter((e: EventSummary) => isEventViewable(e.year, e.month))
+          setEvents(visible)
         }
       } catch (error) {
         if (!cancelled) {

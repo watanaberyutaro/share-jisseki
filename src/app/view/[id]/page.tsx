@@ -17,6 +17,7 @@ import {
   getFilterDisplayName
 } from '@/lib/staff-filter'
 import { IdScoreSummary } from '@/components/id-score-summary'
+import { isEventViewable } from '@/lib/user-access'
 
 interface EventDetail {
   id: string
@@ -164,6 +165,11 @@ export default function EventDetailPage() {
       })
       if (response.ok) {
         const data = await response.json()
+        // 一般ユーザー(三浦)は閲覧可能な年月のイベント以外は表示させない
+        if (!isEventViewable(data?.year, data?.month)) {
+          router.replace('/view')
+          return
+        }
         setEvent(data)
       } else {
         console.error('Failed to fetch event detail')
@@ -173,7 +179,7 @@ export default function EventDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [eventId])
+  }, [eventId, router])
 
   useEffect(() => {
     if (eventId) {

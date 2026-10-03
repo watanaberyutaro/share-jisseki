@@ -4,6 +4,7 @@ import './globals.css'
 import { ConditionalNavigation } from '@/components/conditional-navigation'
 import { ConditionalHeader } from '@/components/conditional-header'
 import { SessionMonitor } from '@/components/session-monitor'
+import { UserAccessGuard } from '@/components/user-access-guard'
 import { NavigationProvider } from '@/contexts/navigation-context'
 import { PwaRegister } from '@/components/pwa-register'
 import { NotificationPrompt } from '@/components/notification-prompt'
@@ -45,6 +46,7 @@ export default function RootLayout({
         <NotificationPrompt />
         <NavigationProvider>
           <SessionMonitor />
+          <UserAccessGuard />
           <div className="flex min-h-screen">
             <ConditionalNavigation />
             <div className="flex flex-col flex-1">

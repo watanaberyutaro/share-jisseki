@@ -29,6 +29,10 @@ export function Navigation() {
     { name: '管理者', shortName: '管理者', href: '/admin', icon: Shield, requireAdmin: true },
   ]
 
+  // 一般ユーザー(三浦)は閲覧メニューのみ表示（管理者は全メニュー）
+  const visibleItems =
+    userRole === 'user' ? navigationItems.filter((item) => item.href === '/view') : navigationItems
+
   const handleNavClick = (e: React.MouseEvent, item: typeof navigationItems[0]) => {
     if (item.requireAdmin && userRole !== 'admin') {
       e.preventDefault()
@@ -84,7 +88,7 @@ export function Navigation() {
         {/* Navigation Items */}
         <div className="flex-1 overflow-y-auto pt-8 pb-4">
           <div className="space-y-1">
-            {navigationItems.map((item) => {
+            {visibleItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
               const isDisabled = item.requireAdmin && userRole !== 'admin'
@@ -148,7 +152,7 @@ export function Navigation() {
       {/* モバイル用ボトムナビゲーション */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t" style={{ backgroundColor: '#22211A', borderTopColor: '#DCEDC8' }}>
         <div className="flex justify-around items-center h-16">
-          {navigationItems.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             const isDisabled = item.requireAdmin && userRole !== 'admin'

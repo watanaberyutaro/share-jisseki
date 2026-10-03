@@ -166,7 +166,8 @@ export default function LoginPage() {
 
       localStorage.setItem('userRole', 'user')
       localStorage.setItem('userName', userName)
-      router.push('/')
+      // 一般ユーザーはログイン後すぐ閲覧ページへ
+      router.push('/view')
     } catch (error) {
       console.error('Error selecting user:', error)
       setAuthError('ログインに失敗しました。もう一度お試しください。')
